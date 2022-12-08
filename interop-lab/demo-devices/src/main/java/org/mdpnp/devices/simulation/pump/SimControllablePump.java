@@ -34,7 +34,6 @@ import ice.ConnectionState;
 import ice.InfusionProgramDataReader;
 import ice.Numeric;
 
-
 /**
  * A simulated pump for which the speed can be controlled.  Designed to be
  * used as part of the closed loop control demo application, so that that app
