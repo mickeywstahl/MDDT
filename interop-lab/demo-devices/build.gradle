@@ -31,7 +31,6 @@ dependencies {
   implementation project(':devices:simulated')
   implementation project(':devices:ge');
   implementation project(':data-types:x73-idl-rti-dds')
-<<<<<<< HEAD
   implementation files('../../artifacts/nddsjava.jar')
 
   implementation group: 'ca.uhn.hapi.fhir',    name: 'hapi-fhir-base',             version: '6.1.3'
