@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.geometry.Insets?>
+
+ <VBox spacing="2" fx:id="main" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mdpnp.apps.testapp.alaris.AlarisSimulatorApplication">
+   <children>
+
+    
+    <TextArea prefRowCount="25" prefColumnCount="330" fx:id="loggingArea"/>
+    
+    
+    
+  </children>
+</VBox>

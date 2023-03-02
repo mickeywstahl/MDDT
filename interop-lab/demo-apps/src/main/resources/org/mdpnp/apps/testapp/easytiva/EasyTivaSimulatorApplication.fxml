@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.geometry.Insets?>
+
+ <VBox spacing="2" fx:id="main" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mdpnp.apps.testapp.easytiva.EasyTivaSimulatorApplication">
+   <children>
+     <HBox>
+       <children>
+          <Label text="Remifentanil File"/>
+          <TextField fx:id="rFileField" prefColumnCount="30"/>
+          <Button fx:id="RFileChooser" text="Remifentanil File" onAction="#chooseRFile"/>
+          <Label text="COM port"/>
+          <ComboBox fx:id="rSerialPortsCombo" promptText="choose"/>
+       </children>
+     </HBox>
+     <HBox>
+       <children>
+          <Label text="Propofol File"/>
+          <TextField fx:id="pFileField" prefColumnCount="30"/>
+          <Button fx:id="PFileChooser" text="Propofol File" onAction="#choosePFile"/>
+          <Label text="COM port"/>
+          <ComboBox fx:id="pSerialPortsCombo" promptText="choose"/>
+       </children>
+     </HBox>
+     <HBox>
+       <children>
+          <Button fx:id="runButton" text="Run" onAction="#runEasyTiva"/>
+          <Button fx:id="StopButton" text="Stop" onAction="#stopEasyTiva"/>
+      </children>
+    </HBox>
+    
+    <!--Noise holders-->
+    <!--
+    <HBox spacing="5">
+      <children>
+        <GridPane style="-fx-border-style: solid">
+          <children>
+            <Label GridPane.columnIndex="0" GridPane.rowIndex="0">BIS Noise</Label>
+            <Label GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">Gaussian Distribution (Mean 0)</Label>
+            <CheckBox fx:id="bisNoiseEnabled" text="Enabled" GridPane.columnIndex="2" GridPane.rowIndex="1" GridPane.halignment="RIGHT"/>
+          	<Label GridPane.columnIndex="1" GridPane.rowIndex="2">Amplitude</Label>
+          	<TextField fx:id="bisNoiseAmplitude" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+            <Label GridPane.columnIndex="1" GridPane.rowIndex="3">Standard Deviation</Label>
+          	<TextField fx:id="bisNoiseStdDev" GridPane.columnIndex="2" GridPane.rowIndex="3"/>
+          </children>
+        </GridPane>
+        <GridPane style="-fx-border-style: solid">
+          <children>
+            <Label GridPane.columnIndex="0" GridPane.rowIndex="0">EMG Noise</Label>
+            <Label GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">Gaussian Distribution (Mean 0)</Label>
+            <CheckBox fx:id="emgNoiseEnabled" text="Enabled" GridPane.columnIndex="2" GridPane.rowIndex="1" GridPane.halignment="RIGHT"/>
+          	<Label GridPane.columnIndex="1" GridPane.rowIndex="2">Amplitude</Label>
+          	<TextField fx:id="emgNoiseAmplitude" GridPane.columnIndex="2" GridPane.rowIndex="2"/>
+            <Label GridPane.columnIndex="1" GridPane.rowIndex="3">Standard Deviation</Label>
+          	<TextField fx:id="emgNoiseStdDev" GridPane.columnIndex="2" GridPane.rowIndex="3"/>
+          </children>
+        </GridPane>
+      </children>
+    </HBox>
+    -->
+    
+    <TextArea prefRowCount="25" prefColumnCount="330" fx:id="loggingArea"/>
+    
+    <!--
+    <HBox>
+	  <children>
+          <Label text="Channel  1 BIS "/>
+          <Label fx:id="bis1"/>
+      </children>
+    </HBox>
+    
+    <HBox>
+	  <children>
+          <Label text="Channel  2 BIS "/>
+          <Label fx:id="bis2"/>
+      </children>
+    </HBox>
+    
+    <HBox>
+	  <children>
+          <Label text="Channel 12 BIS "/>
+          <Label fx:id="bis12"/>
+      </children>
+    </HBox>
+    -->
+    
+    
+  </children>
+</VBox>

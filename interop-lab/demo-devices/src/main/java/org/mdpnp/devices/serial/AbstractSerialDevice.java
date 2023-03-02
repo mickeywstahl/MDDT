@@ -423,4 +423,8 @@ public abstract class AbstractSerialDevice extends AbstractConnectedDevice {
     protected String getPortIdentifier() {
         return portIdentifier[0];
     }
+
+    protected String getPortIdentifier(int idx) {
+    	return portIdentifier[idx];
+    }
 }

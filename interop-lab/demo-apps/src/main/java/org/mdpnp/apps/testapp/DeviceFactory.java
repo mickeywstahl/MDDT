@@ -15,6 +15,9 @@ package org.mdpnp.apps.testapp;
 import org.mdpnp.devices.AbstractDevice;
 import org.mdpnp.devices.DeviceDriverProvider;
 import org.mdpnp.devices.DeviceDriverProvider.SpringLoadedDriver;
+import org.mdpnp.devices.alaris.Asena;
+import org.mdpnp.devices.alaris.AlarisMITM;
+import org.mdpnp.devices.alaris.MITM2;
 import org.mdpnp.devices.cpc.bernoulli.DemoBernoulli;
 import org.mdpnp.devices.denver.mseries.MSeriesScale;
 import org.mdpnp.devices.draeger.medibus.*;
@@ -23,6 +26,9 @@ import org.mdpnp.devices.ge.serial.DemoGESerial;
 import org.mdpnp.devices.hospira.symbiq.DemoSymbiq;
 import org.mdpnp.devices.ivy._450c.DemoIvy450C;
 import org.mdpnp.devices.masimo.radical.DemoRadical7;
+import org.mdpnp.devices.medsteer.bis.BisMITM;
+import org.mdpnp.devices.medsteer.bis.BisMonitor;
+import org.mdpnp.devices.medsteer.bis.BisSimulator;
 import org.mdpnp.devices.nellcor.pulseox.DemoN595;
 import org.mdpnp.devices.nihon.koden.NKV550;
 import org.mdpnp.devices.nonin.pulseox.DemoNoninPulseOx;
@@ -413,6 +419,22 @@ public class DeviceFactory {
         }
     }
 
+    public static class AlarisSerialProvider extends SpringLoadedDriver {
+
+        @Override
+        public DeviceType getDeviceType(){
+            return new DeviceType(ice.ConnectionType.Serial, "Alaris", "Asena", "AlarisPump", 1);
+        }
+
+        @Override
+        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+            EventLoop eventLoop = context.getBean("eventLoop", EventLoop.class);
+            Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+            Publisher publisher = context.getBean("publisher", Publisher.class);
+            return new Asena(subscriber, publisher, eventLoop);
+        }
+    }
+
     public static class Capnostream20Provider extends SpringLoadedDriver {
 
         @Override
@@ -673,6 +695,86 @@ public class DeviceFactory {
                 Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
                 Publisher publisher = context.getBean("publisher", Publisher.class);
                 return new NKV550(subscriber, publisher, eventLoop);
+        }
+    }
+
+    public static class BisMonitorProvider extends SpringLoadedDriver {
+
+    	@Override
+        public DeviceType getDeviceType() {
+                return new DeviceType(ice.ConnectionType.Serial,"Medtronic", "BIS Monitor", "BISMON", 1);
+        }
+
+        @Override
+        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+                EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+                Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+                Publisher publisher = context.getBean("publisher", Publisher.class);
+                return new BisMonitor(subscriber, publisher, eventLoop);
+        }
+    }
+    
+    public static class SimulatedBisMonitorProvider extends SpringLoadedDriver {
+
+    	@Override
+        public DeviceType getDeviceType() {
+                return new DeviceType(ice.ConnectionType.Serial,"ICE", "Simulated BIS Monitor", "SIMBISMON", 1);
+        }
+
+        @Override
+        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+                EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+                Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+                Publisher publisher = context.getBean("publisher", Publisher.class);
+                return new BisSimulator(subscriber, publisher, eventLoop);
+        }
+    }
+    
+    public static class MITMBisMonitorProvider extends SpringLoadedDriver {
+
+    	@Override
+        public DeviceType getDeviceType() {
+                return new DeviceType(ice.ConnectionType.Serial,"ICE", "MITM BIS Monitor", "MITMBISMON", 2);
+        }
+
+        @Override
+        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+                EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+                Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+                Publisher publisher = context.getBean("publisher", Publisher.class);
+                return new BisMITM(subscriber, publisher, eventLoop);
+        }
+    }
+    
+    public static class MITMAlarisProvider extends SpringLoadedDriver {
+
+    	@Override
+        public DeviceType getDeviceType() {
+                return new DeviceType(ice.ConnectionType.Serial,"ICE", "MITM AlarisGH Pump", "MITMALARIS", 2);
+        }
+
+        @Override
+        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+                EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+                Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+                Publisher publisher = context.getBean("publisher", Publisher.class);
+                return new AlarisMITM(subscriber, publisher, eventLoop);
+        }
+    }
+    
+    public static class AlarisEasyTivaMITM extends SpringLoadedDriver {
+
+    	@Override
+        public DeviceType getDeviceType() {
+                return new DeviceType(ice.ConnectionType.Serial,"ICE", "ET MITM Alaris", "MITMALARIS2", 2);
+        }
+
+        @Override
+        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+                EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+                Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+                Publisher publisher = context.getBean("publisher", Publisher.class);
+                return new MITM2(subscriber, publisher, eventLoop);
         }
     }
 

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.geometry.Insets?>
+
+ <VBox spacing="2" fx:id="main" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mdpnp.apps.testapp.alaris.SingleSimAlaris">
+   <children>
+     <HBox>
+	  <children>
+          <Label text="Alaris COM port"/>
+          <ComboBox fx:id="serialPortsCombo" promptText="choose"/>
+      </children>
+    </HBox>
+    
+    <HBox>
+      <children>
+        <Label text="Pump Serial #:"/>
+        <ComboBox fx:id="serialNumCombo" promptText="choose"/>
+      </children>
+    </HBox>
+    
+    <HBox>
+	  <children>
+          <Label text="Response Delay (ms):"/>
+          <TextField fx:id="responseDelayField" prefColumnCount="5"/>
+      </children>
+    </HBox>
+    
+    <HBox>
+	  <children>
+          <Label text="Ramping Speed (ml/hr/s):"/>
+          <TextField fx:id="rampingSpeedField" prefColumnCount="5"/>
+      </children>
+    </HBox>
+    
+    <!--Noise holders-->
+    <HBox spacing="5">
+      <children>
+        <GridPane style="-fx-border-style: solid">
+          <children>
+            <Label GridPane.columnIndex="0" GridPane.rowIndex="0">Infusion Accuracy</Label>
+            <Label GridPane.columnIndex="0" GridPane.rowIndex="1" GridPane.columnSpan="2">Normal Distribution (Mean 0)</Label>
+            <CheckBox fx:id="infAccEnabled" text="Enabled" GridPane.columnIndex="2" GridPane.rowIndex="1" GridPane.halignment="RIGHT"/>
+          	<Label GridPane.columnIndex="1" GridPane.rowIndex="2">Amplitude (ml/hr)</Label>
+          	<TextField fx:id="infAccAmplitude" GridPane.columnIndex="2" GridPane.rowIndex="2" prefColumnCount="5"/>
+            <Label GridPane.columnIndex="1" GridPane.rowIndex="3">Standard Deviation</Label>
+          	<TextField fx:id="infAccStdDev" GridPane.columnIndex="2" GridPane.rowIndex="3" prefColumnCount="5"/>
+          </children>
+        </GridPane>
+      </children>
+    </HBox>
+    
+    <HBox alignment="CENTER_RIGHT">
+      <children>
+        <CheckBox fx:id="logExecution" text="Log Execution"/>
+        <Button fx:id="startButton" text="Start" onAction="#runAlaris"/>
+        <Button fx:id="startButton" text="Stop" onAction="#stopAlaris"/>
+      </children>
+    </HBox>
+    
+    
+  </children>
+</VBox>
