@@ -199,6 +199,7 @@ public class DemoPanel {
                                 String udiToKill=d.getUniqueDeviceIdentifier();
                                 super.stop();
                                 context.close();
+                                context.destroy();
                                 try {
                                     Connection c=SQLLogging.getConnection();
                                     PreparedStatement ps=c.prepareStatement("UPDATE devices SET destroyed=? WHERE udi=? AND destroyed IS NULL");
@@ -283,6 +284,26 @@ public class DemoPanel {
             final Configuration c = CreateAdapter.showDialog(subscriber.get_participant().get_domain_id());
             if(null != c) {
                createDeviceFromConfiguration(c, subscriber); 
+            } else {
+            	System.err.println("c is null outer");
+            }
+            
+        } catch (IOException e) {
+            log.error("Error getting configuration", e);
+        }
+    }
+    
+    @FXML
+    public void createMultipleAdapters(ActionEvent evt) {
+        try {
+            final Subscriber subscriber = partitionChooserModel.getSubscriber();
+            //It doesn't work as well having showMultiDialog as static, so create an instance
+            CreateMultiAdapters cma=new CreateMultiAdapters();
+            final ArrayList<Configuration> configs = cma.showMultiDialog(subscriber.get_participant().get_domain_id());
+            if(null != configs) {
+            	for(Configuration c : configs) {
+	                createDeviceFromConfiguration(c, subscriber);
+            	}
             } else {
             	System.err.println("c is null outer");
             }
