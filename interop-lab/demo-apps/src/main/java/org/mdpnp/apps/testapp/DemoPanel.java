@@ -177,7 +177,7 @@ public class DemoPanel {
                 
                 if (null != c) {
                     if(c.getDeviceFactory().getDeviceType().getConnectionType()==ConnectionType.Serial && SerialProviderFactory.getDefaultProvider() instanceof TCPSerialProvider) {
-						//Adding serial device after network device.  Reset default provider
+			//Adding serial device after network device.  Reset default provider
                         SerialProviderFactory.setDefaultProvider(new PureJavaCommSerialProvider());
                     }
                     SubscriberQos qos = new SubscriberQos();
@@ -303,6 +303,7 @@ public class DemoPanel {
             if(null != configs) {
             	for(Configuration c : configs) {
 	                createDeviceFromConfiguration(c, subscriber);
+	                Thread.sleep(1000);
             	}
             } else {
             	System.err.println("c is null outer");
@@ -310,6 +311,8 @@ public class DemoPanel {
             
         } catch (IOException e) {
             log.error("Error getting configuration", e);
+        } catch (InterruptedException ie) {
+
         }
     }
     
