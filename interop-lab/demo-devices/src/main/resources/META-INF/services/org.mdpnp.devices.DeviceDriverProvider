@@ -39,5 +39,5 @@ org.mdpnp.apps.testapp.DeviceFactory$NKV550Provider
 org.mdpnp.apps.testapp.DeviceFactory$BisMonitorProvider
 org.mdpnp.apps.testapp.DeviceFactory$SimulatedBisMonitorProvider
 org.mdpnp.apps.testapp.DeviceFactory$MITMBisMonitorProvider
-org.mdpnp.apps.testapp.DeviceFactory$AlarisEasyTivaMITM
+org.mdpnp.apps.testapp.DeviceFactory$SapphirePumpProvider
 org.mdpnp.apps.testapp.DeviceFactory$AP4000Provider

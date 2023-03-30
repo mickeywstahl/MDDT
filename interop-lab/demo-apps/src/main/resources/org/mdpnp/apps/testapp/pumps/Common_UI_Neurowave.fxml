@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox fx:id="veryTop" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefWidth="800.0" spacing="1" style="-fx-border-style: solid" xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/19" fx:controller="org.mdpnp.apps.testapp.pumps.AP4000Controller">
+   <children>
+      <HBox prefHeight="25.0" prefWidth="800.0">
+         <children>
+            <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="400.0">
+               <children>
+                  <Label fx:id="pumpUDILabel" text="Pump UDI:   " />
+               </children></HBox>
+            <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="400.0">
+               <children>
+                  <Label text="-- Patient Demographics --" />
+               </children>
+            </HBox>
+         </children>
+      </HBox>
+      <HBox prefHeight="25.0" prefWidth="800.0">
+         <children>
+            <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="200.0">
+               <children>
+                  <Label fx:id="pumpSerialLabel">Pump Serial #: </Label>
+               </children>
+            </HBox>
+            <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="200.0">
+               <children>
+                  <Label fx:id="modelLabel" text="Model:" />
+               </children>
+            </HBox>
+            <HBox alignment="TOP_RIGHT" prefHeight="25.0" prefWidth="400.0">
+               <HBox.margin>
+                  <Insets />
+               </HBox.margin>
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+               <children>
+                  <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="125.0">
+                     <children>
+                        <Label fx:id="weightLabel" text="Weight (kg): " />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="125.0">
+                     <children>
+                        <Label fx:id="heightLabel" text="Height (cm): " />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="75.0">
+                     <children>
+                        <Label fx:id="ageLabel" text="Age: " />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="75.0">
+                     <children>
+                        <Label fx:id="asaLabel" text="ASA: " />
+                     </children>
+                  </HBox>
+               </children>
+            </HBox>
+         </children>
+      </HBox>
+      <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="800.0">
+         <children>
+            <Label fx:id="alarmLabel" text="Alarm Status: " />
+         </children>
+      </HBox>
+      <HBox prefHeight="10.0" prefWidth="600.0" />
+      
+   </children>
+
+</VBox>

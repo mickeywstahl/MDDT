@@ -111,6 +111,8 @@ public class VentControl {
 	 */
 	@FXML Button setParamButton;
 	
+	@FXML Button testScenarioButton;
+	
 	private Button[][] modeButtons;
 	
 	@FXML
@@ -534,6 +536,79 @@ public class VentControl {
 	/**
 	 * Set the specified parameter
 	 */
+	public void setScenario() {
+		//The user data tells us what param to set in the objective.
+//		String paramToSet=(String)setParamButton.getUserData();
+//		ice.KeyValueObjective obj=new ice.KeyValueObjective();
+//		System.err.println("************"+ paramToSet +" = " + Float.parseFloat(numericTextInput.getText()) +  "************");
+//		obj.paramName=paramToSet;
+//		obj.unique_device_identifier=devicesCombo.getSelectionModel().getSelectedItem().getUDI();
+//		obj.newValue=Float.parseFloat(numericTextInput.getText());
+//		keyValueWriter.write(obj, InstanceHandle_t.HANDLE_NIL);
+		
+		
+		int newMode= (int) 11;
+		ice.VentModeObjective objective=new ice.VentModeObjective();
+		objective.newMode=newMode;
+		objective.requestor="App";
+		String udi=devicesCombo.getSelectionModel().getSelectedItem().getUDI();
+		objective.unique_device_identifier=udi;
+		ventModeWriter.write(objective, InstanceHandle_t.HANDLE_NIL);
+		
+		
+//		// Scenario 1
+//		String setting = "inspiratoryTimeSet"; // RR- respiratoryRateSetting; Ti -inspiratoryTimeSetting
+//		ice.KeyValueObjective obj=new ice.KeyValueObjective();
+//		Float value = (float) 1.2;
+//		
+//		for (int i =0; i<2;i++) {
+//			
+//			value = (float) 1.2;
+//			obj.paramName=setting;
+//			obj.unique_device_identifier=devicesCombo.getSelectionModel().getSelectedItem().getUDI();
+//			obj.newValue=value;
+//			keyValueWriter.write(obj, InstanceHandle_t.HANDLE_NIL);
+//			System.err.println("******  First set");
+//			
+//			try {
+//				Thread.sleep(2000L);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
+//			
+//			value = (float) 1.5;
+//			obj.paramName=setting;
+//			obj.unique_device_identifier=devicesCombo.getSelectionModel().getSelectedItem().getUDI();
+//			obj.newValue=value;
+//			keyValueWriter.write(obj, InstanceHandle_t.HANDLE_NIL);
+//			System.err.println("******  Second set");
+//			
+//			try {
+//				Thread.sleep(2000L);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
+//		}
+		
+		
+//		obj.paramName=setting;
+//		obj.unique_device_identifier=devicesCombo.getSelectionModel().getSelectedItem().getUDI();
+//		obj.newValue=value;
+//		keyValueWriter.write(obj, InstanceHandle_t.HANDLE_NIL);
+//		
+//		try {
+//			Thread.sleep(2000L);
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		value = (float) 1.2;
+//		obj.paramName=setting;
+//		obj.unique_device_identifier=devicesCombo.getSelectionModel().getSelectedItem().getUDI();
+//		obj.newValue=value;
+//		keyValueWriter.write(obj, InstanceHandle_t.HANDLE_NIL);
+	}
+	
 	public void setParam() {
 		//The user data tells us what param to set in the objective.
 		String paramToSet=(String)setParamButton.getUserData();

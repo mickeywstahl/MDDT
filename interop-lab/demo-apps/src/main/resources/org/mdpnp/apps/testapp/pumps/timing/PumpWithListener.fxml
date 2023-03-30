@@ -7,7 +7,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.geometry.Insets?>
 
- <HBox spacing="2" fx:id="main" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mdpnp.apps.testapp.pumps.timing.PumpWithListener">
+ <HBox spacing="2" fx:id="main" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mdpnp.apps.testapp.pumps.timing.PumpWithProgramListener">
 	<children>
 		<!--<CheckBox fx:id="selected"/>-->
     	<Label fx:id="pumpId"/>

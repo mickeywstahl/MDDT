@@ -35,6 +35,8 @@ public abstract class AbstractControllablePump {
 	 */
 	protected AlertFxList alertList;
 	
+	protected AlertFxList patientAlertList;
+	
 	/**
 	 * We have this so that extending classes can write pause/resume objectives. 
 	 */

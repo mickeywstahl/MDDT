@@ -86,6 +86,7 @@
       		<Label fx:id="numericInputLabel">New value</Label>
       		<TextField fx:id="numericTextInput"></TextField>
       		<Button fx:id="setParamButton" onAction="#setParam">Set</Button>
+      		<Button fx:id="testScenarioButton" onAction="#setScenario">Begin Test</Button>
       	</children>
       </HBox>
       

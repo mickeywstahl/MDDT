@@ -1,0 +1,71 @@
+BA.01	System on battery	LOW	LP	LP_POW
+BA.02	Battery low	MEDIUM	MP	MP_POW
+BA.03	Battery depleted	HIGH	HP	HP_POW
+BE.01	Battery pack failure	LOW	LP	LP_POW
+BE.02	Battery communication failure	LOW	LP	LP_POW
+BE.03	Battery backup not available	LOW	LP	LP_POW
+SE.01C	Internal Data Corruption(Case Management Mode)	HIGH	HP	HP_PUMP
+SE.01S	Internal Data Corruption(Standby Mode)	MEDIUM	MP	MP_GEN
+SE.02C	System process timeout (Case Management Mode)	HIGH	HP	HP_PUMP
+SE.02S	System process timeout (Standby Mode)	MEDIUM	MP	MP_GEN
+SE.03	Main application corruption	MEDIUM	MP	MP_GEN
+SE.11	Data archive write failure	MEDIUM	MP	MP_GEN
+SE.12	Archive access failure	MEDIUM	MP	MP_GEN
+SE.21C	Memory insufficient (Case Management Mode)	HIGH	HP	HP_PUMP
+SE.21S	Memory insufficient (Standby Mode)	MEDIUM	MP	MP_GEN
+SE.22C	Memory overflow (Case Management Mode)	HIGH	HP	HP_PUMP
+SE.22S	Memory overflow (StandbyMode)	MEDIUM	MP	MP_GEN
+SE.23C	Memory allocation failure (Case Management Mode)	HIGH	HP	HP_PUMP
+SE.23S	Memory allocation failure (Stanby Mode)	MEDIUM	MP	MP_GEN
+SE.24C	Memory access violation (Case Maangement Mode)	HIGH	HP	HP_PUMP
+SE.24S	Memory access violation (Standby Mode)	MEDIUM	MP	MP_GEN
+SE.41	Auditory alarm verification failure	MEDIUM	MP	MP_GEN
+SE.99C	General software error (Case Management Mode)	HIGH	HP	HP_PUMP
+SE.99S	General software error (Standby Mode)	MEDIUM	MP	MP_GEN
+SN.01	Remote data access closed	NONE	0P	BEEP
+SN.02	No network connection	NONE	0P	BEEP
+SN.03	Output port overwritten<o:p>	NONE	0P	BEEP
+SN.04	Low disk space	NONE	0P	BEEP
+SN.05	Insufficient space on USB mass storage	NONE	0P	BEEP
+SN.06	No USB mass storage device found	NONE	0P	BEEP
+SN.07	Multiple USB mass storage found	NONE	0P	BEEP
+SN.08	Data write to USB mass storage has failed	NONE	0P	BEEP
+SN.09	Wrong software upgrade package	NONE	0P	BEEP
+SN.10	No software upgrade package found	NONE	0P	BEEP
+SN.11	Touchscreen Calibration Utility Failure	NONE	0P	BEEP
+PA.01	Air-in-line fault	HIGH	HP	HP_PUMP
+PA.02	Downstream occlusion fault	HIGH	HP	HP_PUMP
+PA.03	Upstream occlusion fault	HIGH	HP	HP_PUMP
+PA.04	Motor stall fault	HIGH	HP	HP_PUMP
+PA.05	Administration set not installed	LOW	LP	LP_PUMP
+PA.06	Administration set cartridge disengaged	HIGH	HP	HP_PUMP
+PA.07	Reservoir nearly depleted	LOW	LP	LP_PUMP
+PA.08	End-of-Infusion	HIGH	HP	HP_PUMP
+PA.09	No Action with the pump<o:p>	LOW	LP	LP_PUMP
+PA.10	Priming Incomplete</o:p>	LOW	LP	LP_PUMP
+PE.01	Bolus pump error	HIGH	HP	HP_PUMP
+PE.02	High/low ambient temperature (recoverable)	HIGH	HP	HP_PUMP
+PE.03	High motor temperature	HIGH	HP	HP_PUMP
+PE.04	Excessive power usage	HIGH	HP	HP_PUMP
+PE.05	Communication error	HIGH	HP	HP_PUMP
+PE.06	Internal Error	HIGH	HP	HP_PUMP
+PE.07	Mechanical Error	HIGH	HP	HP_PUMP
+PE.08	Motor speed error	HIGH	HP	HP_PUMP
+DAE.01	Internal Data Corruption	HIGH	HP	HP_PUMP
+DAE.02	System process timeout	HIGH	HP	HP_PUMP
+DAE.03	Device application corruption	HIGH	HP	HP_PUMP
+DAE.04	Incorrect device application version	HIGH	HP	HP_PUMP
+DAE.05	Failure to launch	HIGH	HP	HP_PUMP
+DAE.06	Failure to close	HIGH	HP	HP_PUMP
+DAE.11	Data archive write failure	HIGH	HP	HP_PUMP
+DAE.12	Archive access failure	HIGH	HP	HP_PUMP
+DAE.21	Memory insufficient	HIGH	HP	HP_PUMP
+DAE.22	Memory overflow	HIGH	HP	HP_PUMP
+DAE.23	Memory allocation failure	HIGH	HP	HP_PUMP
+DAE.24	Memory access violation<o:p>	HIGH	HP	HP_PUMP
+DAE.99	General device application error	HIGH	HP	HP_PUMP
+PSE.01	Pump communication error	HIGH	HP	HP_PUMP
+PSE.02	Power-On-Self-Test failure	HIGH	HP	HP_PUMP
+PSE.03	Wrong Pump Identifiers	HIGH	HP	HP_PUMP
+PSE.04	Disconnected pump error<o:p>	HIGH	HP	HP_PUMP
+PSE.05	Missing pumps error	MEDIUM	MP	MP_PUMP

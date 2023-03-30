@@ -65,7 +65,7 @@ public class PumpControllerTestApplication {
 	
 	@FXML VBox pumps;
 		
-	//@FXML private ComboBox<Device> pumpCombo;
+	@FXML private ComboBox<Device> pumpCombo;
 	@FXML private TextField systolic;
 	@FXML private TextField diastolic;
 	@FXML private TextField mean;
@@ -127,11 +127,11 @@ public class PumpControllerTestApplication {
 				while(change.next()) {
 					change.getAddedSubList().forEach( n -> {
 						if(n.getMetric_id().equals(FLOW_RATE) ||
-								n.getMetric_id().equals("MDC_FLOW_FLUID_PUMP_1") || n.getMetric_id().equals("MDC_FLOW_FLUID_PUMP_2")) {
+								n.getMetric_id().equals("MDC_FLOW_FLUID_PUMP_1")) {
 							//Flow rate published - add to panel.  addPumpToMainPanel avoids duplication of devices anyway,
 							//so just call it here.
-							addPumpToMainPanel(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
-							//addPumpToSelectionBox(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
+							addPumpToSelectionBox(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
+//							addPumpToMainPanel(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
 						}
 					});
 				}
@@ -154,7 +154,7 @@ public class PumpControllerTestApplication {
 		
 		listenerPresent=true;
 		
-		/*
+		
 		pumpCombo.setCellFactory(new Callback<ListView<Device>,ListCell<Device>>() {
 
 			@Override
@@ -175,7 +175,7 @@ public class PumpControllerTestApplication {
 			@Override
 			public String toString(Device device) {
 				// TODO Auto-generated method stub
-				return device.getModel();
+				return device.getManufacturer() + " " + device.getModel();
 			}
 			
 		});
@@ -186,10 +186,25 @@ public class PumpControllerTestApplication {
 			public void changed(ObservableValue<? extends Device> observable, Device oldValue, Device newValue) {
 				//Remove the old one...
 				addPumpToMainPanel(newValue);
+//				displaySelectedPump(newValue, oldValue);
 				
 			}
 		});
+		
+		/*
+		 * This is a fake device entry that can be used to spoof the app for test purposes,
+		 * for instance if you want to show the panel for a particular pump when that pump
+		 * is not available.
+		 */
+		/*
+		Device quick=new Device("abc12345");
+		quick.setHostname("localhost");
+		quick.setModel("AP-4000");
+		quick.setManufacturer("Neurowave");
+		
+		pumpCombo.getItems().add(quick);
 		*/
+
 		
 		mdsHandler.addPatientListener(new PatientListener() {
 
@@ -241,15 +256,20 @@ public class PumpControllerTestApplication {
 			
 			String fxmlFile=getCorrectFXML(d);
 			URL url = PumpControllerTestApplication.class.getResource(fxmlFile);
-			String f = url.getFile();
-			File testfile = new File (f);
-			if (!testfile.exists()) {
+			if(url == null) {
 				return;
 			}
+			
+//			String f = url.getFile();
+//			File testfile = new File (f);
+//			if (!testfile.exists()) {
+//				return;
+//			}
 			
 			FXMLLoader loader = new FXMLLoader(url);
 			
 			try {
+				
 		        final Parent ui = loader.load();
 		        
 //		        final PumpWithListener controller = ((PumpWithListener) loader.getController());
@@ -263,16 +283,42 @@ public class PumpControllerTestApplication {
 		        controller.start();
 		        //Assume that only one other pump is possible.
 		        ObservableList<Node> currentChildren=pumps.getChildren();
-		        //if(currentChildren.size()>0) {
-		        //	currentChildren.remove(0);
-		        //}
+		        if(currentChildren.size()>0) {
+		        	currentChildren.remove(0);
+		        }
 		        currentChildren.add(ui);
 		        udiToPump.put(d.getUDI(), ui);
+		        
+//		        pumpCombo.getItems().add(d);
+		        
+//		        ui.setVisible(false);
+		        
 			} catch (IOException ioe) {
 				ioe.printStackTrace();
 			}
 		}
+		
+		else {
+			
+			ObservableList<Node> currentChildren=pumps.getChildren();
+			if(currentChildren.size()>0) {
+	        	currentChildren.remove(0);
+	        }
+			currentChildren.add(udiToPump.get(d.getUDI()));
+			
+		}
 	}
+	
+	
+//	private void displaySelectedPump(Device newValue, Device oldValue) {
+//		
+//		udiToPump.get(newValue.getUDI()).setVisible(true);
+//		if (oldValue == null) {
+//			return;
+//		}
+//		udiToPump.get(oldValue.getUDI()).setVisible(false);
+//		
+//	}
 	
 	/**
 	 * Get the correct FXML file name for the specified device.  We <i>could<i> try skipping
@@ -290,7 +336,7 @@ public class PumpControllerTestApplication {
 		
 		 */
 		
-		String testFileName = d.getManufacturer().toLowerCase() + "_" + d.getModel().toLowerCase() + ".fxml";
+		String testFileName = d.getManufacturer().toLowerCase() + "_" + d.getModel().toLowerCase().replaceAll(" ", "_") + ".fxml";
 		return testFileName;
 		
 //		if(d.getManufacturer().equals("Neurowave")) {
@@ -302,12 +348,12 @@ public class PumpControllerTestApplication {
 //		return null;
 	}
 	
-	/*
+	
 	private void addPumpToSelectionBox(Device device) {
 		pumpCombo.getItems().add(device);
 		
 	}
-	*/
+	
 	
 	private void removePumpFromMainPanel(Device d) {
 		pumps.getChildren().remove(udiToPump.get(d.getUDI()));

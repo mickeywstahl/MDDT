@@ -17,7 +17,6 @@ import org.mdpnp.devices.DeviceDriverProvider;
 import org.mdpnp.devices.DeviceDriverProvider.SpringLoadedDriver;
 import org.mdpnp.devices.alaris.Asena;
 import org.mdpnp.devices.alaris.AlarisMITM;
-import org.mdpnp.devices.alaris.MITM2;
 import org.mdpnp.devices.cpc.bernoulli.DemoBernoulli;
 import org.mdpnp.devices.denver.mseries.MSeriesScale;
 import org.mdpnp.devices.draeger.medibus.*;
@@ -36,6 +35,7 @@ import org.mdpnp.devices.nonin.pulseox.DemoNoninPulseOx;
 import org.mdpnp.devices.oridion.capnostream.DemoCapnostream20;
 import org.mdpnp.devices.philips.intellivue.DemoEthernetIntellivue;
 import org.mdpnp.devices.philips.intellivue.DemoSerialIntellivue;
+import org.mdpnp.devices.qcore.pumps.SapphirePump;
 import org.mdpnp.devices.simulation.co2.SimCapnometer;
 import org.mdpnp.devices.simulation.ecg.SimElectroCardioGram;
 import org.mdpnp.devices.simulation.ibp.SimInvasivePressure;
@@ -419,7 +419,7 @@ public class DeviceFactory {
             return new DemoSerialIntellivue(subscriber, publisher, eventLoop);
         }
     }
-
+    
     public static class AlarisSerialProvider extends SpringLoadedDriver {
 
         @Override
@@ -653,7 +653,7 @@ public class DeviceFactory {
     	
     	@Override
         public DeviceType getDeviceType() {
-                return new DeviceType(ice.ConnectionType.Simulated,"ICE", "Controllable Pump", "Controllable_PUmp", 1);
+                return new DeviceType(ice.ConnectionType.Simulated,"ICE", "Controllable Pump", "Controllable_Pump", 1);
         }
     	
         @Override
@@ -682,7 +682,7 @@ public class DeviceFactory {
                 return new SimControllableBPMonitor(subscriber, publisher, eventLoop);
         }
     }
-
+    
     public static class NKV550Provider extends SpringLoadedDriver {
 
     	@Override
@@ -698,7 +698,7 @@ public class DeviceFactory {
                 return new NKV550(subscriber, publisher, eventLoop);
         }
     }
-
+    
     public static class BisMonitorProvider extends SpringLoadedDriver {
 
     	@Override
@@ -763,11 +763,11 @@ public class DeviceFactory {
         }
     }
     
-    public static class AlarisEasyTivaMITM extends SpringLoadedDriver {
+    public static class SapphirePumpProvider extends SpringLoadedDriver {
 
-    	@Override
+        @Override
         public DeviceType getDeviceType() {
-                return new DeviceType(ice.ConnectionType.Serial,"ICE", "ET MITM Alaris", "MITMALARIS2", 2);
+                return new DeviceType(ice.ConnectionType.Serial,"QCore", "Sapphire", "QCoreSapphire", 1);
         }
 
         @Override
@@ -775,9 +775,11 @@ public class DeviceFactory {
                 EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
                 Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
                 Publisher publisher = context.getBean("publisher", Publisher.class);
-                return new MITM2(subscriber, publisher, eventLoop);
+                return new SapphirePump(subscriber, publisher, eventLoop, false);
         }
+
     }
+    
     public static class AP4000Provider extends SpringLoadedDriver {
 
 		@Override
@@ -794,5 +796,4 @@ public class DeviceFactory {
 		}
     	
     }
-
 }

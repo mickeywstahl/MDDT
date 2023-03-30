@@ -589,6 +589,7 @@ public class NKV550 extends AbstractConnectedDevice {
 		String paramName=data.paramName;
 		if( ! settingsIDMap.containsKey(paramName)) {
 			log.error("Unknown param name "+paramName+" in doSetting");
+			System.err.println("Incorrect Command Sent");
 			return;	//TODO: Throw something or something else?
 		}
 		//If we get here, we have a param name that we know.

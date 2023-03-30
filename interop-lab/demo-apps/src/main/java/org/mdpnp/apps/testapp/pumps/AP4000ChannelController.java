@@ -46,13 +46,25 @@ public class AP4000ChannelController {
 	@FXML
 	Label drugLabel;
 	@FXML
+	Label concentrationLabel;
+	@FXML
+	Label weightLabel;
+	@FXML
+	Label heightLabel;
+	@FXML
+	Label ageLabel;
+	@FXML
+	Label asaLabel;
+	@FXML
 	Label infusionRateLabel;
 	@FXML
 	Label volumeInfusedLabel;
 	@FXML
 	Label targetVolumeInfusedLabel;
 	@FXML
-	Label bolusInfusedLabel;
+	Label currentBolusInfusedLabel;
+	@FXML
+	Label totalBolusInfusedLabel;
 	@FXML
 	Label channelLabel;
 	@FXML
@@ -73,9 +85,10 @@ public class AP4000ChannelController {
 	private NumericFxList numericList;
 	private AlertFxList alertList;
 	
+	
 	private int myChannel;
 	
-	private String myDrugMetric, myVTBIRemainingMetric, myTargetVTBIMetric;
+	private String myDrugNameMetric, myDrugConcMetric, myFluidDeliveredMetric, myTargetVTBIMetric, myVolumeRemainingMetric, myBolusInfusedMetric, myTotalBolusInfusedMetric;
 	
 	public int getChannel() {
 		return myChannel;
@@ -84,9 +97,13 @@ public class AP4000ChannelController {
 	public void setChannel(int channel) {
 		this.myChannel = channel;
 		channelLabel.setText("Channel "+myChannel);
-		myDrugMetric="CHANNEL"+channel+"_DRUG";
-		myVTBIRemainingMetric="MDC_VOL_FLUID_TBI_REMAIN_"+channel;
+		myDrugNameMetric="CHANNEL"+channel+"_DRUG_NAME";
+		myDrugConcMetric="CHANNEL"+channel+"_DRUG_CONC";
+		myFluidDeliveredMetric="MDC_VOL_FLUID_DELIVERED_"+channel;
 		myTargetVTBIMetric="ICE_PROGRAMMED_VTBI"+channel;
+		myVolumeRemainingMetric="MDC_VOL_FLUID_TBI_REMAIN_"+channel;
+		myBolusInfusedMetric="ICE_BOLUS_INFUSED_"+channel;
+		myTotalBolusInfusedMetric="ICE_BOLUS_SESSION_TOTAL_"+channel;
 	}
 
 	public void setNumericFxList(NumericFxList numericList) {
@@ -99,8 +116,17 @@ public class AP4000ChannelController {
 	
 	private String myFlowRate;
 	
+	private String pt_weight, pt_height, pt_age, pt_state;
+	
 	public void setMyFlowRate(String myFlowRate) {
 		this.myFlowRate=myFlowRate;
+	}
+	
+	private void setPatientInfo(String weight, String height, String age, String state) {
+		this.pt_weight = weight;
+		this.pt_height = height;
+		this.pt_age = age;
+		this.pt_state = state;
 	}
 	
 	private Device device;
@@ -141,13 +167,18 @@ public class AP4000ChannelController {
 			//Our device and our metric.
 			addListener(n, infusionRateLabel);
 		}
-		if(n.getMetric_id().equals(myVTBIRemainingMetric)) {
+		if(n.getMetric_id().equals(myFluidDeliveredMetric)) {
 			addListener(n, volumeInfusedLabel);
 		}
 		if(n.getMetric_id().equals(myTargetVTBIMetric)) {
 			addListener(n, targetVolumeInfusedLabel);
 		}
-		
+		if(n.getMetric_id().equals(myBolusInfusedMetric)) {
+			addListener(n, currentBolusInfusedLabel);
+		}
+		if(n.getMetric_id().equals(myTotalBolusInfusedMetric)) {
+			addListener(n, totalBolusInfusedLabel);
+		}
 	}
 	
 	private void assign(AlertFx a) {
@@ -155,16 +186,23 @@ public class AP4000ChannelController {
 			//Not our device
 			return;
 		}
-		if(a.getIdentifier().equals(myDrugMetric)) {
+		
+		if(a.getIdentifier().equals(myDrugNameMetric)) {
 			//It seems VERY unlikely that this will change, but we'll handle it.
 			addAlertListener(a,drugLabel);
 		}
-		if(a.getIdentifier().equals("CASE_ID")) {
-			addAlertListener(a, caseIDLabel);
+		
+		if(a.getIdentifier().equals(myDrugConcMetric)) {
+			//It seems VERY unlikely that this will change, but we'll handle it.
+			addAlertListener(a,concentrationLabel);
 		}
-		if(a.getIdentifier().equals("SYS_ID")) {
-			addAlertListener(a, sysIDLabel);
-		}
+		
+//		if(a.getIdentifier().equals("CASE_ID")) {
+//			addAlertListener(a, caseIDLabel);
+//		}
+//		if(a.getIdentifier().equals("SYS_ID")) {
+//			addAlertListener(a, sysIDLabel);
+//		}
 	}
 
 	public void start() {
@@ -324,7 +362,7 @@ public class AP4000ChannelController {
 	 * relevant fields, and the bolus method will ignore the infusion fields.
 	 */
 	public void programInfusion() {
-		String msg="Confirm you want to set channel "+myChannel+" to have infusion rate "+targetInfusionRate.getValue().floatValue()+" and VTBI "+targetVTBI.getValue().floatValue();
+		String msg="Confirm you want to set channel "+myChannel+" to have infusion rate "+targetInfusionRate.getValue().floatValue()+" ml/h and VTBI "+targetVTBI.getValue().floatValue() + " ml";
 		Alert confirm=new Alert(AlertType.CONFIRMATION,msg,new ButtonType[] {ButtonType.OK,ButtonType.CANCEL});
 		Optional<ButtonType> result=confirm.showAndWait();
 		try {
@@ -334,6 +372,7 @@ public class AP4000ChannelController {
 				program.head=myChannel;	//TODO: variable here
 				program.bolusRate=-1;	//Ignore
 				program.bolusVolume=-1;	//Ignore
+//				targetInfusionRate.setValueFactory(null);
 				program.infusionRate=targetInfusionRate.getValue().floatValue();
 				program.VTBI=targetVTBI.getValue().floatValue();
 				program.unique_device_identifier=device.getUDI();
@@ -353,7 +392,7 @@ public class AP4000ChannelController {
 	 * relevant fields, and the bolus method will ignore the infusion fields.
 	 */
 	public void programBolus() {
-		String msg="Confirm you want to set channel "+myChannel+" to have bolus rate "+bolusRate.getValue()+" and dose "+bolusDose.getValue();
+		String msg="Confirm you want to set channel "+myChannel+" to have bolus rate "+bolusRate.getValue()+" ml/h and dose "+bolusDose.getValue() + " ml";
 		Alert confirm=new Alert(AlertType.CONFIRMATION,msg,new ButtonType[] {ButtonType.OK,ButtonType.CANCEL});
 		Optional<ButtonType> result=confirm.showAndWait();
 		try {

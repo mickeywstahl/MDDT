@@ -8,6 +8,7 @@ import org.mdpnp.apps.fxbeans.NumericFxList;
 import org.mdpnp.apps.fxbeans.SampleArrayFxList;
 import org.mdpnp.apps.testapp.DeviceListModel;
 import org.mdpnp.apps.testapp.IceApplicationProvider;
+import org.mdpnp.apps.testapp.IceApplicationProvider.IceApp;
 import org.mdpnp.devices.MDSHandler;
 import org.mdpnp.rtiapi.data.EventLoop;
 import org.springframework.context.ApplicationContext;
@@ -23,7 +24,7 @@ import javafx.scene.Parent;
 public class PumpControllerTestApplicationFactory implements IceApplicationProvider {
 	
 	private IceApplicationProvider.AppType type=new IceApplicationProvider.AppType(
-			"Pump Controller", "NoPump", (URL) PumpControllerTestApplicationFactory.class.getResource("infpump.png"), 0.75, false
+			"Infusion Pump Remote Control", "NoPump", (URL) PumpControllerTestApplicationFactory.class.getResource("infpump.png"), 0.75, false
 		);
 
 	@Override
@@ -40,6 +41,8 @@ public class PumpControllerTestApplicationFactory implements IceApplicationProvi
 		final NumericFxList numericList = parentContext.getBean("numericList", NumericFxList.class);
 		
 		final AlertFxList alertList = parentContext.getBean("technicalAlertList", AlertFxList.class);
+		
+		final AlertFxList patientAlertList = parentContext.getBean("patientAlertList", AlertFxList.class);
 		
 		//final SampleArrayFxList sampleList = parentContext.getBean("sampleArrayList", SampleArrayFxList.class);
 		
@@ -69,6 +72,21 @@ public class PumpControllerTestApplicationFactory implements IceApplicationProvi
         controller.start(eventLoop, subscriber);
 		
 		return new IceApplicationProvider.IceApp() {
+
+			
+			
+			
+			@Override
+			public int getPreferredWidth() {
+				// TODO Auto-generated method stub
+				return 800;
+			}
+
+			@Override
+			public int getPreferredHeight() {
+				// TODO Auto-generated method stub
+				return 600;
+			}
 
 			@Override
 			public AppType getDescriptor() {
