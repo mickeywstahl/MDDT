@@ -30,6 +30,7 @@ import org.mdpnp.devices.medsteer.bis.BisMonitor;
 import org.mdpnp.devices.medsteer.bis.BisSimulator;
 import org.mdpnp.devices.nellcor.pulseox.DemoN595;
 import org.mdpnp.devices.neurowave.AP4000;
+import org.mdpnp.devices.neurowave.AlarisToNeurowave;
 import org.mdpnp.devices.nihon.koden.NKV550;
 import org.mdpnp.devices.nonin.pulseox.DemoNoninPulseOx;
 import org.mdpnp.devices.oridion.capnostream.DemoCapnostream20;
@@ -793,6 +794,23 @@ public class DeviceFactory {
             Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
             Publisher publisher = context.getBean("publisher", Publisher.class);
             return new AP4000(subscriber, publisher, eventLoop);
+		}
+    	
+    }
+    
+    public static class EasyTivaNeurowaveProvider extends SpringLoadedDriver {
+
+		@Override
+		public DeviceType getDeviceType() {
+			return new DeviceType(ice.ConnectionType.Serial,"ET Neurowave", "ET-4000", "ET4000", 3);
+		}
+
+		@Override
+		public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+			EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+            Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+            Publisher publisher = context.getBean("publisher", Publisher.class);
+            return new AlarisToNeurowave(subscriber, publisher, eventLoop);
 		}
     	
     }

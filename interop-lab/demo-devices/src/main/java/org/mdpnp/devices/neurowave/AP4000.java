@@ -71,7 +71,7 @@ public class AP4000 extends AbstractSerialDevice {
 	/**
 	 * The connection request command is always the same.
 	 */
-	private static final String CONNREQ="!CONNREQ|02B3\r\n";
+	static final String CONNREQ="!CONNREQ|02B3\r\n";
 	
 	/**
 	 * The communication protocol version reported by the pump
@@ -441,6 +441,42 @@ public class AP4000 extends AbstractSerialDevice {
 	}
 	
 	/**
+	 * Gets the current flow rate for the given head.  Mainly to use for the integration
+	 * with translation devices.  Most cases should just subscribe to the DDS values that
+	 * are published.
+	 * 
+	 * @param head Which head to return the flow rate for.
+	 * @return
+	 */
+	float getFlowRate(int head) {
+		if(head==1) {
+			return flowRate1;
+		}
+		return flowRate2;	//Assuming they don't ask for head 3 or something...
+	}
+	
+	float getVolumeInfused(int head) {
+		if(head==1) {
+			return volumeInfused1;
+		}
+		return volumeInfused2;
+	}
+	
+	/**
+	 * It's not clear yet if this is the time remaining or something completely different.
+	 * @param head
+	 * @return
+	 */
+	float getTimeRemaining(int head) {
+		if(head==1) {
+			return time1;
+		}
+		return time2;
+	}
+	
+	private float flowRate1, flowRate2, volumeInfused1, volumeInfused2, time1, time2;
+	
+	/**
 	 * Performs a status request of the pump, and 
 	 * @throws IOException
 	 */
@@ -521,7 +557,9 @@ public class AP4000 extends AbstractSerialDevice {
 		String sysOper=parts[5];
 		sessionCaseId=parts[6];
 		String flowRate1=parts[61];
+		this.flowRate1=Float.parseFloat(flowRate1);
 		String flowRate2=parts[94];
+		this.flowRate2=Float.parseFloat(flowRate2);
 		devIdSn1=parts[34];
 		devIdSn2=parts[67];
 		String programmedVTBI1=parts[42];
@@ -548,8 +586,16 @@ public class AP4000 extends AbstractSerialDevice {
 //			System.err.println(i+" "+parts[i]);
 //		}
 		
+		String strTime1=parts[54];	//Is this time remaining?
+		this.time1=Float.parseFloat(strTime1);
+		
+		String strTime2=parts[87];	//Is this time remaining?
+		this.time2=Float.parseFloat(strTime2);
+		
 		String strTotalVolumeInfused1=parts[56];
+		volumeInfused1=Float.parseFloat(strTotalVolumeInfused1);
 		String strTotalVolumeInfused2=parts[89];
+		volumeInfused2=Float.parseFloat(strTotalVolumeInfused2);
 		
 		String strVolumeRemaining1=parts[58];
 		String strVolumeRemaining2=parts[91];
@@ -840,7 +886,7 @@ public class AP4000 extends AbstractSerialDevice {
 	 * @param command
 	 * @return
 	 */
-	private byte[] createCommand(String command) {
+	public static byte[] createCommand(String command) {
 		String checksumThis="!" + command + "|";
 		String crc=crc(checksumThis);
 		String fullCommand= checksumThis + crc + "\r\n";
@@ -869,7 +915,7 @@ public class AP4000 extends AbstractSerialDevice {
 		return "ap4000.png";
 	}
 
-	String crc(String input) {
+	static String crc(String input) {
 		char[] chars=input.toCharArray();
 		int sum=0;
 		for(int i=0;i<chars.length;i++) {

@@ -41,3 +41,4 @@ org.mdpnp.apps.testapp.DeviceFactory$SimulatedBisMonitorProvider
 org.mdpnp.apps.testapp.DeviceFactory$MITMBisMonitorProvider
 org.mdpnp.apps.testapp.DeviceFactory$SapphirePumpProvider
 org.mdpnp.apps.testapp.DeviceFactory$AP4000Provider
+org.mdpnp.apps.testapp.DeviceFactory$EasyTivaNeurowaveProvider
