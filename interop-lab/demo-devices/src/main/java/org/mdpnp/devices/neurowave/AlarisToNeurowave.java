@@ -122,7 +122,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 				return "!INST_SERIALNO^8002-51733|ACFF";
 			}
 			if(idx==1) {
-				return "!INST_SERIALNO^8002-51733|ACFF";
+				return "!INST_SERIALNO^8002-51733|ACFF"; //TODO: copy serial numbers from 90.15
 			}
 		}
 		if(alarisCommand.startsWith("!COMMS_PROTOCOL|")) {
@@ -135,7 +135,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			 * authorization key is null.  So for now we also don't need to do anything here
 			 * as it will be done in response to programming the pump, pause/resume etc. 
 			 */
-			return "!REMOTE_CTRL^ENABLED^****^PERMIT^0^ms|7BB0";
+			return "!REMOTE_CTRL^ENABLED^****^PERMIT^0^ms|7BB0"; //TODO: check if crc code changes for different pumps
 		}
 		if(alarisCommand.startsWith("!COMMS_RESPONSE_MAX|7E29")) {
 			//We will just return a fixed response for this for now.
@@ -169,7 +169,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			 */
 			StringBuilder sb=new StringBuilder("INF^");
 			if(idx==0) {
-				sb.append("8002-51733");
+				sb.append("8002-51733"); //TODO: copy serial numbers from 90.15
 			} else {
 				sb.append("8002-51733");
 			}
@@ -197,13 +197,13 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			sb.append("^-50.00^mmHg^");
 			//Unclear if this newly implemented time getter from the AP4000 is what we want here.
 			if(idx==0) {
-				sb.append(neurowaveDevice.getTimeRemaining(1));
+				sb.append(neurowaveDevice.getTimeRemaining(1)); //TODO: check time formatting + variations
 			}
 			if(idx==1) {
 				sb.append(neurowaveDevice.getTimeRemaining(2));
 			}
 			//Rest of the line is <LogType> and <LatestLogEntryID>
-			sb.append("^EVENT^185995");
+			sb.append("^EVENT^185995"); //TODO: check log number increments
 			
 			String finalResponse=Asena.crc(sb.toString());
 			//finalResponse should now have the initial ! and the | and checksum at the end.
