@@ -61,7 +61,7 @@ import ice.Numeric;
  */
 public class AP4000 extends AbstractSerialDevice {
 	
-	private static final Logger log = LoggerFactory.getLogger(AbstractConnectedDevice.class);
+	private static final Logger log = LoggerFactory.getLogger(AP4000.class);
 	
 	private boolean initDone;
 	
@@ -747,7 +747,7 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 	}
 	
-	private synchronized void pauseInfusion(int head) throws IOException {
+	synchronized void pauseInfusion(int head) throws IOException {
 		if(currentAuthKey==null) {
 			requestControl();
 		}
@@ -781,7 +781,7 @@ public class AP4000 extends AbstractSerialDevice {
 		
 	}
 	
-	private synchronized void resumeInfusion(int head) throws IOException {
+	synchronized void resumeInfusion(int head) throws IOException {
 		if(currentAuthKey==null) {
 			requestControl();
 		}
@@ -813,7 +813,7 @@ public class AP4000 extends AbstractSerialDevice {
 		
 	}
 	
-	private synchronized void programPump(InfusionProgram program) throws IOException {
+	synchronized String programPump(InfusionProgram program) throws IOException {
 		if(currentAuthKey==null) {
 			requestControl();
 		}
@@ -863,6 +863,7 @@ public class AP4000 extends AbstractSerialDevice {
 		String response=new String(responseBytes,0,bytesRead);
 		System.err.println("INFPROG response is "+response);
 		log.info("INFPROG response is "+response);
+		return response;
 	}
 	
 	/**

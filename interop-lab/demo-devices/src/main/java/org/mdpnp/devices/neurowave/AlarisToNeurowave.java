@@ -14,11 +14,14 @@ import org.mdpnp.devices.serial.SerialProvider;
 import org.mdpnp.devices.serial.SerialSocket.*;
 import org.mdpnp.devices.simulation.AbstractSimulatedDevice;
 import org.mdpnp.rtiapi.data.EventLoop;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.rti.dds.publication.Publisher;
 import com.rti.dds.subscription.Subscriber;
 
 import ice.ConnectionState;
+import ice.InfusionProgram;
 
 
 /**
@@ -36,6 +39,8 @@ import ice.ConnectionState;
  */
 public class AlarisToNeurowave extends AbstractSerialDevice {
 	
+	private static final Logger log = LoggerFactory.getLogger(AlarisToNeurowave.class);
+
 	/**
 	 * An instance of the AP4000 class.  Using this and creating it from inside
 	 * this class, using the known serial port values etc., means that we can
@@ -209,6 +214,38 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			//finalResponse should now have the initial ! and the | and checksum at the end.
 			return finalResponse;
 			
+		}
+		if(alarisCommand.startsWith("!INF_VI_CLEAR|")) {
+			//Is it possible to reset the volume infused indicator on the Neurowave?  I don't think so.
+			//TODO: Make code in the Neurowave that deducts the current volume infused from future readings.
+			return "!INF_VI_CLEAR|A706";
+		}
+		if(alarisCommand.startsWith("!INF_STOP|")) {
+			neurowaveDevice.pauseInfusion(idx+1);
+			return "!INF_STOP|CD57";
+		}
+		if(alarisCommand.startsWith("!INF_RATE^")) {
+			String[] parts=alarisCommand.split("^");
+			float newRate=Float.parseFloat(parts[1]);
+			//We can just pass an InfusionProgram to the Neurowave
+			InfusionProgram program=new InfusionProgram();
+			program.head=idx+1;
+			program.bolusRate=-1;
+			program.bolusVolume=-1;
+			program.infusionRate=newRate;
+			program.requestor=this.getClass().getName();
+			program.seconds=-1;
+			program.unique_device_identifier="";	//This isn't used in this direct call - only by the listener
+			//AP4000 class updated to return the Neurowave response, that we were previously capturing and not doing anything with.
+			String neurowaveResponse=neurowaveDevice.programPump(program);
+			String[] responseParts=neurowaveResponse.split("^");
+			String response="INF_RATE^" + (idx==0 ? responseParts[4] : responseParts[9]) + "^ml/h";
+			String finalResponse=Asena.crc(response);
+			return finalResponse;
+		}
+		if(alarisCommand.startsWith("!INF_START|")) {
+			neurowaveDevice.resumeInfusion(idx+1);
+			return "!INF_START|38F3";
 		}
 		
 		
