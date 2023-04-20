@@ -21,6 +21,14 @@
 			<SizeBasedTriggeringPolicy size="1024KB"/>
 			<DefaultRolloverStrategy max="1000000"/>
 		</RollingFile>
+		<RollingFile name="neurowave-alaris-log" fileName="${sys:user.home}/neurowave-alaris.log"
+			filePattern="${sys:user.home}/neurowave-alaris-%i.log" immediateFlush="true">
+			<PatternLayout>
+				<pattern>%d{DEFAULT} | %-5p | %c{1} | %t | %m%n</pattern>
+			</PatternLayout>
+			<SizeBasedTriggeringPolicy size="1024KB"/>
+			<DefaultRolloverStrategy max="1000000"/>
+		</RollingFile>
 	</Appenders>
 	<Loggers>
 		<Root level="info">
@@ -28,6 +36,9 @@
 		</Root>
 		<Logger name="easy.tiva" level="trace" additivity="false">
 			<AppenderRef ref="easy-tiva-log"/>
+		</Logger>
+		<Logger name="neurowave.alaris" level="trace" additivity="false">
+			<AppenderRef ref="neurowave-alaris-log"/>
 		</Logger>
 	</Loggers>
 

@@ -802,7 +802,7 @@ public class DeviceFactory {
 
 		@Override
 		public DeviceType getDeviceType() {
-			return new DeviceType(ice.ConnectionType.Serial,"ET Neurowave", "ET-4000", "ET4000", 3);
+			return new DeviceType(ice.ConnectionType.Serial,"Neurowave", "AP4000<->EasyTIVA", "ET4000", 2);
 		}
 
 		@Override

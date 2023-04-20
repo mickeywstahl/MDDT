@@ -63,6 +63,8 @@ public class AP4000 extends AbstractSerialDevice {
 	
 	private static final Logger log = LoggerFactory.getLogger(AP4000.class);
 	
+	private Logger externalLog;
+	
 	private boolean initDone;
 	
 	private BufferedInputStream fromDevice;
@@ -184,6 +186,7 @@ public class AP4000 extends AbstractSerialDevice {
 
 	public AP4000(Subscriber subscriber, Publisher publisher, EventLoop eventLoop, int countSerialPorts) {
 		super(subscriber, publisher, eventLoop, countSerialPorts);
+		Thread.dumpStack();
 		deviceIdentity.manufacturer="Neurowave";
 		deviceIdentity.model="AP-4000";
 		AbstractSimulatedDevice.randomUDI(deviceIdentity);
@@ -201,6 +204,16 @@ public class AP4000 extends AbstractSerialDevice {
 		cumulativeBolusHeadOne=createNumericInstance("ICE_BOLUS_SESSION_TOTAL_1", "DEV_STATUS_ACC_BOL_VOL1");
 		cumulativeBolusHeadTwo=createNumericInstance("ICE_BOLUS_SESSION_TOTAL_2", "DEV_STATUS_ACC_BOL_VOL2");
 		addObjectiveListeners();
+	}
+	
+	void setExternalLog(Logger external) {
+		this.externalLog=external;
+	}
+	
+	void otherLog(String msg) {
+		if(externalLog!=null) {
+			externalLog.trace(msg);
+		}
 	}
 	
 	private final void addObjectiveListeners() {
@@ -354,6 +367,7 @@ public class AP4000 extends AbstractSerialDevice {
 
 	@Override
 	protected void doInitCommands(int idx) throws IOException {
+//		Thread.dumpStack();
 		initDone=false;	//In case we are coming back here after a comms interruption.
 		byte[] initBytes=CONNREQ.getBytes();
 		toDevice.write(initBytes);
@@ -386,13 +400,13 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		System.err.println(ArrayUtils.toString(responseBytes));
 		
-		System.err.println("bytesRead in response is "+bytesRead);
+//		System.err.println("bytesRead in response is "+bytesRead);
 		String response=new String(responseBytes,0,bytesRead);
-		System.err.println("bytesRead 0 is "+responseBytes[0]);
-		System.err.println("doInitCommands response is "+response);
+//		System.err.println("bytesRead 0 is "+responseBytes[0]);
+//		System.err.println("doInitCommands response is "+response);
 		String parts[]=response.split("\\^");
 		if(!parts[0].equals("!CONNREQ")) {
-			System.err.println("Bad response to !CONNREQ command - parts[0] is "+parts[0]);
+//			System.err.println("Bad response to !CONNREQ command - parts[0] is "+parts[0]);
 			log.error("Bad response to !CONNREQ command - parts[0] is "+parts[0]);
 			return;
 		}
@@ -421,18 +435,22 @@ public class AP4000 extends AbstractSerialDevice {
 		initDone=true;
 	}
 	
+	protected boolean keepGoing=true;
+	
 	@Override
 	protected void process(int idx, InputStream inputStream, OutputStream outputStream) throws IOException {
+		Thread.dumpStack();
 		this.fromDevice=new BufferedInputStream(inputStream);
 		this.toDevice=new BufferedOutputStream(outputStream);
 		try {
 			while( ! initDone) {
 				Thread.sleep(1000L);
 			}
-			while(true) {
+			while(keepGoing) {
 				doStatReq();
 				Thread.sleep(3000);
 			}
+			System.err.println("process stopped on keepGoing=false");
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -500,7 +518,7 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		
 		String response=new String(responseBytes,0,bytesRead);
-		System.err.println("STATREQ response is "+response);
+		//System.err.println("STATREQ response is "+response);
 		response=response.replace("\r\n","");
 		String parts[]=response.split("\\^");
 		if(recentStats.size()<5) {
@@ -511,10 +529,10 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		
 		
-		dumpRecentStats();
+		//dumpRecentStats();
 		String sysDate=parts[3];
 		String sysTime=parts[4];
-		System.err.println("sysDate and time are "+sysDate+" "+sysTime);
+		//System.err.println("sysDate and time are "+sysDate+" "+sysTime);
 		/*
 		 * We can create a date using the constructor that has the all the fields from years to seconds.
 		 * We lose the milliseconds that were available from the time though.
@@ -550,9 +568,9 @@ public class AP4000 extends AbstractSerialDevice {
 			millis=splitTime[3];
 		}
 		
-		System.err.println("millis from reading is "+millis);
+//		System.err.println("millis from reading is "+millis);
 		long msForReading=deviceTimeCalendar.getTimeInMillis()+Integer.parseInt(millis);	//Add on the extra milliseconds
-		System.err.println("msForReading "+msForReading);
+//		System.err.println("msForReading "+msForReading);
 		
 		String sysOper=parts[5];
 		sessionCaseId=parts[6];
@@ -587,10 +605,12 @@ public class AP4000 extends AbstractSerialDevice {
 //		}
 		
 		String strTime1=parts[54];	//Is this time remaining?
-		this.time1=Float.parseFloat(strTime1);
+//		this.time1=Float.parseFloat(strTime1);
+		this.time1= -1;
 		
 		String strTime2=parts[87];	//Is this time remaining?
-		this.time2=Float.parseFloat(strTime2);
+//		this.time2=Float.parseFloat(strTime2);
+		this.time2= -1;
 		
 		String strTotalVolumeInfused1=parts[56];
 		volumeInfused1=Float.parseFloat(strTotalVolumeInfused1);
@@ -637,7 +657,8 @@ public class AP4000 extends AbstractSerialDevice {
 		writeTechnicalAlert("Model", "AP4000");
 		writeTechnicalAlert("UDI", deviceIdentity.unique_device_identifier);
 		//writeTechnicalAlert("Current_Alarm", "No alarms currently active");
-		publishAlarm("PA.02", "PUMP1", "HIGH", "HP_PUMP");
+		//Test alarm you can publish for an app...
+		//publishAlarm("PA.02", "PUMP1", "HIGH", "HP_PUMP");
 		
 		writeTechnicalAlert("Neurowave_PT_WEIGHT", weight);
 		writeTechnicalAlert("Neurowave_PT_HEIGHT", height);
@@ -660,11 +681,37 @@ public class AP4000 extends AbstractSerialDevice {
 		//System.err.println(ArrayUtils.toString(parts));
 	}
 	
+	enum ALARM_PRIORITY {
+		NONE,
+		LOW,
+		MEDIUM,
+		HIGH
+	}
+	
+	class AP4000Alarm {
+		String code;
+		String device;
+		String priority;
+		String sound;
+		int prio;
+		
+		public AP4000Alarm(String code, String device, String priority, String sound) {
+			super();
+			this.code = code;
+			this.device = device;
+			this.priority = priority;
+			this.sound = sound;
+		}
+	}
+	
+	ArrayList<AP4000Alarm> alarmList=new ArrayList<>();
+	
 	private void processAlarms(String[] parts) {
 		String alarmCount=parts[12];
 		int alarm_n=Integer.parseInt(alarmCount);
 		if(alarm_n==-1) {
 			//No alarms.
+			alarmList.clear();
 			return;
 		}
 		String alarmAudio=parts[13];	//Not sure what/if we need this for?
@@ -681,7 +728,9 @@ public class AP4000 extends AbstractSerialDevice {
 			String alarmDevice=parts[nextIndex++];
 			String alarmPriority=parts[nextIndex++];
 			String alarmSound=parts[nextIndex++];
-			publishAlarm(alarmCode,alarmDevice,alarmPriority,alarmSound);
+			AP4000Alarm alarm=new AP4000Alarm(alarmCode, alarmDevice, alarmPriority, alarmSound);
+			alarmList.add(alarm);
+			publishAlarm(alarm);
 		}
 	}
 	
@@ -693,8 +742,8 @@ public class AP4000 extends AbstractSerialDevice {
 	 * @param priority
 	 * @param sound
 	 */
-	private void publishAlarm(String code,String device, String priority, String sound) {
-		writeTechnicalAlert(code, device+"!"+priority+"!"+sound);
+	private void publishAlarm(AP4000Alarm alarm) {
+		writeTechnicalAlert(alarm.code, alarm.device+"!"+alarm.priority+"!"+alarm.sound);
 	}
 	
 	private void dumpRecentStats() {
@@ -735,7 +784,7 @@ public class AP4000 extends AbstractSerialDevice {
 			//System.err.println("response is now "+new String(responseBytes,0,bytesRead));
 		}
 		String response=new String(responseBytes,0,bytesRead);
-		System.err.println("CNTLREQ response is "+response);
+//		System.err.println("CNTLREQ response is "+response);
 		log.info("CNTLREQ response is "+response);
 		String parts[]=response.split("\\^");
 		String authKey=parts[3];
@@ -765,7 +814,7 @@ public class AP4000 extends AbstractSerialDevice {
 			pauseBytes=createCommand("INFPAUS^"+currentAuthKey+"^"+devIdSn1+"^-1^"+devIdSn2+"^1");
 		}
 		log.info("Calling pause infusion for head "+head+" with "+new String(pauseBytes));
-		
+		otherLog("To AP4000: "+new String(pauseBytes));
 		toDevice.write(pauseBytes);
 		toDevice.flush();
 		byte responseBytes[]=new byte[MAX_RESPONSE_LEN];
@@ -776,7 +825,8 @@ public class AP4000 extends AbstractSerialDevice {
 			//System.err.println("response is now "+new String(responseBytes,0,bytesRead));
 		}
 		String response=new String(responseBytes,0,bytesRead);
-		System.err.println("INFPAUS response is "+response);
+		otherLog("From AP4000: "+response);
+//		System.err.println("INFPAUS response is "+response);
 		log.info("INFPAUS response is "+response);
 		
 	}
@@ -797,7 +847,7 @@ public class AP4000 extends AbstractSerialDevice {
 			resumeBytes=createCommand("INFRESM^"+currentAuthKey+"^"+devIdSn1+"^-1^"+devIdSn2+"^1");
 		}
 		log.info("Calling resume infusion for head "+head+" with "+new String(resumeBytes));
-		
+		otherLog("To AP4000: "+new String(resumeBytes));
 		toDevice.write(resumeBytes);
 		toDevice.flush();
 		byte responseBytes[]=new byte[MAX_RESPONSE_LEN];
@@ -808,7 +858,8 @@ public class AP4000 extends AbstractSerialDevice {
 			//System.err.println("response is now "+new String(responseBytes,0,bytesRead));
 		}
 		String response=new String(responseBytes,0,bytesRead);
-		System.err.println("INFRESM response is "+response);
+//		System.err.println("INFRESM response is "+response);
+		otherLog("From AP4000: "+response);
 		log.info("INFRESM response is "+response);
 		
 	}
@@ -836,12 +887,15 @@ public class AP4000 extends AbstractSerialDevice {
 			 */
 			
 			
-//			cmd="INFPROG^"+currentAuthKey+
-//						"^"+devIdSn1+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
-//						"^"+devIdSn2+"^-1^-1^-1^-1";
 			cmd="INFPROG^"+currentAuthKey+
-					"^"+devIdSn1+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
-					"^"+devIdSn2+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate;
+						"^"+devIdSn1+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
+						"^"+devIdSn2+"^-1^-1^-1^-1";
+		
+//			cmd="INFPROG^"+currentAuthKey+
+//				"^"+devIdSn1+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
+//					"^"+devIdSn2+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate;
+
+
 			//ACTUALLY THE INFPROG COMMAND DOES NOT CHANGE BETWEEN V_0_1 AND V_0_2 SO THE ELSE BLOCK IN HEAD 1 DOESN'T MATTER
 		} else {
 			//Must be 2 because we throw IOException for not 1 or 2...
@@ -853,6 +907,7 @@ public class AP4000 extends AbstractSerialDevice {
 		toDevice.write(programBytes);
 		toDevice.flush();
 		log.info("Sent infusion program "+new String(programBytes));
+		otherLog("To AP4000: " +new String(programBytes));
 		byte responseBytes[]=new byte[MAX_RESPONSE_LEN];
 		int bytesRead=0;
 		while(bytesRead<9 || responseBytes[bytesRead-7] != '|') {
@@ -861,8 +916,9 @@ public class AP4000 extends AbstractSerialDevice {
 			//System.err.println("response is now "+new String(responseBytes,0,bytesRead));
 		}
 		String response=new String(responseBytes,0,bytesRead);
-		System.err.println("INFPROG response is "+response);
+//		System.err.println("INFPROG response is "+response);
 		log.info("INFPROG response is "+response);
+		otherLog("From AP4000: "+response);
 		return response;
 	}
 	
@@ -891,9 +947,9 @@ public class AP4000 extends AbstractSerialDevice {
 		String checksumThis="!" + command + "|";
 		String crc=crc(checksumThis);
 		String fullCommand= checksumThis + crc + "\r\n";
-		if(command.indexOf("STATREQ")==-1) {
-			System.err.println("fullCommand is "+fullCommand);
-		}
+//		if(command.indexOf("STATREQ")==-1) {
+//			System.err.println("fullCommand is "+fullCommand);
+//		}
 		return fullCommand.getBytes();
 	}
 
@@ -967,7 +1023,17 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		
 	}
-	
-	
+
+	@Override
+	public void disconnect() {
+		// TODO Auto-generated method stub
+		super.disconnect();
+	}
+
+	@Override
+	public void shutdown() {
+		// TODO Auto-generated method stub
+		super.shutdown();
+	}
 
 }

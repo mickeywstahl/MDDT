@@ -29,6 +29,9 @@ import com.rti.dds.publication.Publisher;
 import com.rti.dds.subscription.Subscriber;
 
 public abstract class AbstractSerialDevice extends AbstractConnectedDevice {
+	
+	protected boolean debug=false;
+	
     protected abstract void doInitCommands(int idx) throws IOException;
 
     protected void reportConnected(String transitionNote) {
@@ -366,23 +369,33 @@ public abstract class AbstractSerialDevice extends AbstractConnectedDevice {
         synchronized (stateMachine) {
             ice.ConnectionState state = getState();
             if (ice.ConnectionState.Negotiating.equals(state)) {
+            	//System.err.println("Sockets Length is " + AbstractSerialDevice.this.socket.length);
                 for(int idx = 0; idx < AbstractSerialDevice.this.socket.length; idx++) {
+                	//System.err.println("for loop idx: "+ idx);
                     if (System.currentTimeMillis() >= (lastIssueInitCommands[idx] + getNegotiateInterval(idx))) {
-                        log.trace("invoking doInitCommands("+idx+")");
+                    	System.err.println("invoking doInitCommands("+idx+")");
+                    	log.trace("invoking doInitCommands("+idx+")");
                         lastIssueInitCommands[idx] = System.currentTimeMillis();
                         SerialSocket socket = AbstractSerialDevice.this.socket[idx];
                         if (null != socket) {
                             try {
-                                
+                                System.err.println("calling doInitCommands for idx "+idx);
                                 doInitCommands(idx);
                             } catch (IOException e) {
                                 setLastError(idx, e);
                             }
                         } else {
+                        	System.err.println("Cannot issue doInitCommands("+idx+") on a null socket");
                             log.warn("Cannot issue doInitCommands("+idx+") on a null socket");
                         }
                     }
+                    else {
+//                    	if(debug) System.err.println("Not time yet for idx "+idx);
+                    }
                 }
+            }
+            else {
+            	if(debug && ! ice.ConnectionState.Connected.equals(state)) System.err.println("Connection State is "+ state);
             }
         }
     }
