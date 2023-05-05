@@ -148,6 +148,10 @@ public class DeviceAdapterCommand implements Configuration.HeadlessCommand, Conf
             }
             if(null != address)
                 deviceHandle.setAddress(address);
+            
+            if(null != params) {
+            	deviceHandle.setAdditionalParams(params);
+            }
         }
 
         /**
@@ -194,6 +198,7 @@ public class DeviceAdapterCommand implements Configuration.HeadlessCommand, Conf
         }
         protected String[]       initialPartition;
         private   String         address=null;
+        private   String         params=null;
 
         private final CountDownLatch stopOk = new CountDownLatch(1);
 
@@ -207,6 +212,11 @@ public class DeviceAdapterCommand implements Configuration.HeadlessCommand, Conf
         @Override
         public void setAddress(String v) {
             address = v;
+        }
+        
+        @Override
+        public void setAdditionalParams(String p) {
+        	params=p;
         }
 
         @Override
@@ -460,6 +470,11 @@ public class DeviceAdapterCommand implements Configuration.HeadlessCommand, Conf
         @Override
         public void setAddress(String address) {
             controller.setAddress(address);
+        }
+        
+        @Override
+        public void setAdditionalParams(String params) {
+        	controller.setAdditionalParams(params);
         }
 
         protected void update(final String msg, final int pct) {

@@ -153,6 +153,12 @@ public abstract class AbstractDevice {
     
     private Hashtable<String, Averager> averagesByNumeric=new Hashtable<>();
     
+    protected String additionalParams;
+    
+    public void setAdditonaParams(String params) {
+    	this.additionalParams=params;
+    }
+    
     public Subscriber getSubscriber() {
         return subscriber;
     }

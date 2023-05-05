@@ -83,6 +83,8 @@ public class CreateAdapter {
         	return null;
         }
         
+        String params = d.settingsController.paramsProperty().get();
+        
         /*
          * Here we try and save the device definition to a file so that the user
          * can preserve this file later as a way to create a scenario.  We use a
@@ -101,7 +103,7 @@ public class CreateAdapter {
         	log.error("Failed to record device creation information for later", ioe);
         }
 
-        Configuration c=new Configuration(false, Application.ICE_Device_Interface, domainId, ddp, address, fhirServerName, emrServerName);
+        Configuration c=new Configuration(false, Application.ICE_Device_Interface, domainId, ddp, address, fhirServerName, emrServerName, params);
         return c;
 
     }

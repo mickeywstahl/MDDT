@@ -89,18 +89,20 @@ public class Configuration {
     private final Application          application;
     private final DeviceDriverProvider deviceFactory;
     private final String               address;
+    private final String               additionalParams;
     private final int                  domainId;
     private final String               fhirServerName;
     private final Properties           cmdLineEnv = new Properties();
 
     public Configuration(boolean headless, Application application, int domainId, 
             DeviceDriverProvider deviceFactory, String address, String fhirServerName,
-            String openEMRServerName) {
+            String openEMRServerName, String additionalParams) {
         this.headless = headless;
         this.deviceFactory = deviceFactory;
         this.address = address;
         this.domainId = domainId;
         this.application = application;
+        this.additionalParams=additionalParams;
         this.fhirServerName = fhirServerName;
 
         cmdLineEnv.put("mdpnp.domain", Integer.toString(domainId));
@@ -144,6 +146,10 @@ public class Configuration {
     public String getAddress() {
         return address;
     }
+    
+    public String getParams() {
+    	return additionalParams;
+    }
 
     private static final String APPLICATION           = "application";
     private static final String DOMAIN_ID             = "domainId";
@@ -151,6 +157,7 @@ public class Configuration {
     private static final String ADDRESS               = "address";
     private static final String FHIR_SERVER_NAME      = "fhirServerName";
     private static final String EMR_SERVER_NAME       = "emrServerName";
+    private static final String PARAMS                = "additionalParams";
 
     private final static Logger log = LoggerFactory.getLogger(Configuration.class);
 
@@ -208,6 +215,7 @@ public class Configuration {
         int domainId = 0;
         DeviceDriverProvider deviceType = null;
         String address = null;
+        String params = null;
         String fhirServerName = "";
         String emrServerName = "";
 
@@ -246,8 +254,12 @@ public class Configuration {
         if(p.containsKey(EMR_SERVER_NAME)) {
             emrServerName = p.getProperty(EMR_SERVER_NAME, "");
         }
+        
+        if(p.containsKey(PARAMS) ) {
+        	params = p.getProperty(PARAMS, "");
+        }
 
-        return new Configuration(false, app, domainId, deviceType, address, fhirServerName, emrServerName);
+        return new Configuration(false, app, domainId, deviceType, address, fhirServerName, emrServerName, params);
     }
 
     @SuppressWarnings("static-access")
@@ -308,7 +320,12 @@ public class Configuration {
                 .isRequired(false)
                 .withDescription(ps.toString())
                 .create("address");
-
+        
+        Option paramsArg = OptionBuilder.withArgName("params")
+        		.hasArg()
+        		.isRequired(false)
+        		.withDescription("Additional parameters to pass to the device")
+        		.create("params");
         Options options = new Options();
         options.addOption( appArg );
         options.addOption( domainArg );
@@ -316,6 +333,7 @@ public class Configuration {
         options.addOption( addressArg );
         options.addOption( fhirServerNameArg );
         options.addOption( emrServerNameArg );
+        options.addOption( paramsArg );
 
         CommandLine line = parseCommandLine("ICE", cmdLineArgs, options);
         if(line == null)
@@ -327,6 +345,7 @@ public class Configuration {
         String address = null;
         String fhirServerName = "";
         String emrServerName = "";
+        String params = null;
 
         String v = line.getOptionValue("app");
         try {
@@ -359,12 +378,17 @@ public class Configuration {
             v = line.getOptionValue("emrServerName");
             emrServerName = v;
         }
+        
+        if(line.hasOption("params")) {
+        	v = line.getOptionValue("params");
+        	params = v;
+        }
 
         // if mdpnp.ui is set to true, force the system to come up in the UI mode regardless of
         // command line having arguments or not. If not set, default to headless==true.
         //
         boolean headless=!Boolean.getBoolean("mdpnp.ui");
-        return new Configuration(headless, app, domainId, deviceType, address, fhirServerName, emrServerName);
+        return new Configuration(headless, app, domainId, deviceType, address, fhirServerName, emrServerName, params);
     }
 
     public static Configuration searchAndLoadSettings(File[] fPath) throws IOException {

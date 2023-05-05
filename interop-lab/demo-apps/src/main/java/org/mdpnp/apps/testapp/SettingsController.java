@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import ice.ConnectionType;
+import impl.org.controlsfx.i18n.SimpleLocalizedStringProperty;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -50,7 +51,7 @@ public class SettingsController {
     @FXML
     ComboBox<DeviceDriverProvider> deviceType;
     @FXML
-    Label applicationsLabel, domainIdLabel, deviceTypeLabel, serialPortsLabel, addressLabel, fhirServerLabel, emrServerLabel;
+    Label applicationsLabel, domainIdLabel, deviceTypeLabel, serialPortsLabel, addressLabel, paramsLabel, fhirServerLabel, emrServerLabel;
     @FXML
     GridPane gridPane;
     @FXML
@@ -64,6 +65,9 @@ public class SettingsController {
     @FXML
     TextField addressField;
     
+    @FXML
+    TextField paramsField;
+    
     private Stage currentStage;
     
     private final BooleanProperty ready = new SimpleBooleanProperty(this, "ready", false);
@@ -74,6 +78,7 @@ public class SettingsController {
     private final StringProperty domain = new SimpleStringProperty(this, "domain", "");
     private final StringProperty fhirServerName = new SimpleStringProperty(this, "fhirServerName", "");
     private final StringProperty openEMRServerName = new SimpleStringProperty(this, "openEMRServerName", "");
+    private final StringProperty params = new SimpleLocalizedStringProperty(this, "additionalParams", "");
     @FXML ComboBox<ice.ConnectionType> deviceCategory;
     
     
@@ -106,6 +111,10 @@ public class SettingsController {
         return address;
     }
     
+    public ReadOnlyStringProperty paramsProperty() {
+    	return params;
+    }
+    
     public ReadOnlyStringProperty domainProperty() {
         return domain;
     }
@@ -121,6 +130,8 @@ public class SettingsController {
             if(!gridPane.getChildren().contains(deviceCategory)) { gridPane.getChildren().add(deviceCategory); }
             if(!gridPane.getChildren().contains(deviceTypeLabel)) { gridPane.getChildren().add(deviceTypeLabel); }
             if(!gridPane.getChildren().contains(deviceCategoryLabel)) { gridPane.getChildren().add(deviceCategoryLabel); }
+            if(!gridPane.getChildren().contains(paramsLabel)) { gridPane.getChildren().add(paramsLabel); }
+            if(!gridPane.getChildren().contains(paramsField)) { gridPane.getChildren().add(paramsField); }
 
             ice.ConnectionType selected = null;
             if (dt != null) {
@@ -163,6 +174,8 @@ public class SettingsController {
             gridPane.getChildren().remove(deviceTypeLabel);
             gridPane.getChildren().remove(addressLabel);
             gridPane.getChildren().remove(addressField);
+            gridPane.getChildren().remove(paramsLabel);
+            gridPane.getChildren().remove(paramsField);
             gridPane.getChildren().remove(serialPortsLabel);
             gridPane.getChildren().remove(serialPortsContainer);
             if(!gridPane.getChildren().contains(fhirServerLabel)) { gridPane.getChildren().add(fhirServerLabel); }
@@ -287,6 +300,7 @@ public class SettingsController {
         selectedDevice.bind(deviceType.getSelectionModel().selectedItemProperty());
         domain.bind(domainId.textProperty());
         address.bind(addressField.textProperty());
+        params.bind(paramsField.textProperty());
         fhirServerName.bind(fhirServer.textProperty());
         openEMRServerName.bind(emrServer.textProperty());
 
@@ -297,6 +311,7 @@ public class SettingsController {
                     DeviceDriverProvider newValue) {
                 if(null != newValue && ConnectionType.Serial.equals(newValue.getDeviceType().getConnectionType())) {
                     address.unbind();
+                    params.unbind();
                     serialPortsContainer.getChildren().clear();
                     ComboBox<?> serialPorts[] = new ComboBox[newValue.getDeviceType().getConnectionCount()];
                     List<Object> elements = new ArrayList<Object>(newValue.getDeviceType().getConnectionCount());
@@ -311,9 +326,12 @@ public class SettingsController {
                         elements.add(serialPorts[i].valueProperty());
                     }
                     address.bind(Bindings.concat(elements.toArray(new Object[0])));
+                    params.bind(paramsField.textProperty());
                 } else {
                     address.unbind();
                     address.bind(addressField.textProperty());
+                    params.unbind();
+                    params.bind(paramsField.textProperty());
                 }
             }
         });

@@ -91,6 +91,8 @@ public interface DeviceDriverProvider {
 
         void addObserver(Observer v);
         void deleteObserver(Observer v);
+        
+        void setAdditionalParams(String params);
     }
 
     class DeviceType {
@@ -345,6 +347,7 @@ public interface DeviceDriverProvider {
 
         private final AbstractApplicationContext context;
         private  String address=null;
+        private String params=null;
 
         public SpringDecorator(AbstractApplicationContext context) {
             this.context = context;
@@ -383,6 +386,12 @@ public interface DeviceDriverProvider {
         @Override
         public void setAddress(String v) {
             address = v;
+        }
+        
+        @Override
+        public void setAdditionalParams(String p) {
+        	params=p;
+        	getDevice().setAdditonaParams(p);
         }
 
         @Override

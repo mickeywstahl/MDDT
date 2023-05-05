@@ -121,7 +121,8 @@ public class CreateMultiAdapters {
         			System.err.println("No device found for alias "+fields[0]);
         			continue;
         		}
-	        	Configuration c=new Configuration(false, Application.ICE_Device_Interface, domainId, ddp, fields.length==2 && fields[1].length()>0 ? fields[1] : null, "", "");
+        		
+	        	Configuration c=new Configuration(false, Application.ICE_Device_Interface, domainId, ddp, fields.length>2 && fields[1].length()>0 ? fields[1] : null, "", "", (fields.length==3 ? fields[2] : ""));
 	        	allConfigs.add(c);
         	}
         }
