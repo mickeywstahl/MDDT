@@ -285,7 +285,7 @@ public class AlarisMITM extends AbstractSerialDevice {
 								(currentInterval>START_ALARM_RANGE_THREE && currentInterval<END_ALARM_RANGE_THREE)
 							) {
 								//TODO: Check if this is an accurate occlusion alarm
-								String finalFakeResponse=crc("ALARM^AL_OCCL^ ^");
+								String finalFakeResponse=crc("ALARM^AL_OCCL^OCCLUSION^");
 								writetoRequestor(finalFakeResponse);
 							}
 						} else {
@@ -407,7 +407,7 @@ public class AlarisMITM extends AbstractSerialDevice {
 						sb.append(c);
 						System.err.println(sb);
 					}
-					PUMPresponse=sb.toString();	
+					PUMPresponse=sb.toString();
 				} catch (IOException ioe) {
 					ioeDuringRead[0] = ioe;
 					ioe.printStackTrace();
@@ -417,6 +417,29 @@ public class AlarisMITM extends AbstractSerialDevice {
 				
 				//  write pump response to easytiva
 				try {
+					if(timedAlarms && PUMPresponse.startsWith("!INF^")) {
+						long currentInterval=startTime-System.currentTimeMillis();
+						if(
+							(currentInterval>START_ALARM_RANGE_ONE && currentInterval<END_ALARM_RANGE_ONE) ||
+							(currentInterval>START_ALARM_RANGE_TWO && currentInterval<END_ALARM_RANGE_TWO) ||
+							(currentInterval>START_ALARM_RANGE_THREE && currentInterval<END_ALARM_RANGE_THREE)
+						) {
+							String fields[]=PUMPresponse.split("\\^");
+							if(fields[2].equals("-")) {
+								//Replace field 2...
+								fields[2]="A";
+							}
+							//Trim ! off first field
+							fields[0]=fields[0].substring(1);
+							//Get rid of checksum from last field.
+							String lastField=fields[fields.length-1];
+							lastField=lastField.substring(0,lastField.indexOf('|'));
+							fields[fields.length-1]=lastField;
+							//Merge strings together
+							String finalFakeResponse=crc(String.join("^", fields));
+							writetoRequestor(finalFakeResponse);
+						}
+					}
 					writetoRequestor(PUMPresponse);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
