@@ -59,9 +59,10 @@ dependencies {
   // nddsjava.jar is the java binding library for RTI DDS
   implementation files(rtiNddsJava)
   implementation files(rtiDdsGen2)
+  implementation files('../../artifacts/nddsjava.jar')
   //This next slf4j entry appears to have been a missing dependency somehow?
   //Rather than a migration from mdpnp artifactory...
-  implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.2'
+  implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.3'
   testImplementation("junit:junit:4.13.2")
   testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.1")
 
