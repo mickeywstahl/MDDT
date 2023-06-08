@@ -15,6 +15,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonException;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
+import javax.json.JsonValue.ValueType;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -41,15 +51,6 @@ import com.sun.javafx.collections.ObservableListWrapper;
 
 import ice.MDSConnectivity;
 import ice.Patient;
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonException;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
-import jakarta.json.JsonReader;
-import jakarta.json.JsonValue;
-import jakarta.json.JsonValue.ValueType;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
