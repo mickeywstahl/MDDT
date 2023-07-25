@@ -399,6 +399,7 @@ public class AlarisMITM extends AbstractSerialDevice {
 				}
 				t.interrupt();
 				System.err.println(drugName + ": Response from Alaris is " + PUMPresponse);
+				easyTivaLog.trace(">>> " + drugName + " "+ PUMPresponse);
 				
 				//  write pump response to easytiva
 				try {
