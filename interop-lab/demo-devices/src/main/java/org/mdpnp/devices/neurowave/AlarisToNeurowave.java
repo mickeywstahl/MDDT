@@ -104,6 +104,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 	protected void process(int idx, InputStream inputStream, OutputStream outputStream) throws IOException {
 		System.err.println("for idx="+idx+" state is "+stateMachine.getState());
 		//If we get here, we are "connected".
+		alarisNeurowaveLog.trace("Started new session |");
 		if(idx<2) {
 			//0 and 1 are the two EasyTiva channels to what they think is an Alaris.
 			BufferedReader fromEasyTiva=new BufferedReader(new InputStreamReader(inputStream));
@@ -209,6 +210,8 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			} else {
 				sb.append("8002-51740");
 			}
+			
+			
 			sb.append("^-^SET^");	//This is the infusion mode
 			//Now, we want the actual infusion rate value.
 			if(idx==0) {
@@ -308,6 +311,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 				String alarisAlarm=AP4000AlarmMap.get(ap4000Alarm.code);
 				if(alarisAlarm==null) {
 					log.warn("Unmapped AP4000 alarm "+ap4000Alarm.code);
+					alarisNeurowaveLog.trace("Unmapped AP4000 alarm "+ap4000Alarm.code);
 					//TODO: Return AL_NOALM or AL_OCCLU?
 					finalResponse=Asena.crc(noAlarmsActive);
 				} else {
@@ -432,7 +436,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 	
 	//private static final Hashtable<String,String> AP4000AlarmMap=new Hashtable<>();
 	private void populateAlarmMap() {
-		InputStream is=getClass().getResourceAsStream("neurowave-alaris-alarm-map.txt");
+		InputStream is=getClass().getResourceAsStream("neurowave-alaris-alarm-map2.txt");
 		if(is==null) {
 			log.warn("No neurowave-alaris-alarm-map.txt");
 			return;
