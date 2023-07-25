@@ -104,7 +104,9 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 	protected void process(int idx, InputStream inputStream, OutputStream outputStream) throws IOException {
 		System.err.println("for idx="+idx+" state is "+stateMachine.getState());
 		//If we get here, we are "connected".
+		
 		alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| Started new session |");
+
 		if(idx<2) {
 			//0 and 1 are the two EasyTiva channels to what they think is an Alaris.
 			BufferedReader fromEasyTiva=new BufferedReader(new InputStreamReader(inputStream));
@@ -311,7 +313,9 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 				String alarisAlarm=AP4000AlarmMap.get(ap4000Alarm.code);
 				if(alarisAlarm==null) {
 					log.warn("Unmapped AP4000 alarm "+ap4000Alarm.code);
+
 					alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| Unmapped AP4000 alarm |"+ap4000Alarm.code);
+
 					//TODO: Return AL_NOALM or AL_OCCLU?
 					finalResponse=Asena.crc(noAlarmsActive);
 				} else {
