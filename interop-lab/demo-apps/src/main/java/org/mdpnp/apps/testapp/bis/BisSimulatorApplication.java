@@ -152,6 +152,9 @@ public class BisSimulatorApplication {
 	@FXML
 	TextField emgNoiseStdDev;
 	
+	@FXML
+	CheckBox continuousLoop;
+	
 	private ApplicationContext parentContext;
 	private Subscriber subscriber;
 	
@@ -161,6 +164,11 @@ public class BisSimulatorApplication {
 	private Patient currentPatient;
 	
 	private MDSHandler mdsHandler;
+	
+	/**
+	 * A count of how many times the EasyTiva has requested the data thread.
+	 */
+	private int easyTivaCount;
 
 	public BisSimulatorApplication() {
 		// TODO Auto-generated constructor stub
@@ -321,6 +329,11 @@ public class BisSimulatorApplication {
 							}
 							break;
 						case 'V':
+							if( ! continuousLoop.isSelected() && easyTivaCount>0) {
+								//We have already looped once.
+								System.err.println("easyTivaCount is "+easyTivaCount+" and continuous looping is not enabled");
+								break;
+							}
 							if(dataThread==null || !dataThread.isAlive()) {
 								if(fromDevice!=null) {
 									//Previously open.  Close, so it can be re-opened.
@@ -344,6 +357,11 @@ public class BisSimulatorApplication {
 							}
 							break;
 						case 'U':
+							if( ! continuousLoop.isSelected() && easyTivaCount>0) {
+								//We have already looped once.
+								System.err.println("easyTivaCount is "+easyTivaCount+" and continuous looping is not enabled");
+								break;
+							}
 							System.err.println("BisSimulator Starting data thread");
 							log.info("Starting data thread for command 'U'");
 							startDataThread();
@@ -407,6 +425,12 @@ public class BisSimulatorApplication {
 	}
 	
 	class DataThread extends Thread {
+		
+		public DataThread() {
+			super();
+			System.err.println("Constructor for DataThread...");
+		}
+
 		@Override
 		public void run() {
 			//The data file should already have read the VERSION line.
@@ -434,6 +458,7 @@ public class BisSimulatorApplication {
 						keepGoing=false;
 						System.err.println("Probably ran out of lines");
 						loggingArea.appendText("!!!!!!! END OF INPUT FILE "+sourceFileField.getText()+" !!!!!!!");
+						easyTivaCount++;
 						interrupt();
 					}
 					String[] csvFields=nextLine.split(",");
@@ -487,7 +512,7 @@ public class BisSimulatorApplication {
 				}
 			}
 			//If we get here, keepGoing is no longer true.
-			log.info("data thread asked to stop.");
+			log.info("data thread asked to stop or ran out of lines and set keepGoing to false.");
 			return;
 		}
 	}
