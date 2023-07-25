@@ -14,7 +14,23 @@
 			<SizeBasedTriggeringPolicy size="1024KB"/>
 		</RollingFile>
 		<RollingFile name="easy-tiva-log" fileName="${sys:user.home}/easy-tiva.log"
-			filePattern="${sys:user.home}/easy-tiva.log-%i.log" immediateFlush="true">
+			filePattern="${sys:user.home}/easy-tiva-%i.log" immediateFlush="true">
+			<PatternLayout>
+				<pattern>%d{DEFAULT} | %-5p | %c{1} | %t | %m%n</pattern>
+			</PatternLayout>
+			<SizeBasedTriggeringPolicy size="64MB"/>
+			<DefaultRolloverStrategy max="1000000"/>
+		</RollingFile>
+		<RollingFile name="mitm-time-trace-log" fileName="${sys:user.home}/FCTLogs/mitm-timing.log"
+			filePattern="${sys:user.home}/FCTLogs/mitm-timing-%i.log" immediateFlush="true">
+			<PatternLayout>
+				<pattern>%d{DEFAULT} | %-5p | %c{1} | %t | %m%n</pattern>
+			</PatternLayout>
+			<SizeBasedTriggeringPolicy size="64MB"/>
+			<DefaultRolloverStrategy max="1000000"/>
+		</RollingFile>
+		<RollingFile name="pump-timing-log" fileName="${sys:user.home}/pump-timing.log"
+			filePattern="${sys:user.home}/pump-timing-%i.log" immediateFlush="true">
 			<PatternLayout>
 				<pattern>%d{DEFAULT} | %-5p | %c{1} | %t | %m%n</pattern>
 			</PatternLayout>
@@ -26,7 +42,7 @@
 			<PatternLayout>
 				<pattern>%d{DEFAULT} | %-5p | %c{1} | %t | %m%n</pattern>
 			</PatternLayout>
-			<SizeBasedTriggeringPolicy size="1024KB"/>
+			<SizeBasedTriggeringPolicy size="64MB"/>
 			<DefaultRolloverStrategy max="1000000"/>
 		</RollingFile>
 	</Appenders>
@@ -39,6 +55,12 @@
 		</Logger>
 		<Logger name="neurowave.alaris" level="trace" additivity="false">
 			<AppenderRef ref="neurowave-alaris-log"/>
+		</Logger>
+		<Logger name="mitm.timetrace" level="trace" additivity="false">
+			<AppenderRef ref="mitm-time-trace-log"/>
+		</Logger>
+		<Logger name="pump.timing" level="trace" additivity="false">
+			<AppenderRef ref="pump-timing-log"/>
 		</Logger>
 	</Loggers>
 

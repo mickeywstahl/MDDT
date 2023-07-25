@@ -41,6 +41,7 @@ public class PumpWithProgramListener {
 	private File timingsFile;
 	
 	private static final Logger log = LoggerFactory.getLogger(PumpWithProgramListener.class);
+	private static final Logger timingLog = LoggerFactory.getLogger("pump.timing");
 	private final String FLOW_RATE=rosetta.MDC_FLOW_FLUID_PUMP.VALUE;
 	
 	
@@ -96,6 +97,7 @@ public class PumpWithProgramListener {
 		objective.bolusVolume=-1;
 		objective.seconds=-1;
 		writer.write(objective, InstanceHandle_t.HANDLE_NIL);
+		timingLog.debug(System.currentTimeMillis()+"\t"+pump.getUDI()+"\t"+tr.rate);
 		log.info("Published an infusion program "+tr.toString());
 	}
 	

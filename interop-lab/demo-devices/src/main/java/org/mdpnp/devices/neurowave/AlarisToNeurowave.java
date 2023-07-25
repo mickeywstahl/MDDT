@@ -91,9 +91,9 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 		//TODO: Put some meaningful criteria here to decide that we actually are connected.
 		System.err.println("Currently in doInit for idx - " + idx);
 		
-		if (idx == 0) {
-			reportConnected("Assume connected for idx - "+ idx);
-		}
+//		if (idx == 0) {
+//			reportConnected("Assume connected for idx - "+ idx);
+//		}
 		if (idx == 1) {
 			reportConnected("Assume connected for idx - "+ idx);
 		}
@@ -104,6 +104,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 	protected void process(int idx, InputStream inputStream, OutputStream outputStream) throws IOException {
 		System.err.println("for idx="+idx+" state is "+stateMachine.getState());
 		//If we get here, we are "connected".
+		alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| Started new session |");
 		if(idx<2) {
 			//0 and 1 are the two EasyTiva channels to what they think is an Alaris.
 			BufferedReader fromEasyTiva=new BufferedReader(new InputStreamReader(inputStream));
@@ -113,7 +114,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			String alarisCommand=null;
 			while( (alarisCommand=fromEasyTiva.readLine()) != null ) {
 				System.err.println(getPortIdentifier(idx) + ": Printing EasyTIVA Command for " + alarisCommand);
-
+				
 				String alarisResponse=executeNeurowaveCommand(alarisCommand,idx);
 				System.err.println(getPortIdentifier(idx)+ ": Response from translator app is " +alarisResponse);
 				
@@ -138,23 +139,23 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 	 * @throws IOException if the Neurowave throws the same
 	 */
 	private String executeNeurowaveCommand(String alarisCommand, int idx) throws IOException {
-		alarisNeurowaveLog.trace("From EasyTiva: "+(idx+1) + " "+alarisCommand);
+		alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| From EasyTiva: |"+alarisCommand);
 		if(alarisCommand.startsWith("!INST_SERIALNO|")) {
 			if(idx==0) {
 				String finalResponse="!INST_SERIALNO^8002-51733|ACFF\r";
-				alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+				alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 				return finalResponse;
 			}
 			if(idx==1) {
 				String finalResponse="!INST_SERIALNO^8002-51740|050B\r";
-				alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+				alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 				return finalResponse;
 			}
 		}
 		if(alarisCommand.startsWith("!COMMS_PROTOCOL|")) {
 			//No condition on idx here - we assume both pumps have the same comms version
 			String finalResponse="!COMMS_PROTOCOL^Asena Rev 2.1.5|661A\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!REMOTE_CTRL^ENABLED^")) {
@@ -164,13 +165,13 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			 * as it will be done in response to programming the pump, pause/resume etc. 
 			 */
 			String finalResponse="!REMOTE_CTRL^ENABLED^****^PERMIT^0^ms|7BB0\r"; //pumps just send asterisks, not hidden values
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!COMMS_RESPONSE_MAX|7E29")) {
 			//We will just return a fixed response for this for now.
 			String finalResponse="!COMMS_RESPONSE_MAX^4000^ms|DFDF\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!SYRINGE_STATUS|4102")) {
@@ -184,7 +185,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			 * rather than bothering to publish it in DDS.
 			 */
 			String finalResponse="!SYRINGE_STATUS^BD PLASTIPAK^ 50^CONF|1CF8\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!INF_RATE_MAX_SYRINGE|8F30")) {
@@ -195,7 +196,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			 * what the VTBI is.
 			 */
 			String finalResponse="!INF_RATE_MAX_SYRINGE^1200.00^ml/h|8575\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!INF|4961")) {
@@ -209,6 +210,8 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			} else {
 				sb.append("8002-51740");
 			}
+			
+			
 			sb.append("^-^SET^");	//This is the infusion mode
 			//Now, we want the actual infusion rate value.
 			if(idx==0) {
@@ -243,7 +246,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			
 			String finalResponse=Asena.crc(sb.toString());
 			//finalResponse should now have the initial ! and the | and checksum at the end.
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 			
 		}
@@ -252,13 +255,13 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			//TODO: Make code in the Neurowave that deducts the current volume infused from future readings.
 			//TODO: Also need to reflect the corrected amount in the INF parameters
 			String finalResponse="!INF_VI_CLEAR|A706\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!INF_STOP|")) {
 			neurowaveDevice.pauseInfusion(idx+1);
 			String finalResponse="!INF_STOP|CD57\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!INF_RATE^")) {
@@ -287,13 +290,13 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			String response="INF_RATE^" + returnRate + "^ml/h";
 			String finalResponse=Asena.crc(response);
 			System.err.println(finalResponse);
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!INF_START|")) {
 			neurowaveDevice.resumeInfusion(idx+1);
 			String finalResponse="!INF_START|38F3\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!ALARM|")) {
@@ -308,6 +311,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 				String alarisAlarm=AP4000AlarmMap.get(ap4000Alarm.code);
 				if(alarisAlarm==null) {
 					log.warn("Unmapped AP4000 alarm "+ap4000Alarm.code);
+					alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| Unmapped AP4000 alarm |"+ap4000Alarm.code);
 					//TODO: Return AL_NOALM or AL_OCCLU?
 					finalResponse=Asena.crc(noAlarmsActive);
 				} else {
@@ -315,22 +319,22 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 				}
 			}
 			System.err.println("returning "+finalResponse+" for !ALARM query");
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!REMOTE_CTRL^DISABLED")) {
 			String finalResponse="!REMOTE_CTRL^DISABLED^****^PERMIT^0^ms|3C5D\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		if(alarisCommand.startsWith("!REMQUERY^DEACT")) {
 			String finalResponse="!REMQUERY^DEACT^^^^|E5C9\r";
-			alarisNeurowaveLog.trace("To EasyTiva: "+(idx+1) + " "+finalResponse);
+			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
 			return finalResponse;
 		}
 		
 		System.err.println("!+!+!+! - Unhandled request from EasyTiva - "+alarisCommand);
-		alarisNeurowaveLog.trace("!+!+!+! - Unhandled request from EasyTiva - "+alarisCommand);
+		alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| !+!+!+! - Unhandled request from EasyTiva - |"+alarisCommand);
 		return null;
 	}
 	
@@ -432,7 +436,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 	
 	//private static final Hashtable<String,String> AP4000AlarmMap=new Hashtable<>();
 	private void populateAlarmMap() {
-		InputStream is=getClass().getResourceAsStream("neurowave-alaris-alarm-map.txt");
+		InputStream is=getClass().getResourceAsStream("neurowave-alaris-alarm-map2.txt");
 		if(is==null) {
 			log.warn("No neurowave-alaris-alarm-map.txt");
 			return;

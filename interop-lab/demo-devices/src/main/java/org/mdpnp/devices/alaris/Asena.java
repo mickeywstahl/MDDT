@@ -4,15 +4,19 @@ import java.io.BufferedInputStream;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.text.DecimalFormat;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.mdpnp.devices.DeviceClock;
 import org.mdpnp.devices.AbstractDevice.InstanceHolder;
+import org.mdpnp.devices.alaris.AlarisMITM.TimeAndCommand;
 import org.mdpnp.devices.serial.AbstractSerialDevice;
 import org.mdpnp.devices.serial.SerialProvider;
 import org.mdpnp.devices.simulation.AbstractSimulatedDevice;
@@ -77,6 +81,7 @@ private boolean initDone;
 	private String serialNumber;
 	
 	private float currentVTBI;
+	private static final long MAX_WAIT=500L;
 	
 	private boolean pendingWriteSpeed = false;
 	private boolean pendingWriteBolus = false;
@@ -454,8 +459,58 @@ private boolean initDone;
 		toDevice.flush();
 		System.err.println("Attempting to write REMOTE ENABLE command");
 		
-		String response = fromDevice.readLine();
-		System.err.println("REMOTE ENABLE command response is " + response);
+		
+		final StringBuilder sb=new StringBuilder();
+		String PUMPresponse = null;
+		
+		// Timeout tracking Thread
+		IOException[] ioeDuringRead=new IOException[1];
+		Thread t = new Thread() {
+
+			@Override
+			public void run() {
+				long l1=System.currentTimeMillis();
+				try {
+					
+					sleep(MAX_WAIT);
+					if (sb.length() == 0){
+						System.err.println("!!!!! Pump did not send response to EasyTIVA within "+MAX_WAIT);
+						System.err.println("String read when looking for line is "+sb.toString());
+						retrySendCommand(REMOTEENABLE);
+						if(ioeDuringRead!=null) {
+//							easyTivaLog.trace("exception during read", ioeDuringRead[0]);
+						}
+					}
+					else {
+						System.err.println( "Partial read from pump is : "+ sb.toString());
+					}
+				} catch (InterruptedException e) {
+					System.err.println(" Interrupted after "+(System.currentTimeMillis()-l1));
+				}
+			}
+			
+		};
+		t.setName("Pump Timeout Thread");
+		t.start();
+		
+		// Read Char by char
+		try {
+			char c;
+			//response[0] = fromDevice.readLine();
+			while( (c=(char)fromDevice.read())!=-1 && c!='\r') {
+				sb.append(c);
+//				System.err.println(sb);
+			}
+			PUMPresponse=sb.toString();	
+		} catch (IOException ioe) {
+			ioeDuringRead[0] = ioe;
+			ioe.printStackTrace();
+		}
+		t.interrupt();
+		System.err.println("Response from Alaris is " + PUMPresponse);
+		
+//		String response = fromDevice.readLine();
+//		System.err.println("REMOTE ENABLE command response is " + response);
 	}
 	
 	private synchronized void pumpStatus() throws IOException {
@@ -476,10 +531,61 @@ private boolean initDone;
 //		}
 //		
 //		String response = new String (responseBytes,0,bytesRead);
-		String response = fromDevice.readLine();
 		
-		System.err.println("INF command response is " + response);
-		String parts[] = response.split("\\^");
+		final StringBuilder sb=new StringBuilder();
+		String PUMPresponse = null;
+		
+		// Timeout tracking Thread
+		IOException[] ioeDuringRead=new IOException[1];
+		Thread t = new Thread() {
+
+			@Override
+			public void run() {
+				long l1=System.currentTimeMillis();
+				try {
+					
+					sleep(MAX_WAIT);
+					if (sb.length() == 0){
+						System.err.println("!!!!! Pump did not send response to EasyTIVA within "+MAX_WAIT);
+						System.err.println("String read when looking for line is "+sb.toString());
+						retrySendCommand(INFSTATUS);
+						if(ioeDuringRead!=null) {
+//							easyTivaLog.trace("exception during read", ioeDuringRead[0]);
+						}
+					}
+					else {
+						System.err.println( "Partial read from pump is : "+ sb.toString());
+					}
+				} catch (InterruptedException e) {
+					System.err.println(" Interrupted after "+(System.currentTimeMillis()-l1));
+				}
+			}
+			
+		};
+		t.setName("Pump Timeout Thread");
+		t.start();
+		
+		// Read Char by char
+		try {
+			char c;
+			//response[0] = fromDevice.readLine();
+			while( (c=(char)fromDevice.read())!=-1 && c!='\r') {
+				sb.append(c);
+//				System.err.println(sb);
+			}
+			PUMPresponse=sb.toString();	
+		} catch (IOException ioe) {
+			ioeDuringRead[0] = ioe;
+			ioe.printStackTrace();
+		}
+		t.interrupt();
+//		System.err.println("Response from Alaris is " + PUMPresponse);
+		
+		
+//		String response = fromDevice.readLine();
+		
+		System.err.println("INF command response is " + PUMPresponse);
+		String parts[] = PUMPresponse.split("\\^");
 		
 		InstSerial = parts [1];
 		AlarmNotification = parts [2];
@@ -608,6 +714,21 @@ private boolean initDone;
 //		String response = new String (responseBytes,0,bytesRead);
 		System.err.println("VTBI DEACTIVATE command response is " + response);
 
+	}
+	
+	private void retrySendCommand(String saveCommand) {
+		
+		try {
+			byte[] initBytes = saveCommand.getBytes();
+			toDevice.write(initBytes);
+			toDevice.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		System.err.println("Command rewrite attempt to AlarisGH - " + saveCommand);
+		
 	}
 	
 	public static String crc(String input) {

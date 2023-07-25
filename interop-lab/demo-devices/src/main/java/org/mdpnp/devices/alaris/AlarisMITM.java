@@ -65,7 +65,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 			return elapsed + "\t" + command;
 		}
 		
-		
 	}
 	
 	/**
@@ -82,7 +81,7 @@ public class AlarisMITM extends AbstractSerialDevice {
 	/**
 	 * Start of first time period to return alarms (five minutes)
 	 */
-	private static final long START_ALARM_RANGE_ONE=60*1000*5;
+	private static final long START_ALARM_RANGE_ONE=60*1000*1;
 	/**
 	 * End of first time period (thirty seconds after start of first period)
 	 */
@@ -91,7 +90,7 @@ public class AlarisMITM extends AbstractSerialDevice {
 	/**
 	 * Start of second time period (two minutes after end of first period)
 	 */
-	private static final long START_ALARM_RANGE_TWO=END_ALARM_RANGE_ONE+60*1000*2;
+	private static final long START_ALARM_RANGE_TWO=END_ALARM_RANGE_ONE+60*1000*1;
 	/**
 	 * End of second time period (one minute after start of second period)
 	 */
@@ -100,18 +99,25 @@ public class AlarisMITM extends AbstractSerialDevice {
 	/**
 	 * Start of third time period (two minutes after end of second period)
 	 */
-	private static final long START_ALARM_RANGE_THREE=END_ALARM_RANGE_TWO+60*1000*2;
+	private static final long START_ALARM_RANGE_THREE=END_ALARM_RANGE_TWO+60*1000*1;
 	/**
 	 * End of third time period (two minutes after start of third period)
 	 */
-	private static final long END_ALARM_RANGE_THREE=START_ALARM_RANGE_THREE+60*1000*2;
+	private static final long END_ALARM_RANGE_THREE=START_ALARM_RANGE_THREE+60*1000*1;
+	
+	private String[] alarmCodes = { "AL_ACDIS", "AL_CALLB", "AL_COMTO", "AL_LDSCN", "AL DRDIS", "AL_EMBAT", "AL_EOIKV", "AL_EOIST", "AL_FAULT", 
+			"AL_LBTAC", "AL_LWBAT", "AL_NOALM", "AL_OCCLU", "AL_NEOIN", "AL_PRDSC", "AL_RHIGH", "AL_SYRCO", "AL_TCITG", "AL_TITCA", "AL_TITNC", "AL_VTBIC", "AL_VTBIK", "AL_VTBIS"};
 
+	private String alarmFields[];
+	
 	private static final long MAX_WAIT=500L;
 	
 	private static final int MAX_RETRIES=5;
 	
 	private static final Logger Log = LoggerFactory.getLogger(BisMonitor.class);
 	private static final Logger easyTivaLog = LoggerFactory.getLogger("easy.tiva");
+
+	private static final Logger mitmTimeLog = LoggerFactory.getLogger("mitm.timetrace");
 
 	private boolean pendingWriteBolus = false;
 	float setPumpSpeed;
@@ -166,10 +172,16 @@ public class AlarisMITM extends AbstractSerialDevice {
 		//addObjectiveListeners();
 		sentCommands=new ArrayList<>();
 		sentResponses=new ArrayList<>();
-		if(additionalParams.equals("alarms")) {
-			timedAlarms=true;
-			startTime=System.currentTimeMillis();
-		}
+//		System.err.println("^^^^^^^^^^^^^^^^ In device creation ^^^^^^^^^^^^^^^^^^^^^^^");
+//		System.err.println("^^^^^^^^^^^^^^^^ " + additionalParams);
+//		if(additionalParams!=null && additionalParams.equals("alarms")) {
+//			timedAlarms=true;
+//			System.err.println("^^^^^^^^^^^^^^^^ In alarm condition in constructor, set to true ^^^^^^^^^^^^^^^^^^^^^^^");
+//			easyTivaLog.trace("timedAlarms flag has been activated");
+//			startTime=System.currentTimeMillis();
+//		} else {
+//			System.err.println("NO ADDITIONAL PARAMS IN CONSTRUCTOR");
+//		}
 	}
 	
 	
@@ -194,6 +206,23 @@ public class AlarisMITM extends AbstractSerialDevice {
 	
 	@Override
 	protected void doInitCommands(int idx) throws IOException{
+//		alarmFields =  additionalParams.split("\\.");
+//		if(additionalParams!=null && alarmFields[0].equals("alarms")) {
+		if(additionalParams!=null && additionalParams.equals("alarms")) {
+			timedAlarms=true;
+			System.err.println("^^^^^^^^^^^^^^^^ In alarm condition in doInitCommands, set to true ^^^^^^^^^^^^^^^^^^^^^^^");
+			easyTivaLog.trace("timedAlarms flag has been activated");
+			startTime=System.currentTimeMillis();
+		} 
+//		else if(additionalParams!=null && alarmFields[0].equals("alarm")) {
+//			timedAlarms=true;
+//			System.err.println("^^^^^^^^^^^^^^^^ In alarm condition in doInitCommands, set to true ^^^^^^^^^^^^^^^^^^^^^^^");
+//			easyTivaLog.trace("timedAlarms flag has been activated");
+//			startTime=System.currentTimeMillis();
+//		}
+		else {
+			System.err.println("NO ADDITIONAL PARAMS IN CONSTRUCTOR");
+		}
 //		connected=true;
 		int i = 0;
 		drugName = "(Generic Drug at " + getPortIdentifier(idx) + ")";
@@ -203,13 +232,15 @@ public class AlarisMITM extends AbstractSerialDevice {
 				System.err.println(getPortIdentifier(idx) + drugName);
 				i++;
 			}
-			if (getPortIdentifier(idx).equals("COM11") || getPortIdentifier(idx).equals("COM7") ){
+			if (getPortIdentifier(idx).equals("COM13") || getPortIdentifier(idx).equals("COM7") ){
 				drugName = "(Remifentanil)";
 				System.err.println(getPortIdentifier(idx) + drugName);
 				i++;
 			}
 		}
 		reportConnected(drugName + " Pump is now connected.");
+		easyTivaLog.trace(drugName + " Created new MITM device.");
+		mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| Created new MITM device |");
 		connected=true;
 	}
 	
@@ -274,26 +305,36 @@ public class AlarisMITM extends AbstractSerialDevice {
 					String TIVArequest = null;
 					try {
 						TIVArequest=fromRequestor.readLine();
+						mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| From EasyTIVA |" +TIVArequest );
 						/*
 						 * If doing timed alarms, check if we are in an alarm window...
 						 */
-						if(timedAlarms && TIVArequest.equals("!ALARM|50B2")) {
-							long currentInterval=startTime-System.currentTimeMillis();
-							if(
-								(currentInterval>START_ALARM_RANGE_ONE && currentInterval<END_ALARM_RANGE_ONE) ||
-								(currentInterval>START_ALARM_RANGE_TWO && currentInterval<END_ALARM_RANGE_TWO) ||
-								(currentInterval>START_ALARM_RANGE_THREE && currentInterval<END_ALARM_RANGE_THREE)
-							) {
-								//TODO: Check if this is an accurate occlusion alarm
-								String finalFakeResponse=crc("ALARM^AL_OCCL^OCCLUSION^");
-								writetoRequestor(finalFakeResponse);
-							}
-						} else {
-							//Either not doing timed alarms, or it's not in a time window.  Send the command to the pump
-							TIVAq.add(TIVArequest);
-							long t1 = System.currentTimeMillis();
-							System.err.println(drugName+" Next request from EasyTIVA is " + TIVArequest+" at "+t1);
-						}
+//						if(timedAlarms && TIVArequest.equals("!ALARM|50B2")) {
+//							long currentInterval=System.currentTimeMillis() - startTime;
+//							if(
+//								(currentInterval>START_ALARM_RANGE_ONE && currentInterval<END_ALARM_RANGE_ONE) ||
+//								(currentInterval>START_ALARM_RANGE_TWO && currentInterval<END_ALARM_RANGE_TWO) ||
+//								(currentInterval>START_ALARM_RANGE_THREE && currentInterval<END_ALARM_RANGE_THREE)
+//							) {
+//								//TODO: Check if this is an accurate occlusion alarm
+//								String finalFakeResponse=crc("ALARM^AL_OCCL^OCCLUSION^");
+//								easyTivaLog.trace("Writing 'finalFakeResponse' to Requestor");
+//								writetoRequestor(finalFakeResponse);
+//								
+//							} else {
+//								TIVAq.add(TIVArequest);
+//								long t1 = System.currentTimeMillis();
+//								System.err.println(drugName+" Next request from EasyTIVA is " + TIVArequest+" at "+t1);
+//							}
+//						} else {
+//							//Either not doing timed alarms, or it's not in a time window.  Send the command to the pump
+//							TIVAq.add(TIVArequest);
+//							long t1 = System.currentTimeMillis();
+//							System.err.println(drugName+" Next request from EasyTIVA is " + TIVArequest+" at "+t1);
+//						}
+						TIVAq.add(TIVArequest);
+						long t1 = System.currentTimeMillis();
+						System.err.println(drugName+" Next request from EasyTIVA is " + TIVArequest+" at "+t1);
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -329,6 +370,7 @@ public class AlarisMITM extends AbstractSerialDevice {
 				try {
 					toDevice.write(command);
 					toDevice.flush();
+					mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| To Pump |" +command);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -405,42 +447,95 @@ public class AlarisMITM extends AbstractSerialDevice {
 					//response[0] = fromDevice.readLine();
 					while( (c=(char)fromDevice.read())!=-1 && c!='\r') {
 						sb.append(c);
-						System.err.println(sb);
+//						System.err.println(sb);
 					}
 					PUMPresponse=sb.toString();
+					mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| From Pump |" +PUMPresponse );
 				} catch (IOException ioe) {
 					ioeDuringRead[0] = ioe;
 					ioe.printStackTrace();
 				}
 				t.interrupt();
 				System.err.println(drugName + ": Response from Alaris is " + PUMPresponse);
+				easyTivaLog.trace(">>> " + drugName + " "+ PUMPresponse);
 				
 				//  write pump response to easytiva
 				try {
 					if(timedAlarms && PUMPresponse.startsWith("!INF^")) {
-						long currentInterval=startTime-System.currentTimeMillis();
+						easyTivaLog.trace(drugName +" timedAlarm and INF command satisfied");
+						long currentInterval=System.currentTimeMillis() - startTime;
+						System.err.println("Current Interval for Alarms is: " + currentInterval);
 						if(
 							(currentInterval>START_ALARM_RANGE_ONE && currentInterval<END_ALARM_RANGE_ONE) ||
 							(currentInterval>START_ALARM_RANGE_TWO && currentInterval<END_ALARM_RANGE_TWO) ||
 							(currentInterval>START_ALARM_RANGE_THREE && currentInterval<END_ALARM_RANGE_THREE)
 						) {
+							easyTivaLog.trace(drugName + " Time interval conditions satisfied");
 							String fields[]=PUMPresponse.split("\\^");
+							String lastField=fields[fields.length-1];
+							lastField=lastField.substring(0,lastField.indexOf('|'));
+							
+							fields[fields.length-1]=lastField;
+							
 							if(fields[2].equals("-")) {
 								//Replace field 2...
 								fields[2]="A";
+								fields[3]="SET";
+								fields[4]="0.00";
+								int f = Integer.valueOf(lastField);
+								fields[fields.length-1] = String.valueOf(f);
 							}
 							//Trim ! off first field
 							fields[0]=fields[0].substring(1);
 							//Get rid of checksum from last field.
-							String lastField=fields[fields.length-1];
-							lastField=lastField.substring(0,lastField.indexOf('|'));
-							fields[fields.length-1]=lastField;
+							
 							//Merge strings together
 							String finalFakeResponse=crc(String.join("^", fields));
+							easyTivaLog.trace("Reconstructed INF command and sending to Requestor");
+							easyTivaLog.trace("Reconstructed INF is: " + finalFakeResponse);
+//							easyTivaLog.trace("Sending actual command - !INF^8002-51733^A^HLD^0.00^ml/h^^0.969^ml^530.15^mmHg^00:04:09^EVENT^214725|DB9D");
+//							writetoRequestor("!INF^8002-51733^A^HLD^0.00^ml/h^^0.969^ml^530.15^mmHg^00:04:09^EVENT^214725|DB9D");
 							writetoRequestor(finalFakeResponse);
+							mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| To EasyTIVA |" +finalFakeResponse );
+						} else {
+							easyTivaLog.trace(drugName + " Time interval condition not satisfied for INF");
+							writetoRequestor(PUMPresponse);
+							mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| To EasyTIVA |" +PUMPresponse );
 						}
 					}
-					writetoRequestor(PUMPresponse);
+					
+					else if(timedAlarms && PUMPresponse.startsWith("!ALARM")) {
+						long currentInterval=System.currentTimeMillis() - startTime;
+						if(
+							(currentInterval>START_ALARM_RANGE_ONE && currentInterval<END_ALARM_RANGE_ONE) ||
+							(currentInterval>START_ALARM_RANGE_TWO && currentInterval<END_ALARM_RANGE_TWO) ||
+							(currentInterval>START_ALARM_RANGE_THREE && currentInterval<END_ALARM_RANGE_THREE)
+						) {
+							//TODO: Check if this is an accurate occlusion alarm
+//							String finalFakeResponse;
+//							if (alarmFields[1]!= null) {
+//								finalFakeResponse=crc("ALARM^"+ alarmCodes[Integer.valueOf(alarmFields[1])-1] +"^^");
+//							}else {
+//								finalFakeResponse = crc("ALARM^AL_OCCLU^OCCLUSION^"); // default alarm code sent
+//							}
+							String finalFakeResponse =  crc("ALARM^AL_VTBIS^^");
+							easyTivaLog.trace("Writing 'finalFakeResponse' to Requestor");
+							easyTivaLog.trace("finalFakeResponse is - " + finalFakeResponse);
+							writetoRequestor(finalFakeResponse);
+							mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| To EasyTIVA |" +finalFakeResponse );
+							
+						} else {
+							easyTivaLog.trace(drugName + " Time interval condition not satisfied for ALARM");
+							writetoRequestor(PUMPresponse);
+							mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| To EasyTIVA |" +PUMPresponse );
+						}
+					}else {
+						easyTivaLog.trace(drugName + " timedAlarm and INF/ALARM command not satisfied");
+						writetoRequestor(PUMPresponse);
+						mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| To EasyTIVA |" +PUMPresponse );
+					}
+
+					
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -453,6 +548,7 @@ public class AlarisMITM extends AbstractSerialDevice {
 		try {
 			toDevice.write(saveCommand);
 			toDevice.flush();
+			mitmTimeLog.trace(drugName + "|"+ System.currentTimeMillis()  +"| To Pump - Rewrite |" +saveCommand );
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -511,7 +607,7 @@ public class AlarisMITM extends AbstractSerialDevice {
         while(hexValue.length()!=4){
             hexValue = "0"+hexValue;
         }
-        String fullCommand = "!" + message +"|" + hexValue + "\r";
+        String fullCommand = "!" + message +"|" + hexValue/* + "\r"*/;
         
         return fullCommand;
 		

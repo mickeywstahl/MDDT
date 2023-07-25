@@ -46,6 +46,7 @@
           	<TextField fx:id="emgNoiseStdDev" GridPane.columnIndex="2" GridPane.rowIndex="3"/>
           </children>
         </GridPane>
+        <CheckBox fx:id="continuousLoop" text="Continuous Loop"/>
       </children>
     </HBox>
     
