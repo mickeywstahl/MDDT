@@ -1,11 +1,9 @@
 package org.mdpnp.devices.alaris;
 
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -17,7 +15,6 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 
-import org.mdpnp.devices.DeviceClock;
 import org.mdpnp.devices.medsteer.bis.BisMonitor;
 import org.mdpnp.devices.serial.AbstractSerialDevice;
 import org.mdpnp.devices.serial.SerialProvider;
@@ -71,6 +68,44 @@ public class AlarisMITM extends AbstractSerialDevice {
 		
 	}
 	
+	/**
+	 * Flag to indicate whether to return alarms at pre-defined intervals.
+	 */
+	private boolean timedAlarms;
+
+	/**
+	 * The time that execution starts, used to know if we should be returning alarms
+	 * if timedAlarms is true.
+	 */
+	private long startTime;
+
+	/**
+	 * Start of first time period to return alarms (five minutes)
+	 */
+	private static final long START_ALARM_RANGE_ONE=60*1000*5;
+	/**
+	 * End of first time period (thirty seconds after start of first period)
+	 */
+	private static final long END_ALARM_RANGE_ONE=START_ALARM_RANGE_ONE+30*1000;
+
+	/**
+	 * Start of second time period (two minutes after end of first period)
+	 */
+	private static final long START_ALARM_RANGE_TWO=END_ALARM_RANGE_ONE+60*1000*2;
+	/**
+	 * End of second time period (one minute after start of second period)
+	 */
+	private static final long END_ALARM_RANGE_TWO=START_ALARM_RANGE_TWO+60*1000;
+
+	/**
+	 * Start of third time period (two minutes after end of second period)
+	 */
+	private static final long START_ALARM_RANGE_THREE=END_ALARM_RANGE_TWO+60*1000*2;
+	/**
+	 * End of third time period (two minutes after start of third period)
+	 */
+	private static final long END_ALARM_RANGE_THREE=START_ALARM_RANGE_THREE+60*1000*2;
+
 	private static final long MAX_WAIT=500L;
 	
 	private static final int MAX_RETRIES=5;
@@ -88,12 +123,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 	Queue<String> TIVAq = new LinkedList<>();
 	Queue<String> PUMPq = new LinkedList<>();
 	
-	private InfusionObjectiveDataReader pauseResumeReader;
-	private InfusionProgramDataReader programReader;
-	private Topic pauseResumeTopic, programTopic;
-	private QueryCondition pauseResumeQueryCondition, programQueryCondition;
-
-	
 	private static final Logger log = LoggerFactory.getLogger(AlarisMITM.class);
 	
 	private String drugName;
@@ -102,11 +131,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 	private boolean remoteDisableFlag = false;
 	
 	private static final String REMOTEDISABLE = "!REMOTE_CTRL^DISABLED|EF95\r";
-	
-	private static final String INFSTART = "!INF_START|38F3\r";
-	private static final String INFSTOP = "!INF_STOP|CD57\r";
-	
-	private static final int MAX_RESPONSE_LEN = 15000;
 	
 	/**
 	 * From the EasyTIVA to the pump
@@ -142,6 +166,10 @@ public class AlarisMITM extends AbstractSerialDevice {
 		//addObjectiveListeners();
 		sentCommands=new ArrayList<>();
 		sentResponses=new ArrayList<>();
+		if(additionalParams.equals("alarms")) {
+			timedAlarms=true;
+			startTime=System.currentTimeMillis();
+		}
 	}
 	
 	
@@ -197,14 +225,11 @@ public class AlarisMITM extends AbstractSerialDevice {
 				e.printStackTrace();
 			}
 		}
-		String TIVArequest = null, responsePump =null;
 		System.err.println("process starts for idx "+idx);
 		
 		if(idx==0) {
 			fromRequestor= new BufferedReader(new InputStreamReader(inputStream)); //inputStream;
-			//toRequestor=new BufferedOutputStream(outputStream);
 			toRequestor=new BufferedWriter(new OutputStreamWriter(outputStream));
-//			toLog=new BufferedOutputStream(new FileOutputStream("C:/Users/MDPNP/bis_"+System.currentTimeMillis()+".log"));
 			System.err.println("Created fromRequestor and toRequestor on port "+getPortIdentifier(idx)+" for idx "+idx);
 			
 		} else {
@@ -229,12 +254,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 		
 		if(idx==1) {
 			while(true) {
-//			try {
-//				System.err.println("!!!!!!! Current status of remote disable flag is " + remoteDisableFlag + " !!!!!!!");
-//				Thread.sleep(Long.MAX_VALUE);
-//			} catch (InterruptedException ie) {
-//				ie.printStackTrace();
-//			}
 				if(remoteDisableFlag) {
 					System.err.println("!! Current status of remote disable flag for "+ drugName +" is " + remoteDisableFlag + " !!");
 					remoteDisableFlag = false;
@@ -243,26 +262,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 			}
 		}
 		
-//		while(true) {
-//			if(idx==0) {
-//				long t1 = System.currentTimeMillis();
-//				
-//				TIVArequest=fromRequestor.readLine();
-//				TIVAq.add(TIVArequest);
-//				System.err.println(drugName+" Next request from EasyTIVA is " + TIVArequest+" at "+t1);
-//				responsePump = writetoDevice(TIVArequest);
-//				writetoRequestor(responsePump);
-//				long t2 = System.currentTimeMillis();
-//				
-//				if (t2 - t1 > 6000) {
-//					System.err.println("Breaking out from while(true) for idx==0");
-//					break;
-//				}
-//			}
-//			if (idx==1) {
-//				
-//			}
-//		}
 	}
 
 	private class TIVAreader extends Thread {
@@ -275,13 +274,30 @@ public class AlarisMITM extends AbstractSerialDevice {
 					String TIVArequest = null;
 					try {
 						TIVArequest=fromRequestor.readLine();
+						/*
+						 * If doing timed alarms, check if we are in an alarm window...
+						 */
+						if(timedAlarms && TIVArequest.equals("!ALARM|50B2")) {
+							long currentInterval=startTime-System.currentTimeMillis();
+							if(
+								(currentInterval>START_ALARM_RANGE_ONE && currentInterval<END_ALARM_RANGE_ONE) ||
+								(currentInterval>START_ALARM_RANGE_TWO && currentInterval<END_ALARM_RANGE_TWO) ||
+								(currentInterval>START_ALARM_RANGE_THREE && currentInterval<END_ALARM_RANGE_THREE)
+							) {
+								//TODO: Check if this is an accurate occlusion alarm
+								String finalFakeResponse=crc("ALARM^AL_OCCL^OCCLUSION^");
+								writetoRequestor(finalFakeResponse);
+							}
+						} else {
+							//Either not doing timed alarms, or it's not in a time window.  Send the command to the pump
+							TIVAq.add(TIVArequest);
+							long t1 = System.currentTimeMillis();
+							System.err.println(drugName+" Next request from EasyTIVA is " + TIVArequest+" at "+t1);
+						}
 					} catch (IOException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					TIVAq.add(TIVArequest);
-					long t1 = System.currentTimeMillis();
-					System.err.println(drugName+" Next request from EasyTIVA is " + TIVArequest+" at "+t1);
 				}
 				System.err.println(drugName + " - TIVAreader releases sync");
 				try {
@@ -310,7 +326,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 				command+="\r";
 				saveCommand = command;
 				System.err.println(drugName + ": Receiving Command from EasyTIVA - " + command);
-				byte[] initBytes = command.getBytes();
 				try {
 					toDevice.write(command);
 					toDevice.flush();
@@ -392,7 +407,7 @@ public class AlarisMITM extends AbstractSerialDevice {
 						sb.append(c);
 						System.err.println(sb);
 					}
-					PUMPresponse=sb.toString();	
+					PUMPresponse=sb.toString();
 				} catch (IOException ioe) {
 					ioeDuringRead[0] = ioe;
 					ioe.printStackTrace();
@@ -403,6 +418,29 @@ public class AlarisMITM extends AbstractSerialDevice {
 				
 				//  write pump response to easytiva
 				try {
+					if(timedAlarms && PUMPresponse.startsWith("!INF^")) {
+						long currentInterval=startTime-System.currentTimeMillis();
+						if(
+							(currentInterval>START_ALARM_RANGE_ONE && currentInterval<END_ALARM_RANGE_ONE) ||
+							(currentInterval>START_ALARM_RANGE_TWO && currentInterval<END_ALARM_RANGE_TWO) ||
+							(currentInterval>START_ALARM_RANGE_THREE && currentInterval<END_ALARM_RANGE_THREE)
+						) {
+							String fields[]=PUMPresponse.split("\\^");
+							if(fields[2].equals("-")) {
+								//Replace field 2...
+								fields[2]="A";
+							}
+							//Trim ! off first field
+							fields[0]=fields[0].substring(1);
+							//Get rid of checksum from last field.
+							String lastField=fields[fields.length-1];
+							lastField=lastField.substring(0,lastField.indexOf('|'));
+							fields[fields.length-1]=lastField;
+							//Merge strings together
+							String finalFakeResponse=crc(String.join("^", fields));
+							writetoRequestor(finalFakeResponse);
+						}
+					}
 					writetoRequestor(PUMPresponse);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -427,104 +465,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 		
 	}
 	
-	private synchronized String writetoDeviceOnce(String command) throws IOException {
-		command+="\r";
-		System.err.println(drugName + ": Receiving Command from EasyTIVA - " + command);
-		byte[] initBytes = command.getBytes();
-		toDevice.write(command);
-		toDevice.flush();
-		System.err.println(drugName + ": Command written to AlarisGH - " + command);
-		sentCommands.add(new TimeAndCommand(System.currentTimeMillis()-ourStartMillis, command));
-		easyTivaLog.trace("<<< " + drugName + " "+ command);
-		//We are not timed out yet.
-		boolean[] timedOut=new boolean[] {false};
-	
-		IOException[] ioeDuringRead=new IOException[1];
-		String[] response = new String [1];
-		final StringBuilder sb=new StringBuilder();
-		Thread t = new Thread() {
-
-			@Override
-			public void run() {
-				long l1=System.currentTimeMillis();
-				try {
-					
-					sleep(MAX_WAIT);
-					if (response[0]==null || response[0].length() == 0){
-						System.err.println("!!!!! " + drugName + " Pump did not send response to EasyTIVA within "+MAX_WAIT);
-						easyTivaLog.trace("!!!!! "+ drugName + " Pump did not send response to EasyTIVA within "+MAX_WAIT);
-						System.err.println("String read when looking for line is "+sb.toString());
-						if(ioeDuringRead!=null) {
-							easyTivaLog.trace("exception during read", ioeDuringRead[0]);
-						}
-						timedOut[0]=true;
-						String filename="commands-"+getPortIdentifier()+".log";
-						PrintStream commands=new PrintStream(new File(filename));
-						for(int i=0;i<sentCommands.size();i++) {
-							commands.println(sentCommands.get(i).toString());
-						}
-						commands.close();
-						
-						filename="responses-"+getPortIdentifier()+".log";
-						PrintStream responses=new PrintStream(new File(filename));
-						for(int i=0;i<sentResponses.size();i++) {
-							responses.println(sentResponses.get(i).toString());
-						}
-						responses.close();
-					}
-				} catch (InterruptedException e) {
-					System.err.println(drugName+" Interrupted after "+(System.currentTimeMillis()-l1));
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			
-		};
-		t.setName(drugName + " Pump Timeout Thread");
-		t.start();
-		
-		try {
-			char c;
-			//response[0] = fromDevice.readLine();
-			while( (c=(char)fromDevice.read())!=-1 && c!='\r') {
-				sb.append(c);
-			}
-			response[0]=sb.toString();	
-		} catch (IOException ioe) {
-			ioe.printStackTrace();
-			ioeDuringRead[0]=ioe;
-		}
-		t.interrupt();
-		System.err.println(drugName + ": Response from Alaris is " + response[0]);
-		
-		return response[0];
-	}
-	
-	private synchronized String writetoDevice(String command) throws IOException {
-		String ret=null;
-		int count=0;
-		while( (ret==null || ret.length()==0) && count<5 ) {
-			System.err.println("Calling writeToDeviceOnce count "+ (count++) +" for command "+command);
-			ret=writetoDeviceOnce(command);
-		}
-//		if(ret==null || ret.length()==0) {
-//			PrintStream commands=new PrintStream(new File("commands.log"));
-//			for(int i=0;i<sentCommands.size();i++) {
-//				commands.println(sentCommands.get(i).toString());
-//			}
-//			commands.close();
-//			
-//			PrintStream responses=new PrintStream(new File("responses.log"));
-//			for(int i=0;i<sentResponses.size();i++) {
-//				responses.println(sentResponses.get(i).toString());
-//			}
-//			responses.close();
-//		}
-		return ret;
-	}
-
-	
 	/*
 	 * I don't think this cycle of events make sense.  Reading from the requestor here makes it seem
 	 * as if the tiva responds to the response from the pump.
@@ -539,36 +479,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 		sentResponses.add(new TimeAndCommand(System.currentTimeMillis()-ourStartMillis, command));
 	}
 		
-	private synchronized String pauseInfusion() throws IOException {
-		
-		//byte[] initBytes = INFSTOP.getBytes();
-		toDevice.write(INFSTOP);
-		toDevice.flush();
-		System.err.println("Attempting to pause infusion");
-		System.err.println("Reading for response - INF STOP");
-		
-		String nextLine=fromDevice.readLine();		
-		System.err.println("INF STOP command response is " + nextLine);
-		return nextLine;
-	}
-	
-	private synchronized void startInfusion() throws IOException {
-		
-		//byte[] initBytes = INFSTART.getBytes();
-		toDevice.write(INFSTART);
-		toDevice.flush();
-		System.err.println("Attempting to start infusion");
-		byte[] responseBytes = new byte[MAX_RESPONSE_LEN];
-		System.err.println("Reading for response - INF START");
-		int bytesRead = 0;
-		
-		while(bytesRead <15 || responseBytes[bytesRead-6] !='|') {
-//			bytesRead += fromDevice.read(responseBytes, bytesRead, responseBytes.length - bytesRead);			
-		}		
-		String response = new String (responseBytes,0,bytesRead);
-		System.err.println("INF START command response is " + response);
-	}
-	
 	public static String crc(String input) {
 		final short initRegister = (short)0xffff;
 		String message = input;
@@ -640,123 +550,6 @@ public class AlarisMITM extends AbstractSerialDevice {
 		t1.interrupt();
 		p1.interrupt();
 		super.shutdown();
-	}
-
-	
-	private final void addObjectiveListeners() {
-		addPauseResumeListener();
-		addProgramListener();
-	}
-	
-	private final void addPauseResumeListener() {
-		/**
-		 * Following block of code is for receiving objectives to pause resume.
-		 */
-		ice.InfusionObjectiveTypeSupport.register_type(getParticipant(), ice.InfusionObjectiveTypeSupport.get_type_name());
-		pauseResumeTopic = TopicUtil.findOrCreateTopic(getParticipant(), ice.InfusionObjectiveTopic.VALUE, ice.InfusionObjectiveTypeSupport.class);
-		pauseResumeReader = (ice.InfusionObjectiveDataReader) subscriber.create_datareader_with_profile(pauseResumeTopic,
-        		QosProfiles.ice_library, QosProfiles.state,  null, StatusKind.STATUS_MASK_NONE);
-		StringSeq params = new StringSeq();
-        params.add("'" + deviceIdentity.unique_device_identifier + "'");
-        pauseResumeQueryCondition = pauseResumeReader.create_querycondition(SampleStateKind.NOT_READ_SAMPLE_STATE,
-        		ViewStateKind.ANY_VIEW_STATE, InstanceStateKind.ALIVE_INSTANCE_STATE, "unique_device_identifier = %0", params);
-        eventLoop.addHandler(pauseResumeQueryCondition, new ConditionHandler() {
-            private ice.InfusionObjectiveSeq data_seq = new ice.InfusionObjectiveSeq();
-            private SampleInfoSeq info_seq = new SampleInfoSeq();
-
-            @Override
-            public void conditionChanged(Condition condition) {
-
-                for (;;) {
-                    try {
-                    	pauseResumeReader.read_w_condition(data_seq, info_seq, ResourceLimitsQosPolicy.LENGTH_UNLIMITED,
-                                (ReadCondition) condition);
-                        for (int i = 0; i < info_seq.size(); i++) {
-                            SampleInfo si = (SampleInfo) info_seq.get(i);
-                            ice.InfusionObjective data = (ice.InfusionObjective) data_seq.get(i);
-                            if (si.valid_data) {
-                            	try { 
-                            		if(data.stopInfusion) {
-                            			pauseInfusion(); // removed argument
-
-                            		} else {
-                            			startInfusion(); // removed argument, changed to "startInfusion" to reflect Asena method
-                            		}
-                            	} catch (IOException ioe) {
-                            		log.error("Failed to pause/resume pump", ioe);
-                            		ioe.printStackTrace();
-                            	}
-                            }
-                        }
-                    } catch (RETCODE_NO_DATA noData) {
-                        break;
-                    } finally {
-                        pauseResumeReader.return_loan(data_seq, info_seq);
-                    }
-                }
-            }
-        });
-	}
-	
-	private final void addProgramListener() {
-		/**
-		 * Following block of code is for receiving objectives to pause resume.
-		 */
-		ice.InfusionProgramTypeSupport.register_type(getParticipant(), ice.InfusionProgramTypeSupport.get_type_name());
-		programTopic = TopicUtil.findOrCreateTopic(getParticipant(), ice.InfusionProgramTopic.VALUE, ice.InfusionProgramTypeSupport.class);
-		programReader = (ice.InfusionProgramDataReader) subscriber.create_datareader_with_profile(programTopic,
-        		QosProfiles.ice_library, QosProfiles.state,  null, StatusKind.STATUS_MASK_NONE);
-		StringSeq params = new StringSeq();
-        params.add("'" + deviceIdentity.unique_device_identifier + "'");
-        programQueryCondition = programReader.create_querycondition(SampleStateKind.NOT_READ_SAMPLE_STATE,
-        		ViewStateKind.ANY_VIEW_STATE, InstanceStateKind.ALIVE_INSTANCE_STATE, "unique_device_identifier = %0", params);
-        eventLoop.addHandler(programQueryCondition, new ConditionHandler() {
-            private ice.InfusionProgramSeq data_seq = new ice.InfusionProgramSeq();
-            private SampleInfoSeq info_seq = new SampleInfoSeq();
-
-            @Override
-            public void conditionChanged(Condition condition) {
-
-                for (;;) {
-                    try {
-                    	programReader.read_w_condition(data_seq, info_seq, ResourceLimitsQosPolicy.LENGTH_UNLIMITED,
-                                (ReadCondition) condition);
-                        for (int i = 0; i < info_seq.size(); i++) {
-                            SampleInfo si = (SampleInfo) info_seq.get(i);
-                            ice.InfusionProgram data = (ice.InfusionProgram) data_seq.get(i);
-                            if (si.valid_data) {
-                            	try { 
-                            		programPump(data);
-                            	} catch (IOException ioe) {
-                            		Log.error("Failed to program pump", ioe);
-                            		ioe.printStackTrace();
-                            	}
-                            }
-                        }
-                    } catch (RETCODE_NO_DATA noData) {
-                        break;
-                    } finally {
-                        programReader.return_loan(data_seq, info_seq);
-                    }
-                }
-            }
-        });
-	}
-	
-	
-	private synchronized void programPump(InfusionProgram program) throws IOException {
-		
-		if(program.infusionRate > 0) {
-			setPumpSpeed = program.infusionRate;
-			setVTBIvol = program.VTBI;
-		}
-		
-		if( program.bolusRate > 0 ) {
-			setBolusSpeed = program.bolusRate;
-			setBolusVol = program.bolusVolume;
-			pendingWriteBolus = true;
-		}
-		
 	}
 	
 	@Override

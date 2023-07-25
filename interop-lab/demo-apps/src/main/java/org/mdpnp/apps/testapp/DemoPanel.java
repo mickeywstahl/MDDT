@@ -258,6 +258,7 @@ public class DemoPanel {
                         // Use the current partition of the app container
                         da.setPartition(partition.toArray(new String[0]));
                         da.setAddress(c.getAddress());
+                        da.setAdditionalParams(c.getParams());
                         da.init();
 
                         boolean connected=da.connect();

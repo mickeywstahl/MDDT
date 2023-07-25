@@ -173,7 +173,8 @@ public class ConfigurationDialog {
                 d.settingsController.selectedDeviceProperty().get(),
                 d.settingsController.addressProperty().get(),
                 d.settingsController.fhirServerNameProperty().get(),
-                d.settingsController.emrServerNameProperty().get());
+                d.settingsController.emrServerNameProperty().get(),
+                d.settingsController.paramsProperty().get());
 
         return d;
     }
