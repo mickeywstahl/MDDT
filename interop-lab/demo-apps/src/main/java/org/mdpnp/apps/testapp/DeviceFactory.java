@@ -719,6 +719,7 @@ public class DeviceFactory {
                 return new TB800Balance(subscriber, publisher, eventLoop);
         }
     }
+
     public static class BisMonitorProvider extends SpringLoadedDriver {
 
     	@Override
