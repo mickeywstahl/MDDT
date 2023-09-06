@@ -1603,13 +1603,6 @@ programProperty.generateV2Encapsulation = RTI_XCDR_FALSE;
 programProperty.generateV1Encapsulation = RTI_XCDR_FALSE;
 programProperty.generateV2Encapsulation = RTI_XCDR_TRUE;
 #*--*##end
-#*--*##if($envMap.generateBigEndian)
-programProperty.generateBigEndian = RTI_XCDR_TRUE;
-programProperty.generateLittleEndian = RTI_XCDR_FALSE;
-#*--*##elseif($envMap.generateLittleEndian)
-programProperty.generateBigEndian = RTI_XCDR_FALSE;
-programProperty.generateLittleEndian = RTI_XCDR_TRUE;
-#*--*##end
 #*--*##if($envMap.serializeSentinelOnBase)
 programProperty.serializeSentinelOnBase = RTI_XCDR_TRUE;
 #*--*##end

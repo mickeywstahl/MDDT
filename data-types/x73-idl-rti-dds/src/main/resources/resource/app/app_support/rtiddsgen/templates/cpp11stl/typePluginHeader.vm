@@ -127,11 +127,7 @@ typedef  struct ${node.nativeFQNameInModule} ${node.nativeFQNameInModule}KeyHold
 #*----------*##if($node.languageBinding.equals("FLAT_DATA"))
 typedef ::rti::flat::Sample< ${node.nativeFQName}Offset > ${node.nativeFQNameInModule}KeyHolder;
 #*----------*##else
-#*------------*##if($envMap.legacyMapping)
-typedef class ${node.nativeFQNameInModule} ${node.nativeFQNameInModule}KeyHolder;
-#*------------*##else
-typedef struct ${node.nativeFQNameInModule} ${node.nativeFQNameInModule}KeyHolder;
-#*------------*##end
+typedef  class ${node.nativeFQNameInModule} ${node.nativeFQNameInModule}KeyHolder;
 #*----------*##end
 #*--------*##end
 #*------*##end ##if struct.hasKey

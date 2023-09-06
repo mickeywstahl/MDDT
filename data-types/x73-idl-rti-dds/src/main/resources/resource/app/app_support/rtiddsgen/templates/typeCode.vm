@@ -911,40 +911,28 @@ RTIXCdrSampleAccessInfo *${node.nativeFQNameInModule}_get_sample_access_info()
 #*-----*##elseif($language.equals("cpp11stl"))
 #*-------*##if($node.constructKind.equals("union"))
 #*---------*##if(!$member.labelList[0].equals("default"))
-#*-----------*##if($envMap.legacyMapping)
-    sample->_d() = ${member.labelList[0]};
-#*-----------*##else
-    sample->_d(${member.labelList[0]});
-#*-----------*##end
+	sample->_d() = ${member.labelList[0]};
 #*---------*##else
 #*-----------*##if($node.hasAllCaseCovered && $node.hasADefaultCaseLabel)
-#*-------------*##if($envMap.legacyMapping)
     sample->_d() = static_cast< ${node.unionDiscriminatorMap.specTypeName} >(${node.unusedDiscriminatorValue});
-#*-------------*##else
-    sample->_d(static_cast< ${node.unionDiscriminatorMap.specTypeName} >(${node.unusedDiscriminatorValue}));
-#*-------------*##end
 #*-----------*##else
-#*-------------*##if($envMap.legacyMapping)
     sample->_d() = ${node.nativeFQName}::default_discriminator();
-#*-------------*##else
-    sample->_d(${node.nativeFQName}::default_discriminator());
-#*-------------*##end
 #*-----------*##end
 #*---------*##end
 #*-------*##end
     ${node.nativeFQNameInModule}_g_memberAccessInfos[$numMember].bindingMemberValueOffset[0] = 
-        (RTIXCdrUnsignedLong) ((char *)&sample->${member.name}#parenthesisIfNeeded($node) - (char *)sample);
+        (RTIXCdrUnsignedLong) ((char *)&sample->${member.name}() - (char *)sample);
 
 #*-----*##elseif($language.equals("C"))
-#*-------*##if($node.constructKind!="union")
+#*--------*##if($node.constructKind!="union")
     ${node.nativeFQNameInModule}_g_memberAccessInfos[$numMember].bindingMemberValueOffset[0] = 
             (RTIXCdrUnsignedLong) RTIXCdrUtility_pointerToULongLong(&((${node.nativeFQNameInModule} *)NULL)->$member.name);
-#*-------*##else
+#*--------*##else
     ${node.nativeFQNameInModule}_g_memberAccessInfos[$numMember].bindingMemberValueOffset[0] = 
             (RTIXCdrUnsignedLong) RTIXCdrUtility_pointerToULongLong(&((${node.nativeFQNameInModule} *)NULL)->_u.$member.name);
-#*-------*##end
+#*--------*##end
 
-#*-----*##else
+#*------*##else
 #*--------*##if($node.constructKind!="union")
     ${node.nativeFQNameInModule}_g_memberAccessInfos[$numMember].bindingMemberValueOffset[0] = 
            (RTIXCdrUnsignedLong) ((char *)&sample->$member.name - (char *)sample);

@@ -14,7 +14,7 @@ DDS QoS Profiles DTD
 <!ELEMENT dds (configuration_variables|qos_library|types|type_library|domain_library|participant_library|domain_participant_library|application|transformation_library|adapter_library|plugin_library|routing_service)+>
 <!ATTLIST dds xmlns:xsi CDATA #IMPLIED>
 <!ATTLIST dds xsi:noNamespaceSchemaLocation CDATA #IMPLIED>
-<!ATTLIST dds version CDATA "7.2.0">
+<!ATTLIST dds version CDATA "7.1.0">
 
 <!-- domain_library -->
 <!ELEMENT domain_library (domain)+>
@@ -656,7 +656,7 @@ DDS QoS Profiles DTD
 
 <!-- topic_qos -->
 <!ELEMENT topic_qos (base_name|
-                     topic_data|
+					 topic_data|
                      durability|
                      durability_service|
                      deadline|
@@ -895,7 +895,7 @@ DDS QoS Profiles DTD
 <!ELEMENT monitoring (enable|
         application_name|
         distribution_settings|
-        telemetry_data|
+        data|
         enabled|
         domain_id|
         ignore_initialization_failure|
@@ -1089,11 +1089,7 @@ DDS QoS Profiles DTD
 <!ELEMENT topic_data (value)>
 
 <!-- durability -->
-<!ELEMENT durability (
-        kind
-        | direct_communication
-        | writer_depth
-        | storage_settings)*>
+<!ELEMENT durability (kind|direct_communication|writer_depth)*>
 
 <!-- durability_service -->
 <!ELEMENT durability_service (service_cleanup_delay|history_kind|history_depth|
@@ -1110,7 +1106,7 @@ DDS QoS Profiles DTD
 <!ELEMENT liveliness (kind|lease_duration|assertions_per_lease_duration)*>
 
 <!-- reliability -->
-<!ELEMENT reliability (kind|max_blocking_time|acknowledgment_kind|instance_state_consistency_kind)*>
+<!ELEMENT reliability (kind|max_blocking_time|acknowledgment_kind|instance_state_recovery_kind)*>
 
 <!-- destination_order -->
 <!ELEMENT destination_order (kind|scope|source_timestamp_tolerance)*>
@@ -1333,8 +1329,6 @@ DDS QoS Profiles DTD
         keep_minimum_state_for_instances|
         initial_topic_queries|
         max_topic_queries|
-        autopurge_remote_not_alive_writer_delay|
-        autopurge_remote_virtual_writer_delay|
         shmem_ref_transfer_mode_attached_segment_allocation|
         instance_replacement)*>
 
@@ -1552,7 +1546,7 @@ DDS QoS Profiles DTD
                    filter_expression|kind|port|address|multicast_settings|encapsulations|
                    role_name|topic_name|quorum_count|property|
                    flags|net_mask|interface_name|host|rtps|public|
-                   resource_selection|enabled_metrics_selection|disabled_metrics_selection)*>
+                   resource_selector|facility|forwarding_verbosity)*>
 
 <!ELEMENT receive_port (#PCDATA)>
 
@@ -2064,7 +2058,7 @@ DDS QoS Profiles DTD
 
 <!ELEMENT acknowledgment_kind (#PCDATA)>
 
-<!ELEMENT instance_state_consistency_kind (#PCDATA)>
+<!ELEMENT instance_state_recovery_kind (#PCDATA)>
 
 <!ELEMENT source_timestamp_tolerance (sec|nanosec)?>
 
@@ -2308,10 +2302,6 @@ DDS QoS Profiles DTD
 
 <!ELEMENT max_topic_queries (#PCDATA)>
 
-<!ELEMENT autopurge_remote_not_alive_writer_delay (sec|nanosec)?>
-
-<!ELEMENT autopurge_remote_virtual_writer_delay (sec|nanosec)?>
-
 <!ELEMENT shmem_ref_transfer_mode_attached_segment_allocation (initial_count|max_count|incremental_count)*>
 
 <!ELEMENT initial_active_topic_queries (#PCDATA)>
@@ -2502,10 +2492,7 @@ DDS QoS Profiles DTD
 
 <!ELEMENT publisher_qos_profile_name (#PCDATA)>
 
-<!ELEMENT dedicated_participant (enable|
-        domain_id|
-        participant_qos_profile_name|
-        collector_initial_peers)*>
+<!ELEMENT dedicated_participant (enable|domain_id|participant_qos_profile_name)*>
 
 <!ELEMENT domain_id (#PCDATA)>
 
@@ -2515,64 +2502,25 @@ DDS QoS Profiles DTD
 
 <!ELEMENT datawriter_qos_profile_name (#PCDATA)>
 
-<!ELEMENT collector_initial_peers (element)*>
-
 <!ELEMENT polling_period (sec|nanosec)*>
 
 <!ELEMENT concurrency_level (#PCDATA)>
 
 <!ELEMENT max_historical_logs (#PCDATA)>
 
-<!ELEMENT telemetry_data (metrics|logs)*>
+<!ELEMENT data (metric_groups|logs)*>
 
-<!ELEMENT metrics (element)*>
+<!ELEMENT metric_groups (element)*>
 
-<!ELEMENT resource_selection (#PCDATA)>
+<!ELEMENT resource_selector (#PCDATA)>
 
-<!ELEMENT enabled_metrics_selection (element)*>
+<!ELEMENT metric_selector (element)*>
 
-<!ELEMENT disabled_metrics_selection (element)*>
+<!ELEMENT logs (element)*>
 
-<!ELEMENT logs (middleware_forwarding_level|
-                security_forwarding_level|
-                service_forwarding_level|
-                user_forwarding_level)*>
+<!ELEMENT facility (#PCDATA)>
 
-<!ELEMENT middleware_forwarding_level (#PCDATA)>
-
-<!ELEMENT security_forwarding_level (#PCDATA)>
-
-<!ELEMENT service_forwarding_level (#PCDATA)>
-
-<!ELEMENT user_forwarding_level (#PCDATA)>
-
-<!ELEMENT storage_settings (
-        enable 
-        | file_name 
-        | trace_file_name
-        | journal_kind
-        | synchronization_kind
-        | vacuum
-        | restore
-        | writer_instance_cache_allocation
-        | writer_sample_cache_allocation
-        | writer_memory_state
-        | reader_checkpoint_frequency
-        )*>
-
-<!-- For Durability QosPolicy -->
-<!ELEMENT file_name (#PCDATA)>
-<!ATTLIST file_name xsi:nil CDATA #IMPLIED>
-<!ELEMENT trace_file_name (#PCDATA)>
-<!ATTLIST trace_file_name xsi:nil CDATA #IMPLIED>
-<!ELEMENT journal_kind (#PCDATA)>
-<!ELEMENT synchronization_kind (#PCDATA)>
-<!ELEMENT vacuum (#PCDATA)>
-<!ELEMENT restore (#PCDATA)>
-<!ELEMENT writer_instance_cache_allocation (initial_count|max_count|incremental_count)*>
-<!ELEMENT writer_sample_cache_allocation (initial_count|max_count|incremental_count)*>
-<!ELEMENT writer_memory_state (#PCDATA)>
-<!ELEMENT reader_checkpoint_frequency (#PCDATA)>
+<!ELEMENT forwarding_verbosity (#PCDATA)>
 
 <!ELEMENT types (include|const|directive|struct|valuetype|
 		sparse_valuetype|union|typedef|module|enum|bitset|forward_dcl)+>
@@ -2635,13 +2583,12 @@ DDS QoS Profiles DTD
 <!ELEMENT union (discriminator,(case|directive)+)>
 <!ATTLIST union name NMTOKEN #REQUIRED>
 <!ATTLIST union extensibility CDATA #IMPLIED>
+<!ATTLIST union data_representation CDATA #IMPLIED>
+<!ATTLIST union allowed_data_representation CDATA #IMPLIED>
 <!ATTLIST union topLevel (true|false|1|0) "true">
 <!ATTLIST union nested (true|false|1|0) "false">
 <!ATTLIST union resolveName (true|false|1|0) #IMPLIED>
 <!ATTLIST union autoid (hash|sequential) #IMPLIED>
-<!ATTLIST union data_representation CDATA #IMPLIED>
-<!ATTLIST union allowed_data_representation CDATA #IMPLIED>
-<!ATTLIST union languageBinding (plain|flat_data) #IMPLIED>
 <!ATTLIST union transferMode (shmem_ref|inband) #IMPLIED>
 
 <!ELEMENT const EMPTY>

@@ -236,7 +236,7 @@ ${struct.nativeFQNameInModule}Plugin_instance_to_key(
 
 #*----*##foreach($member2 in $struct.memberFieldMapList)
 #*------*##if($member2.isKey)
-#*--------*#dst->${member2.name}#parenthesisIfNeeded($node) = src->${member2.name}#parenthesisIfNeeded($node);
+#*--------*#dst->${member2.name}() = src->${member2.name}();
 #*------*##end
 #*----*##end
     return RTI_TRUE;
@@ -270,7 +270,7 @@ ${struct.nativeFQNameInModule}Plugin_key_to_instance(
 #*----*##end
 #*----*##foreach($member2 in $struct.memberFieldMapList)
 #*------*##if($member2.isKey)
-#*--------*#dst->${member2.name}#parenthesisIfNeeded($node) = src->${member2.name}#parenthesisIfNeeded($node);
+#*--------*#dst->${member2.name}() = src->${member2.name}();
 #*------*##end
 #*----*##end
     return RTI_TRUE;
@@ -348,12 +348,6 @@ ${struct.nativeFQNameInModule}Plugin_instance_to_keyhash(
         }
 
         RTICdrStream_set(md5Stream, buffer, size);
-        /*
-         * Coverity reports a possible negative value returned when calling
-         * RTICdrStream_getBufferLength(md5Stream), although it is checked 
-         * if md5Stream or buffer are NULL beforehand.
-         */
-        /* coverity[negative_returns : FALSE] */
         RTIOsapiMemory_zero(
             RTICdrStream_getBuffer(md5Stream),
             RTICdrStream_getBufferLength(md5Stream));

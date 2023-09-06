@@ -340,7 +340,7 @@ if(other.${member.name} != null)
 #*----*##end
 #*--*##elseif($member.arrayTotalSize)
         this.$member.privateName = #initializeArray($member true true)
-#*--*##elseif($member.typeKind.equals("user") && !$member.isEnum)
+#*--*##elseif($member.typeKind.equals("user") && !$member.isAlias && !$member.isEnum)
         this.$member.privateName = new ${member.nativeTypeFQName}(other.${member.name});
 #*--*##else
         this.$member.privateName = other.${member.name};

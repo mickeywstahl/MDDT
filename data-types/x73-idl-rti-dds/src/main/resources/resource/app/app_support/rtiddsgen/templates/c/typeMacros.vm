@@ -212,7 +212,6 @@ ${envMap.POUND_CHAR}ifndef NDDS_STANDALONE_TYPE
 NDDSUSERDllExport DDS_TypeCode * ${node.nativeFQNameInModule}_get_typecode(void); /* Type code */
 #*--*##if($node.isResource && $envMap.generateMonitoringCode)
 #*----*##declareGetMetricGroupInfo($node)
-#*----*##declareGetMetricInfo($node)
 #*----*##declareGetResourceInfo($node)
 #*--*##end
 #*--*##if($node.interpreted=="true" && !($node.languageBinding.equals("FLAT_DATA") 

@@ -174,7 +174,6 @@ ${envMap.POUND_CHAR}ifndef NDDS_STANDALONE_TYPE
 #*------*##defineDeleteDistrMetricGroup($node)
 #*------*##defineSetDistributionMetricGroupIntoSample($node)
 #*------*##defineGetMetricGroupInfo($node)
-#*------*##defineGetMetricInfo($node)
 #*------*##defineGetResourceInfo($node)
 ${envMap.POUND_CHAR}endif
 #*----*##end
@@ -377,10 +376,7 @@ ${node.nativeFQNameInModule}::${node.nativeFQNameInModule}() {
     }
 }
 
-${node.nativeFQNameInModule}::${node.nativeFQNameInModule}(const ${node.nativeFQNameInModule}& that) 
-#*--*##if($node.baseTypeFQName)
-    : ${node.baseTypeFQName}(that)
-#*--*##end {
+${node.nativeFQNameInModule}::${node.nativeFQNameInModule}(const ${node.nativeFQNameInModule}& that) {
     ${node.nativeFQName}_initialize_for_constructor(this);
     if (!${node.nativeFQName}_copy(this, &that)) {
         throw std::bad_alloc();

@@ -90,7 +90,6 @@ import com.rti.dds.cdr.CdrOutputStream;
 import com.rti.dds.cdr.CdrPrimitiveType;
 import com.rti.dds.cdr.CdrBuffer;
 import com.rti.dds.cdr.CdrHeader;
-import com.rti.dds.dynamicdata.DynamicData;
 #if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY"))
 import com.rti.dds.cdr.IllegalCdrStateException;
 #end
@@ -111,7 +110,6 @@ import com.rti.dds.topic.SampleAssignabilityProperty;
 import com.rti.dds.infrastructure.*;
 import com.rti.dds.infrastructure.RETCODE_ERROR;
 import com.rti.dds.topic.PrintFormatProperty;
-import com.rti.dds.topic.PrintFormatKind;
 import com.rti.dds.typecode.TypeCode;
 import com.rti.dds.typecode.ExtensibilityKind;
 
@@ -248,30 +246,14 @@ public class $constructMap.typeSupportName extends TypeSupportImpl {
 #if($constructMap.xcdr1_maxSize)
 return $constructMap.xcdr1_maxSize;
 #else
-#*--*##if(($constructMap.hasUnboundedMember || $constructMap.hasCycle)
-            && $envMap.unboundedSupport)
+#*--*##if($constructMap.hasUnboundedMember && $envMap.unboundedSupport)
         throw new java.lang.ArithmeticException();
 #*--*##else
 #updateEncapsulation($constructMap "true")
 #defineDefaultEndpointData()
 #originalAligment("true")
-#*
-  - maxAlignment: Store the currentAlignment after serializing
-            the biggest member.
-  - maxBaseAlignment: Store the baseAlignment after serializing
-            the biggest member.
-  - previousAlignment: Store the currentAlignment value before
-            calculating which is the biggest member of the union.
-  - previousBaseAlignment: Store the baseAlignment value before
-            calculating which is the biggest member of the union.
-
-
-*#
 #*----*##if($constructMap.unionDiscriminatorMap)
-        long maxAlignment = 0;
-        long maxBaseAlignment = 0;
-        long previousAlignment = 0;
-        long previousBaseAlignment = 0;
+       long maxSerialized = 0;
 #*----*##end
 #*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && ($constructMap.constructKind!="enum")
@@ -299,7 +281,7 @@ if(xcdr1){
             currentAlignment += encapsulation_size;
         }
 
-        return currentAlignment - origAlignment;
+        return #if($constructMap.unionDiscriminatorMap)maxSerialized +#end currentAlignment - origAlignment;
 #*--*##end 
 #end        
     }
@@ -316,21 +298,9 @@ return get_serialized_sample_max_size(endpoint_data,include_encapsulation,final_
 #updateEncapsulation($constructMap "true") 
 #defineDefaultEndpointData()
 #originalAligment("true")     
-#*
-  - minAlignment: Store the currentAlignment after serializing
-            the smallest member.
-  - minBaseAlignment: Store the baseAlignment after serializing
-            the smallest member.
-  - previousAlignment: Store the currentAlignment value before
-            calculating which is the smallest member of the union.
-  - previousBaseAlignment: Store the baseAlignment value before
-            calculating which is the smallest member of the union.
-*#
+
 #*----*##if($constructMap.unionDiscriminatorMap)
-        long minAlignment = java.lang.Integer.MAX_VALUE;
-        long minBaseAlignment = 0;
-        long previousAlignment = 0;
-        long previousBaseAlignment = 0;
+        long minSerialized = java.lang.Integer.MAX_VALUE;
 #*----*##end
 #*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && ($constructMap.constructKind!="enum")
@@ -353,7 +323,7 @@ if(xcdr1){
             currentAlignment += encapsulation_size;
         }
 
-        return currentAlignment - origAlignment;
+        return #if($constructMap.unionDiscriminatorMap)minSerialized +#end currentAlignment - origAlignment;
 #*--*##end
 #end   
     }
@@ -378,7 +348,7 @@ if(xcdr1){
 #*--*##else
      #updateEncapsulation($constructMap "true")
      $constructMap.name typedSrc = ($constructMap.name) sample;
-#*--*##defineDefaultEndpointData()
+     DefaultEndpointData epd = ((DefaultEndpointData) endpoint_data);
 #originalAligment("true")
 #*----*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && ($constructMap.constructKind!="enum")
@@ -388,7 +358,7 @@ if(xcdr1){
        
 #*----*##if($constructMap.baseTypeFQName)
         currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_sample_size(
-            epd, false, final_encapsulation_id, currentAlignment, sample);
+            endpoint_data, false, final_encapsulation_id, currentAlignment, sample);
 #*----*##end
 
 #alignmentSample($constructMap)
@@ -422,8 +392,7 @@ return $constructMap.xcdr1_keyMaxSize;
  return get_serialized_sample_max_size(endpoint_data,include_encapsulation,final_encapsulation_id, currentAlignment);
 #*--*##else
 #*----*##if(($constructMap.hasUnboundedKeyMember ||(!$constructMap.hasKey && !$constructMap.hasKeyBaseType && $constructMap.hasUnboundedMember)) 
-            && $envMap.unboundedSupport
-            || $constructMap.hasCycle)
+            && $envMap.unboundedSupport)
         throw new java.lang.ArithmeticException();
 #*----*##else
 #updateEncapsulation($constructMap "true")
@@ -481,20 +450,18 @@ currentAlignment += get_serialized_sample_max_size(
  return get_serialized_sample_max_size(endpoint_data,include_encapsulation,final_encapsulation_id, currentAlignment);
 #*--*##else
 #*----*##if(($constructMap.hasUnboundedKeyMember ||(!$constructMap.hasKey && !$constructMap.hasKeyBaseType && $constructMap.hasUnboundedMember)) 
-            && $envMap.unboundedSupport
-            || $constructMap.hasCycle)
+            && $envMap.unboundedSupport)
         throw new java.lang.ArithmeticException();
 #*----*##else
 #updateEncapsulation($constructMap "true")
-#defineDefaultEndpointData()
-
 if (xcdr1){
-	return get_serialized_key_max_size(epd, include_encapsulation, final_encapsulation_id, currentAlignment) ;
+	return get_serialized_key_max_size( endpoint_data, include_encapsulation, final_encapsulation_id, currentAlignment) ;
 }
+#defineDefaultEndpointData()
 #originalAligment("false")
 #*----*##if($constructMap.baseTypeFQName && ($constructMap.hasKeyBaseType|| !${constructMap.hasKey}))
         currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_key_for_keyhash_max_size(
-            epd,
+            endpoint_data,
             false,final_encapsulation_id,currentAlignment);
 #*------*##end
 #*------*##if($constructMap.unionDiscriminatorMap)
@@ -513,7 +480,7 @@ if (xcdr1){
         return currentAlignment - origAlignment;
 #*----*##end
 
-#*--*##end
+#end
     }
         
     
@@ -529,7 +496,6 @@ $constructMap.name typedSrc = ($constructMap.name) src;
 #*--*##else
         int dheaderArrPosition = -1;
         int dheaderSeqPosition = -1;
-#*----*##defineDefaultEndpointData()
 #*----*##if ($constructMap.extensibility.equals("MUTABLE_EXTENSIBILITY") || $constructMap.hasOptionalMember)
         long memberId = 0;
         int memberLengthPosition = 0;
@@ -567,7 +533,7 @@ $constructMap.name typedSrc = ($constructMap.name) src;
 dst.inBaseClass = true;
 #*------*##end
         ${constructMap.baseTypeFQName}TypeSupport.get_instance().serialize(#*
-        *#epd,src,dst,false,final_encapsulation_id,serialize_sample,endpoint_plugin_qos);
+        *#endpoint_data,src,dst,false,final_encapsulation_id,serialize_sample,endpoint_plugin_qos);
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
 dst.inBaseClass = false;
 #*------*##end        
@@ -632,13 +598,12 @@ dst.writeInt(typedSrc.ordinal());
         int dheaderArrPosition = -1;
         int dheaderSeqPosition = -1;
         int position = 0;
-#*----*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
+#*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && (${constructMap.hasKey} || $constructMap.hasKeyBaseType ||$constructMap.constructKind=="alias"))
         long memberId = 0;
         int memberLengthPosition = 0;
         int dheaderPosition = -1;
-#*----*##end
-#*----*##defineDefaultEndpointData()
+#*--*##end
 #*----*##if ($constructMap.extensibility.equals("MUTABLE_EXTENSIBILITY"))        
 #calculateUseExtendedMemberId($constructMap)
 #*----*##end
@@ -666,7 +631,7 @@ $constructMap.name typedSrc = ($constructMap.name) src;
 dst.inBaseClass = true;
 #*------*##end
 ${constructMap.baseTypeFQName}TypeSupport.get_instance().serialize_key(
-                epd, src, dst, false, final_encapsulation_id, true, endpoint_plugin_qos);
+                endpoint_data, src, dst, false, final_encapsulation_id, true, endpoint_plugin_qos);
 #*------*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY") && ($constructMap.constructKind!="alias"))      
 dst.inBaseClass = false;
 #*------*##end                
@@ -687,9 +652,9 @@ dst.inBaseClass = false;
 }
 #*------*##end              
 #*----*##elseif($constructMap.constructKind=="alias")
-#serializeMember($constructMap.firstMember "_key")
+#serializeMember($constructMap.firstMember "key")
 #*----*##elseif(!$constructMap.hasKeyBaseType)
-serialize(epd, src, dst, false, final_encapsulation_id, true, endpoint_plugin_qos);
+serialize(endpoint_data, src, dst, false, final_encapsulation_id, true, endpoint_plugin_qos);
 #*----*##end
 
 #*----*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
@@ -722,10 +687,9 @@ serialize(epd, src, dst, false, final_encapsulation_id, true, endpoint_plugin_qo
     int dheaderArrPosition = -1;
     int dheaderSeqPosition = -1;
 #updateEncapsulation($constructMap "true")
-#defineDefaultEndpointData()
 	if (xcdr1){
 	   	serialize_key (
-	   		epd,
+	   		endpoint_data,
 	   		src, 
 	   		dst, 
 	   		serialize_encapsulation, 
@@ -753,7 +717,7 @@ $constructMap.name typedSrc = ($constructMap.name) src;
 dst.inBaseClass = true;
 #*------*##end
 ${constructMap.baseTypeFQName}TypeSupport.get_instance().serialize_key_for_keyhash(
-                epd, src, dst, false, final_encapsulation_id, true, endpoint_plugin_qos);
+                endpoint_data, src, dst, false, final_encapsulation_id, true, endpoint_plugin_qos);
 #*------*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY") && ($constructMap.constructKind!="alias"))      
 dst.inBaseClass = false;
 #*------*##end                
@@ -762,14 +726,10 @@ dst.inBaseClass = false;
 dst.inBaseClass = false;
 #*----*##end
 #*----*##if(!($constructMap.baseTypeFQName && $constructMap.hasKeyBaseType && !${constructMap.hasKey}))
-#*------*##if($constructMap.constructKind.equals("union"))
-#serializeUnion($constructMap true)
-#*------*##else
-#*--------*##foreach($member in $constructMap.orderedKey)
+#*----*##foreach($member in $constructMap.orderedKey)
 #assignMemberVariables($member $constructMap.extensibility $constructMap)
-#serializeMember($member "_key_for_keyhash")
-#*--------*##end
-#*------*##end
+#serializeMember($member "key_for_keyhash")
+#end
 #*----*##end
         }
 
@@ -807,9 +767,9 @@ dst.inBaseClass = false;
             && ($constructMap.constructKind != "enum")
             && ($constructMap.constructKind !="alias"))                
 #setInBaseClassVariablesDes()
-#*--*##end
-#*--*##defineDefaultEndpointData()
-
+ #*--*##end       
+     
+        
         if(deserialize_encapsulation) {
             src.deserializeAndSetCdrEncapsulation();
 
@@ -850,7 +810,7 @@ typedDst.clear();
 src.inBaseClass = true;
 #*------*##end                
         ${constructMap.baseTypeFQName}TypeSupport.get_instance().deserialize_sample(#*
-        *#epd,dst,src,false,deserialize_sample,endpoint_plugin_qos);
+        *#endpoint_data,dst,src,false,deserialize_sample,endpoint_plugin_qos);
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
 src.inBaseClass = false;
 #*------*##end
@@ -917,28 +877,6 @@ src.inBaseClass = false;
     {
         return super.data_to_string(sample);
     }
-
- @java.lang.Override
- public ${constructMap.name} data_from_string(
-        java.lang.String string,
-        PrintFormatKind kind)
-    {
-        return (${constructMap.name}) super.data_from_string(string, kind);
-    }
-
- @java.lang.Override
- public ${constructMap.name} data_from_string(
-        java.lang.String string)
-    {
-        return (${constructMap.name}) super.data_from_string(string);
-    }
-
- @java.lang.Override
- public ${constructMap.name} data_from_dynamicdata(
-        DynamicData dynamicData)
-    {
-        return (${constructMap.name}) super.data_from_dynamicdata(dynamicData);
-    }
 #*--*##end
     
     @Override 
@@ -970,8 +908,7 @@ src.inBaseClass = false;
             && ($constructMap.constructKind != "enum")
             && ($constructMap.constructKind !="alias"))                
 #setInBaseClassVariablesDes()
-#*--*##end
-#*--*##defineDefaultEndpointData()
+ #*--*##end    
         if(deserialize_encapsulation) {
             src.deserializeAndSetCdrEncapsulation();
 
@@ -1005,7 +942,7 @@ $constructMap.name typedDst = ($constructMap.name) dst;
 src.inBaseClass = true;
 #*------*##end  
 ${constructMap.baseTypeFQName}TypeSupport.get_instance().deserialize_key_sample(
-                epd, dst, src, false, true, endpoint_plugin_qos);
+                endpoint_data, dst, src, false, true, endpoint_plugin_qos);
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
 src.inBaseClass = false;
 #*------*##end                
@@ -1026,7 +963,7 @@ src.inBaseClass = false;
 #*----*##elseif($constructMap.constructKind=="alias")
 #*----*##deserializeMember($constructMap.firstMember "deserialize_key_sample")
 #*----*##elseif(!$constructMap.hasKeyBaseType)
-  deserialize_sample(epd, dst, src, false, true, endpoint_plugin_qos);
+  deserialize_sample(endpoint_data, dst, src, false, true, endpoint_plugin_qos);
 #*----*##end
 #*----*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
             && ( ${constructMap.hasKey}|| $constructMap.hasKeyBaseType))
@@ -1066,8 +1003,7 @@ src.inBaseClass = false;
             && ($constructMap.constructKind != "enum")
             && ($constructMap.constructKind !="alias"))                
 #setInBaseClassVariablesDes()
-#*--*##end
-#*--*##defineDefaultEndpointData()
+ #*--*##end    
         if (skip_encapsulation) {
             src.skipEncapsulation();
 
@@ -1116,7 +1052,7 @@ $constructMap.unionDiscriminatorMap.nativeTypeFQName disc;
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
 src.inBaseClass = true;
 #*------*##end   
-${constructMap.baseTypeFQName}TypeSupport.get_instance().skip(epd, src, false, true, endpoint_plugin_qos);
+${constructMap.baseTypeFQName}TypeSupport.get_instance().skip(endpoint_data, src, false, true, endpoint_plugin_qos);
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
 src.inBaseClass = false;
 #*------*##end
@@ -1188,8 +1124,7 @@ src.skipInt();
             && ($constructMap.constructKind != "enum")
             && ($constructMap.constructKind !="alias"))                
 #setInBaseClassVariablesDes()
-#*--*##end
-#*--*##defineDefaultEndpointData()
+ #*--*##end      
         if(deserialize_encapsulation) {
             src.deserializeAndSetCdrEncapsulation();
 
@@ -1224,7 +1159,7 @@ $constructMap.name typedDst = ($constructMap.name) sample;
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
 src.inBaseClass = true;
 #*------*##end
-              ${constructMap.baseTypeFQName}TypeSupport.get_instance().serialized_sample_to_key(epd,sample,
+              ${constructMap.baseTypeFQName}TypeSupport.get_instance().serialized_sample_to_key(endpoint_data,sample,
                     src,false, true,
                     endpoint_plugin_qos);
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
@@ -1242,7 +1177,7 @@ src.inBaseClass = false;
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
 src.inBaseClass = true;
 #*------*##end
-                ${constructMap.baseTypeFQName}TypeSupport.get_instance().skip(epd, src,
+                ${constructMap.baseTypeFQName}TypeSupport.get_instance().skip(endpoint_data, src,
                        false, true,
                        endpoint_plugin_qos);
 #*------*##if (${constructMap.extensibility} !="FINAL_EXTENSIBILITY")
@@ -1283,7 +1218,7 @@ try {
 
 #*----*##elseif(!$constructMap.hasKeyBaseType)
  deserialize_sample(
-                epd, sample, src, false,
+                endpoint_data, sample, src, false,
                 true, endpoint_plugin_qos);
 #*----*##end
 

@@ -69,25 +69,7 @@ ifndef LINKER
 endif
 LINKER_FLAGS =#foreach($linkerFlag in ${linkerFlags}) -$linkerFlag#end
 
-#if(${archMap.TARGET_ID}=="android-32")
-#if(${global.language}!="C")
-LINKER_FLAGS_EXEC_START =${archMap.CXX_LINKER_FLAGS_EXEC_START}
-LINKER_FLAGS_EXEC_END =${archMap.CXX_LINKER_FLAGS_EXEC_END}
-LINKER_FLAGS_SHARED_START =${archMap.CXX_LINKER_FLAGS_SHARED_START}
-LINKER_FLAGS_SHARED_END =${archMap.CXX_LINKER_FLAGS_SHARED_END}
-#else
-LINKER_FLAGS_EXEC_START =${archMap.C_LINKER_FLAGS_EXEC_START}
-LINKER_FLAGS_EXEC_END =${archMap.C_LINKER_FLAGS_EXEC_END}
-LINKER_FLAGS_SHARED_START =${archMap.C_LINKER_FLAGS_SHARED_START}
-LINKER_FLAGS_SHARED_END =${archMap.C_LINKER_FLAGS_SHARED_END}
-#end
-#end
-
-#if(${archMap.TARGET_ID}=="android-32")
-SYSLIBS =
-#else
 SYSLIBS =#foreach($syslib in ${syslibs}) -$syslib#end
-#end
 
 DEFINES =#foreach($define in ${defines}) -$define#end #foreach($define in ${additionalDefines}) -$define#end
 
@@ -106,10 +88,6 @@ else
     DEBUG_SFX = 
 endif
 
-#[[#]]# replace TARGET_ID with the android platfrom that you want to use
-#[[#]]# use "android list targets" to see the list of available targets
-TARGET_ID = ${archMap.TARGET_ID}
- 
 ifndef SHAREDLIB
 #if(${global.libSuffix}=="z" || ${global.libSuffix}=="zd")
     SHAREDLIB=0
@@ -218,11 +196,7 @@ COMMONOBJS    = #[[$]]#(COMMONSOURCES:%${sourceFileExtension}=objs/#[[$]]#(TARGE
 	#[[$]]#(EXEC:%=objs/#[[$]]#(TARGET_ARCH)/%)
 
 objs/#[[$]]#(TARGET_ARCH)/% : objs/#[[$]]#(TARGET_ARCH)/%.o
-#if(${archMap.TARGET_ID}=="android-32")
-	#[[$]]#(LINKER) #[[$]]#(LINKER_FLAGS_EXEC_START) -o #[[$]]#@ #[[$]]#@.o #[[$]]#(COMMONOBJS) #[[$]]#(LINKER_FLAGS_EXEC_END) #[[$]]#(LIBS)
-#else
 	#[[$]]#(LINKER) #[[$]]#(LINKER_FLAGS) -o #[[$]]#@ #[[$]]#@.o #[[$]]#(COMMONOBJS) #[[$]]#(LIBS)
-#end
 
 objs/#[[$]]#(TARGET_ARCH)/%.o : #[[$]]#(SOURCE_DIR)%${sourceFileExtension} #foreach($h in ${additionalHeaderFiles}) #[[$]]#(SOURCE_DIR)$h#end #if(${global.idlFileName}) #[[$]]#(SOURCE_DIR)${global.idlFileName}${headerFileExtension} #end
 #*-- This intro is needed as the previous line ends with the end --*#

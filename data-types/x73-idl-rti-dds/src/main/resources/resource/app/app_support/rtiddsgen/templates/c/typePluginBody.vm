@@ -1282,7 +1282,7 @@ ${node.nativeFQNameInModule}Plugin_deserialize_sample(
     if (endpoint_plugin_qos) {} /* To avoid warnings */
 #*--*##end    
 #*--*##deserializeEncapsulation ($node)
-    if(deserialize_sample && sample != NULL) {
+    if(deserialize_sample) {
     
 #*------*##if (($node.constructKind=="enum") 
                  && (!$node.extensibility.equals("FINAL_EXTENSIBILITY")))
@@ -1724,18 +1724,10 @@ ${node.nativeFQNameInModule}Plugin_deserialize(
 #*------*##if ($node.languageBinding.equals("FLAT_DATA") && $envMap.language.equals("Cpp") && !$node.isMetpType)    
 #*--------*##flatPluginDeserializeBody($node)
 #*------*##elseif (!($node.languageBinding.equals("FLAT_DATA") && $envMap.language.equals("Cpp")))  
-    /*  Depending on the type and the flags used in rtiddsgen, coverity may detect
-        that sample is always null. Since the case is very dependant on
-        the IDL/XML and the configuration we keep the check for safety.
-    */
-    result = #deserializeSampleFncName($node)(
-            endpoint_data,
-            /* coverity[check_after_deref] */
-            (sample != NULL) ? *sample : NULL,
-            stream,
-            deserialize_encapsulation,
-            deserialize_sample,
-            endpoint_plugin_qos);
+	result = #deserializeSampleFncName($node)( 
+        	endpoint_data, (sample != NULL)?*sample:NULL,
+        	stream, deserialize_encapsulation, deserialize_sample, 
+        	endpoint_plugin_qos);
 #*------*##end
 #*------*##if($node.interpreted!="true")
         if (result) {
@@ -2733,18 +2725,9 @@ RTIBool ${node.nativeFQNameInModule}Plugin_deserialize_key(
                 RTICdrStream_getEncapsulationKind(stream));    
     }
 #*--*##end
-    /*  Depending on the type and the flags used in rtiddsgen, coverity may detect
-        that sample is always null. Since the case is very dependant on
-        the IDL/XML and the configuration we keep the check for safety.
-    */
     result= #deserializeKeySampleFncName($node)(
-        endpoint_data,
-        /* coverity[check_after_deref] */
-        (sample != NULL) ? *sample : NULL,
-        stream,
-        deserialize_encapsulation,
-        deserialize_key,
-        endpoint_plugin_qos);
+        endpoint_data, (sample != NULL)?*sample:NULL, stream,
+        deserialize_encapsulation, deserialize_key, endpoint_plugin_qos);
 #*--------*##if($node.interpreted!="true")
     if (result) {
         if (stream->_xTypesState.unassignable) {
@@ -3354,7 +3337,7 @@ ${envMap.POUND_CHAR}endif
         (NDDS_WriterHistory_Allocator_returnBufferWithParams_fn)
         ${node.nativeFQNameInModule}Plugin_return_buffer_w_params;
     plugin->getBuffer = NULL;
-    plugin->returnBuffer = NULL;
+    plugin->returnBuffer = NULL;        
 #*--------*##else
     plugin->getBuffer = 
         (PRESTypePluginGetBufferFunction)
@@ -3363,7 +3346,7 @@ ${envMap.POUND_CHAR}endif
         (PRESTypePluginReturnBufferFunction)
         ${node.nativeFQNameInModule}Plugin_return_buffer;
     plugin->getBufferWithParams = NULL;
-    plugin->returnBufferWithParams = NULL;
+    plugin->returnBufferWithParams = NULL;  
 #*--------*##end
     plugin->getSerializedSampleSizeFnc =
         (PRESTypePluginGetSerializedSampleSizeFunction)
