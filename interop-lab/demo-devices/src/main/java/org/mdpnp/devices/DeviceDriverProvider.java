@@ -377,7 +377,7 @@ public interface DeviceDriverProvider {
 
         @Override
         public void stop() {
-            context.destroy();
+            context.close();
 
             setChanged();
             notifyObservers(AdapterState.stopped);

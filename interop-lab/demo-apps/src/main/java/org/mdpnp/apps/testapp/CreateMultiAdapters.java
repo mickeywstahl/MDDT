@@ -121,7 +121,6 @@ public class CreateMultiAdapters {
         			System.err.println("No device found for alias "+fields[0]);
         			continue;
         		}
-        		
 	        	Configuration c=new Configuration(false, Application.ICE_Device_Interface, domainId, ddp, fields.length>2 && fields[1].length()>0 ? fields[1] : null, "", "", (fields.length==3 ? fields[2] : ""));
 	        	allConfigs.add(c);
         	}
@@ -136,13 +135,11 @@ public class CreateMultiAdapters {
     	javafx.stage.FileChooser chooser=new javafx.stage.FileChooser();
     	chooser.setTitle("Select device definition file");
     	File selectedFile=chooser.showOpenDialog(currentStage);
-    	List<String> tmpList=Files.readAllLines(selectedFile.toPath());
-    	configFileLines=new ArrayList<>();
-    	for(String oneLine : tmpList) {
+    	configFileLines=Files.readAllLines(selectedFile.toPath());
+    	for(String oneLine : configFileLines) {
     		if(oneLine.startsWith("#") || oneLine.length()==0) {
     			continue;
     		}
-    		configFileLines.add(oneLine);
     		fileContent.appendText(oneLine+"\n");
     	}
     }
