@@ -174,6 +174,7 @@ public class PumpControllerTestApplication {
 
 			@Override
 			public String toString(Device device) {
+				if(null==device) return "";
 				// TODO Auto-generated method stub
 				return device.getManufacturer() + " " + device.getModel();
 			}
@@ -191,20 +192,6 @@ public class PumpControllerTestApplication {
 			}
 		});
 		
-		/*
-		 * This is a fake device entry that can be used to spoof the app for test purposes,
-		 * for instance if you want to show the panel for a particular pump when that pump
-		 * is not available.
-		 */
-		/*
-		Device quick=new Device("abc12345");
-		quick.setHostname("localhost");
-		quick.setModel("AP-4000");
-		quick.setManufacturer("Neurowave");
-		
-		pumpCombo.getItems().add(quick);
-		*/
-
 		
 		mdsHandler.addPatientListener(new PatientListener() {
 

@@ -91,7 +91,7 @@ private boolean initDone;
 	float setBolusVol;
 	int masterValue = (int)1;
 	
-	private final InstanceHolder<Numeric> flowRateHolderHead;
+	private final InstanceHolder<Numeric> flowRateHolderHead, volumeInfused, vtbiRemaining;
 	
 	private FlowRateObjectiveDataReader flowRateReader;
 	private InfusionObjectiveDataReader pauseResumeReader;
@@ -132,6 +132,8 @@ private boolean initDone;
 		AbstractSimulatedDevice.randomUDI(deviceIdentity);
 		super.writeDeviceIdentity();
 		flowRateHolderHead = createNumericInstance("MDC_FLOW_FLUID_PUMP", "DEV_STATUS_INFRATE_ACTUAL");
+		volumeInfused = createNumericInstance("VOLUME_INFUSED", "DEV_STATUS_TVI");
+		vtbiRemaining = createNumericInstance("VTBI", "DEV_PROG_CONT_VTBI");
 		wallClock = new DeviceClock.WallClock();
 //		addListener();
 		addObjectiveListeners();
@@ -164,6 +166,11 @@ private boolean initDone;
 		commsProtocol();
 	
 		remoteEnable();
+		
+//		String serialno=Long.toString(getPumpSerialNumber());
+		writeTechnicalAlert("serialNumber", serialNumber);
+		writeTechnicalAlert("UDI", deviceIdentity.unique_device_identifier);
+		writeTechnicalAlert("Model", "Asena");
 				
 		reportConnected("Connection Protocol complete and Remote Control is Enabled");
 		initDone = true;
@@ -241,11 +248,14 @@ private boolean initDone;
 		remoteEnable();
 		
 		pumpStatus();
+		queryVTBI();
 		
 //		checkAlarm();
 		
 		System.err.println("Flow Rate is "+ InfRate);
 		numericSample(flowRateHolderHead, Float.parseFloat(InfRate), wallClock.instant());
+		numericSample(vtbiRemaining, currentVTBI, wallClock.instant());
+		numericSample(volumeInfused, Float.parseFloat(VolumeInf), wallClock.instant());
 		
 		try {
 			Thread.sleep(2000L);

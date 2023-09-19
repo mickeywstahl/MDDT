@@ -8,7 +8,6 @@ import org.mdpnp.apps.fxbeans.SampleArrayFxList;
 import org.mdpnp.apps.testapp.DeviceListModel;
 import org.mdpnp.apps.testapp.IceApplicationProvider;
 import org.mdpnp.apps.testapp.patient.EMRFacade;
-import org.mdpnp.apps.testapp.patient.EMRFacade.EMRFacadeFactory;
 import org.mdpnp.apps.testapp.vital.VitalModel;
 import org.mdpnp.devices.MDSHandler;
 import org.mdpnp.rtiapi.data.EventLoop;
@@ -16,7 +15,7 @@ import org.springframework.context.ApplicationContext;
 
 import com.rti.dds.subscription.Subscriber;
 
-import ice.FlowRateObjectiveDataWriter;
+import ice.InfusionProgramDataWriter;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 
@@ -48,7 +47,7 @@ public class ClosedLoopControlTestApplicationFactory implements IceApplicationPr
         final VitalModel vitalModel= (VitalModel) parentContext.getBean("vitalModel");
         
         //"flowRateObjectiveWriter" is a new bean in IceAppContainerContext.xml
-        final FlowRateObjectiveDataWriter objectiveWriter=(FlowRateObjectiveDataWriter) parentContext.getBean("flowRateObjectiveWriter");
+        final InfusionProgramDataWriter objectiveWriter=(InfusionProgramDataWriter) parentContext.getBean("infusionPumpProgramWriter");
         
         final MDSHandler mdsHandler=(MDSHandler)parentContext.getBean("mdsConnectivity",MDSHandler.class);
         mdsHandler.start();

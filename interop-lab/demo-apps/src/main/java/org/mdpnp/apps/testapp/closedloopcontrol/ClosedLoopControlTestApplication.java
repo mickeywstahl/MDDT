@@ -28,6 +28,7 @@ import org.mdpnp.apps.fxbeans.SampleArrayFx;
 import org.mdpnp.apps.fxbeans.SampleArrayFxList;
 import org.mdpnp.apps.testapp.Device;
 import org.mdpnp.apps.testapp.DeviceListModel;
+import org.mdpnp.apps.testapp.PumpDevice;
 import org.mdpnp.apps.testapp.chart.Chart;
 import org.mdpnp.apps.testapp.chart.DateAxis;
 import org.mdpnp.apps.testapp.patient.EMRFacade;
@@ -39,7 +40,6 @@ import org.mdpnp.apps.testapp.vital.VitalSign;
 import org.mdpnp.devices.AbstractDevice;
 import org.mdpnp.devices.DeviceClock;
 import org.mdpnp.devices.DeviceDriverProvider;
-import org.mdpnp.devices.DeviceIdentityBuilder;
 import org.mdpnp.devices.MDSHandler;
 import org.mdpnp.devices.MDSHandler.Connectivity.MDSEvent;
 import org.mdpnp.devices.MDSHandler.Connectivity.MDSListener;
@@ -61,6 +61,9 @@ import com.rti.dds.subscription.SubscriberQos;
 
 import ice.FlowRateObjective;
 import ice.FlowRateObjectiveDataWriter;
+import ice.InfusionObjectiveDataWriter;
+import ice.InfusionProgram;
+import ice.InfusionProgramDataWriter;
 import ice.MDSConnectivity;
 import ice.Patient;
 import javafx.animation.Animation;
@@ -107,7 +110,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	private DeviceListModel dlm;
 	private NumericFxList numeric;
 	private SampleArrayFxList samples;
-	private FlowRateObjectiveDataWriter writer;
+	private InfusionProgramDataWriter writer;
 	private MDSHandler mdsHandler;
 	private VitalModel vitalModel;
 	private EMRFacade emr;
@@ -117,7 +120,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	private DateAxis dateAxis;
 		
 	@FXML private ComboBox<Device> bpsources;
-	@FXML private ComboBox<Device> pumps;
+	@FXML private ComboBox<PumpDevice> pumps;
 	@FXML private ComboBox<String> algos;
 	@FXML private TextField currentDiastolic;
 	@FXML private TextField currentSystolic;
@@ -141,7 +144,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	private final String FLOW_RATE=rosetta.MDC_FLOW_FLUID_PUMP.VALUE;
 	private final String ARTERIAL=rosetta.MDC_PRESS_BLD_ART_ABP.VALUE;
 	
-	private static final float LOWER_INFUSION_LIMIT=100f;
+	private static final float LOWER_INFUSION_LIMIT=1f;
 	private static final float UPPER_INFUSION_LIMIT=2000f;
 	private static final int LOWER_SYSTOLIC_LIMIT=40;
 	private static final int UPPER_SYSTOLIC_LIMIT=200;
@@ -151,7 +154,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	private static final int SYSTOLIC_ALARM_HIGHER=150;
 	private static final int DIASTOLIC_ALARM_LOWER=0;
 	private static final int DIASTOLIC_ALARM_HIGHER=120;
-	private static final int MIN_FLOW_RATE=100;
+	private static final int MIN_FLOW_RATE=1;
 	private static final int MAX_FLOW_RATE=2000;
 	private static final int INITIAL_SYSTOLIC=120;
 	private static final int INITIAL_DIASTOLIC=80;
@@ -238,7 +241,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	
 	//Need a context here...
 	public void set(ApplicationContext parentContext, DeviceListModel dlm, NumericFxList numeric, SampleArrayFxList samples,
-			FlowRateObjectiveDataWriter writer, MDSHandler mdsHandler, VitalModel vitalModel, Subscriber subscriber, EMRFacade emr) {
+			InfusionProgramDataWriter writer, MDSHandler mdsHandler, VitalModel vitalModel, Subscriber subscriber, EMRFacade emr) {
 		this.parentContext=parentContext;
 		this.dlm=dlm;
 		this.numeric=numeric;
@@ -437,7 +440,25 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 				while(change.next()) {
 					change.getAddedSubList().forEach( n -> {
 						if(n.getMetric_id().equals(FLOW_RATE)) {
-							pumps.getItems().add(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
+							PumpDevice pumpDevice=new PumpDevice(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
+							//Any pump publishing this flow rate metric should only have one head...
+							pumpDevice.setHead(1);
+							pumpDevice.setMetric(n.getMetric_id());
+							pumps.getItems().add(pumpDevice);
+						}
+						if(n.getMetric_id().equals("MDC_FLOW_FLUID_PUMP_1")) {
+							PumpDevice pumpDevice=new PumpDevice(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
+							//Any pump publishing this flow rate metric should only have one head...
+							pumpDevice.setHead(1);
+							pumpDevice.setMetric(n.getMetric_id());
+							pumps.getItems().add(pumpDevice);
+						}
+						if(n.getMetric_id().equals("MDC_FLOW_FLUID_PUMP_2")) {
+							PumpDevice pumpDevice=new PumpDevice(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
+							//Any pump publishing this flow rate metric should only have one head...
+							pumpDevice.setHead(2);
+							pumpDevice.setMetric(n.getMetric_id());
+							pumps.getItems().add(pumpDevice);
 						}
 
 					});
@@ -452,7 +473,9 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 				while(change.next()) {
 					change.getRemoved().forEach( d-> {
 						bpsources.getItems().remove(d);
-						pumps.getItems().remove(d);
+						
+						PumpDevice pd=new PumpDevice(d);
+						pumps.getItems().remove(new PumpDevice(d));
 					});
 				}
 			}
@@ -501,27 +524,28 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 			
 		});
 		
-		pumps.setCellFactory(new Callback<ListView<Device>,ListCell<Device>>() {
+		pumps.setCellFactory(new Callback<ListView<PumpDevice>,ListCell<PumpDevice>>() {
 
 			@Override
-			public ListCell<Device> call(ListView<Device> device) {
-				return new DeviceListCell();
+			public ListCell<PumpDevice> call(ListView<PumpDevice> device) {
+				return new PumpDeviceListCell();
 			}
 			
 		});
 		
-		pumps.setConverter(new StringConverter<Device>() {
+		pumps.setConverter(new StringConverter<PumpDevice>() {
 
 			@Override
-			public Device fromString(String arg0) {
+			public PumpDevice fromString(String arg0) {
 				// TODO Auto-generated method stub
 				return null;
 			}
 
 			@Override
-			public String toString(Device device) {
+			public String toString(PumpDevice pumpDevice) {
 				// TODO Auto-generated method stub
-				return device.getModel()+"("+device.getComPort()+")";
+				Device device=pumpDevice.getDevice();
+				return device.getModel()+"("+device.getComPort()+") Head "+pumpDevice.getHead();
 			}
 			
 		});
@@ -726,6 +750,18 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
             }
         }
     }
+	
+	class PumpDeviceListCell extends ListCell<PumpDevice> {
+        @Override protected void updateItem(PumpDevice pumpDevice, boolean empty) {
+            super.updateItem(pumpDevice, empty);
+            if (!empty && pumpDevice != null) {
+            	Device device=pumpDevice.getDevice();
+                setText(device.getModel()+"("+device.getComPort()+") Head "+pumpDevice.getHead());
+            } else {
+                setText(null);
+            }
+        }
+    }
 
 	public void startProcess() {
 		if(running) {
@@ -799,7 +835,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	}
 	
 	private boolean checkPumpSelected() {
-		Device d=pumps.getSelectionModel().getSelectedItem();
+		Device d=pumps.getSelectionModel().getSelectedItem().getDevice();
 		if(d==null) {
 			Alert alert=new Alert(AlertType.ERROR,"A pump must be selected",ButtonType.OK);
 			alert.showAndWait();
@@ -838,6 +874,11 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	}
 	
 	NumericFx[] flowRateFromSelectedPump=new NumericFx[1];
+	
+	private boolean isFlowRate(NumericFx n) {
+		String metric=n.getMetric_id();
+		return metric.equals(FLOW_RATE) || metric.equals("MDC_FLOW_FLUID_PUMP_1") || metric.equals("MDC_FLOW_FLUID_PUMP_2");
+	}
 
 	private void runForMode() {
 		//Get a whole graph thing...
@@ -873,13 +914,17 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
         } catch (Exception e) {
         	e.printStackTrace();
         }
-        Device pump=pumps.getSelectionModel().getSelectedItem();
+        PumpDevice pump=pumps.getSelectionModel().getSelectedItem();
         
         numeric.forEach( n -> {
-        	if( n.getUnique_device_identifier().equals(pump.getUDI()) && n.getMetric_id().equals(FLOW_RATE)) {
+        	if( n.getUnique_device_identifier().equals(pump.getDevice().getUDI()) && isFlowRate(n) ) {
+        		//Extra check for head match
+        		if(n.getMetric_id().equals(pump.getMetric())) {
+        			flowRateFromSelectedPump[0]=n;
+        		}
         		//This is the flow rate from the pump we want
 //        		System.err.println("Found numeric for matching pump");
-        		flowRateFromSelectedPump[0]=n;
+//        		flowRateFromSelectedPump[0]=n;
         	}
         });
         
@@ -921,7 +966,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 		appConfig.dia_alarm=(int)diastolicAlarm.getValue();
 		appConfig.bp_udi=monitor.getUDI();
 		appConfig.bp_numeric=numericBPDevice.getUniqueDeviceIdentifier();
-		appConfig.pump_udi=pump.getUDI();
+		appConfig.pump_udi=pump.getDevice().getUDI();
 		double rate=(double)infusionRate.getValue();
 		appConfig.inf_rate=(float)rate;
 		appConfig.sessionid=sessionid;
@@ -1060,27 +1105,34 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	}
 	
 	private void setFlowRate(float newRate) {
-		Device selectedPump=pumps.getSelectionModel().getSelectedItem();
-		String pumpUDI=selectedPump.getUDI();
-		FlowRateObjective objective=new FlowRateObjective();
-		objective.newFlowRate=newRate;
+		PumpDevice selectedPump=pumps.getSelectionModel().getSelectedItem();
+		//TODO: Change this to the new pump program objective and add the head 
+		String pumpUDI=selectedPump.getDevice().getUDI();
+		int head=selectedPump.getHead();
+		InfusionProgram objective=new InfusionProgram();
+		objective.bolusRate=-1;
+		objective.bolusVolume=-1;
+		objective.head=selectedPump.getHead();
+		objective.infusionRate=newRate;
+		objective.VTBI=80;
+		objective.requestor="ClosedLoopControlTestApplication";
 		objective.unique_device_identifier=pumpUDI;
-		try {
-			if(flowStatement==null) {
-				flowStatement=dbconn.prepareStatement("INSERT INTO flowrequest(t_millis, target_udi, target_type, requestedRate, source_id, source_type) VALUES (?,?,?,?,?,?)");
-			}
-			flowStatement.setLong(1, System.currentTimeMillis()/1000);
-			flowStatement.setString(2, objective.unique_device_identifier);
-			flowStatement.setString(3, "D");
-			flowStatement.setFloat(4, objective.newFlowRate);
-			flowStatement.setString(5, getClass().getSimpleName());
-			flowStatement.setString(6, "A");
-			flowStatement.execute();
-			recording=true;	//If we set the flow rate, remember to record samples.
-			recorded++;
-		} catch (SQLException e) {
-			log.error("Failed to create flowrequest statement",e);
-		}
+//		try {
+//			if(flowStatement==null) {
+//				flowStatement=dbconn.prepareStatement("INSERT INTO flowrequest(t_millis, target_udi, target_type, requestedRate, source_id, source_type) VALUES (?,?,?,?,?,?)");
+//			}
+//			flowStatement.setLong(1, System.currentTimeMillis()/1000);
+//			flowStatement.setString(2, objective.unique_device_identifier);
+//			flowStatement.setString(3, "D");
+//			flowStatement.setFloat(4, objective.newFlowRate);
+//			flowStatement.setString(5, getClass().getSimpleName());
+//			flowStatement.setString(6, "A");
+//			flowStatement.execute();
+//			recording=true;	//If we set the flow rate, remember to record samples.
+//			recorded++;
+//		} catch (SQLException e) {
+//			log.error("Failed to create flowrequest statement",e);
+//		}
 		
 		writer.write(objective, InstanceHandle_t.HANDLE_NIL);
 	}
@@ -1226,7 +1278,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	private void recordSessionEnd() {
 		try {
 			Device monitor=bpsources.getSelectionModel().getSelectedItem();
-			Device pump=pumps.getSelectionModel().getSelectedItem();
+			Device pump=pumps.getSelectionModel().getSelectedItem().getDevice();
 			String mrnString=currentPatient.mrn;
 			AppConfig appConfig=new AppConfig();
 			appConfig.mode=openRadio.isSelected() ? 0 : 1;

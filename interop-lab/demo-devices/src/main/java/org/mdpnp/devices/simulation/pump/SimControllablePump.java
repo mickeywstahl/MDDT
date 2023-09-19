@@ -31,12 +31,9 @@ import com.rti.dds.subscription.ViewStateKind;
 import com.rti.dds.topic.Topic;
 
 import ice.ConnectionState;
-import ice.FlowRateObjectiveDataReader;
 import ice.InfusionProgramDataReader;
 import ice.Numeric;
 
-import javafx.beans.value.*;
-import javafx.beans.property.*;
 
 /**
  * A simulated pump for which the speed can be controlled.  Designed to be
@@ -58,10 +55,9 @@ public class SimControllablePump extends AbstractSimulatedConnectedDevice {
 	
 	private float currentFlowRate=1.0f;
 	
-	private FlowRateObjectiveDataReader flowRateReader;
 	private InfusionProgramDataReader infusionProgramReader;
-	private Topic flowRateTopic,infusionProgramTopic;
-	private QueryCondition flowRateQueryCondition,infusionProgramQueryCondition;
+	private Topic infusionProgramTopic;
+	private QueryCondition infusionProgramQueryCondition;
 	
 	private DeviceClock defaultClock;
 	
@@ -75,52 +71,7 @@ public class SimControllablePump extends AbstractSimulatedConnectedDevice {
 		writeDeviceIdentity();
 		defaultClock=new TrivialClock();
 		
-		/**
-		 * Following block of code is for receiving objectives for the flow rate
-		 */
-		/*
-		ice.FlowRateObjectiveTypeSupport.register_type(getParticipant(), ice.FlowRateObjectiveTypeSupport.get_type_name());
-		flowRateTopic = TopicUtil.findOrCreateTopic(getParticipant(), ice.FlowRateObjectiveTopic.VALUE, ice.FlowRateObjectiveTypeSupport.class);
-		flowRateReader = (ice.FlowRateObjectiveDataReader) subscriber.create_datareader_with_profile(flowRateTopic,
-        		QosProfiles.ice_library, QosProfiles.state,  null, StatusKind.STATUS_MASK_NONE);
-		StringSeq params = new StringSeq();
-        params.add("'" + deviceIdentity.unique_device_identifier + "'");
-        flowRateQueryCondition = flowRateReader.create_querycondition(SampleStateKind.NOT_READ_SAMPLE_STATE,
-        		ViewStateKind.ANY_VIEW_STATE, InstanceStateKind.ALIVE_INSTANCE_STATE, "unique_device_identifier = %0", params);
-        eventLoop.addHandler(flowRateQueryCondition, new ConditionHandler() {
-            private ice.FlowRateObjectiveSeq data_seq = new ice.FlowRateObjectiveSeq();
-            private SampleInfoSeq info_seq = new SampleInfoSeq();
-
-            @Override
-            public void conditionChanged(Condition condition) {
-
-                for (;;) {
-                    try {
-                        flowRateReader.read_w_condition(data_seq, info_seq, ResourceLimitsQosPolicy.LENGTH_UNLIMITED,
-                                (ReadCondition) condition);
-                        for (int i = 0; i < info_seq.size(); i++) {
-                            SampleInfo si = (SampleInfo) info_seq.get(i);
-                            ice.FlowRateObjective data = (ice.FlowRateObjective) data_seq.get(i);
-                            if (si.valid_data) {
-                            	try { 
-                            		setSpeed(data.newFlowRate);
-                            	} catch (IOException ioe) {
-                            		log.error("Failed to set pump speed", ioe);
-                            		ioe.printStackTrace();
-                            	}
-                            }
-                        }
-                    } catch (RETCODE_NO_DATA noData) {
-                        break;
-                    } finally {
-                        flowRateReader.return_loan(data_seq, info_seq);
-                    }
-                }
-            }
-        });
-        */
-
-
+		
         /**
 		 * Following block of code is for receiving objectives for an infusion program
 		 */
