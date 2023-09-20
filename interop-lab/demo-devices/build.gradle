@@ -39,7 +39,7 @@ dependencies {
   implementation group: 'org.springframework', name: 'spring-context',             version: '6.0.2'
   implementation group: 'com.google.guava',    name: 'guava',                      version: '31.1-jre'
   implementation group: 'org.openjdk.nashorn', name: 'nashorn-core', version: '15.4'
-  implementation group: 'org.glassfish', name: 'jakarta.json', version: '2.0.1'
+  implementation group: 'javax.json', name: 'javax.json-api', version: '1.0'
 
   testImplementation("junit:junit:4.13.2")
   testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.1")
