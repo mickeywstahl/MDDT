@@ -81,6 +81,16 @@
     <Insets bottom="5.0" top="5.0" />
    </GridPane.margin>
   </TextField>
+  <Label fx:id="paramsLabel" text="Parameters" GridPane.columnIndex="0" GridPane.rowIndex="5">
+   <GridPane.margin>
+    <Insets bottom="5.0" top="5.0" />
+   </GridPane.margin>
+  </Label>
+  <TextField fx:id="paramsField" maxWidth="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="5">
+   <GridPane.margin>
+    <Insets bottom="5.0" top="5.0" />
+   </GridPane.margin>
+  </TextField>
   <Label fx:id="fhirServerLabel" text="FHIR Server" GridPane.columnIndex="0" GridPane.rowIndex="6">
    <GridPane.margin>
     <Insets bottom="5.0" right="5.0" top="5.0" />
