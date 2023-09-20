@@ -123,9 +123,9 @@ public #if($member.isOptional)$member.typeClass #else${member.nativeTypeFQName}#
 ##******************************************************************************
 ##  Macro to clear members 
 ##******************************************************************************
-#macro(clearMembers $memberFieldMapList)
+#macro(clearMembers $memberFieldMapList $hasOnlyADefaultCase)
 #*--*##if($constructMap.constructKind.equals("union"))
-#*----*##clearUnion($memberFieldMapList)
+#*----*##clearUnion($memberFieldMapList $hasOnlyADefaultCase)
 #*--*##else
 #*----*##foreach(${member} in $memberFieldMapList)
 #*------*##if($member.directive)
@@ -179,20 +179,24 @@ $member.name = (${member.nativeTypeFQName})${member.defaultValue};
 
 
 
-#macro (clearUnion $memberFieldMapList)
+#macro (clearUnion $memberFieldMapList $hasOnlyADefaultCase)
 #*--*##set($pos = "1")
 #*--*##foreach($member in $memberFieldMapList)
 #*---*##if($member.directive)
 #*---*##copyDirectiveNoBegin ($member)
 #*---*##else
 #*------*##foreach($element in $member.labelList)
-#*------*##initCases($element $pos)
+#*--------*##if(!$hasOnlyADefaultCase)
+#*----------*##initCases($element $pos)
+#*--------*##end
 #*------*##set($pos = "-1")
 #*------*##clearMember($member)
 #*----*##end ## if
 #*------*##end ## for
 #*--*##end ## for
+#*--*##if(!$hasOnlyADefaultCase)
 }
+#*--*##end
 #end  
 
 ##******************************************************************************
@@ -241,20 +245,20 @@ ${member.name}#arraydimensionListsWithIndex($member)= "";
 ##  Macro to equals the memberFieldMapList of a Type 
 ##******************************************************************************
 
-#macro(equalsMemberField $memberFieldMapList)
+#macro(equalsMemberField $memberFieldMapList $hasOnlyADefaultCase)
 #*--*##if($constructMap.constructKind.equals("union"))
-#*----*##equalsMemberUnion()
+#*----*##equalsMemberUnion($memberFieldMapList $hasOnlyADefaultCase)
 #*--*##else
 #*----*##foreach($member in $memberFieldMapList)
 #*------*##if($member.directive)
 #*--------*##copyDirectiveNoBegin ($member)
 #*------*##elseif(!$member.constructKind.equals("const"))
 #*----*##if($member.isOptional)
-      if (($member.name == null && otherObj.${member.name} != null) ||
-                ($member.name != null && otherObj.${member.name} == null)) {
+      if ((this.$member.name == null && otherObj.${member.name} != null) ||
+                (this.$member.name != null && otherObj.${member.name} == null)) {
             return false;
         }
-        if ($member.name != null) {
+        if (this.$member.name != null) {
 #*----*##end ## if
 #*--------*##equalsMember($member)
 #*------*##end ## if
@@ -269,7 +273,7 @@ ${member.name}#arraydimensionListsWithIndex($member)= "";
 ##  Macro to equals the memberFieldMapList of a union 
 ##-----------------------------------------------------------------------------
 
-#macro (equalsMemberUnion)
+#macro (equalsMemberUnion $memberFieldMapList $hasOnlyADefaultCase)
 if(_d != otherObj._d) {
     return false;
 }
@@ -277,10 +281,12 @@ if(_d != otherObj._d) {
 #*----*##if($member.directive)
 #copyDirectiveNoBegin ($member)
 #*----*##else
-#*--*##set($loopNumber = $velocityCount)
+#*--*##set($loopNumber = $foreach.count)
 #*------*##foreach($element in $member.labelList)
-#*--------*##if($loopNumber==1 && $velocityCount==1)
+#*--------*##if($loopNumber==1 && $foreach.count==1)
+#*----------*##if(!$hasOnlyADefaultCase)
 if (otherObj._d == ($element)){
+#*----------*##end
 #*--------*##elseif(!$element.contains("default"))
 } else if (otherObj._d == ($element)){
 #*-------*##elseif($element.contains("default"))
@@ -290,7 +296,9 @@ if (otherObj._d == ($element)){
 #*------*##end ## for
 #*----*##end
 #*--*##end ## for
+#*--*##if(!$hasOnlyADefaultCase)
 }
+#*--*##end
 #end
 
 ##-----------------------------------------------------------------------------
@@ -300,29 +308,29 @@ if (otherObj._d == ($element)){
 #*--*##openForLoopIfArray($member)
 #*--*##if($member.seqSize && $member.dimensionList)
 #*----*##if( $member.strSize || $member.typeKind=="user")
-for(int i__ = 0; i__ < $member.name#arraydimensionListsWithIndex($member).size(); ++i__){
-    if(!${member.name}#arraydimensionListsWithIndex($member).get(i__).equals(otherObj.#*
+for(int i__ = 0; i__ < this.$member.name#arraydimensionListsWithIndex($member).size(); ++i__){
+    if(!this.${member.name}#arraydimensionListsWithIndex($member).get(i__).equals(otherObj.#*
 -------*#${member.name}#arraydimensionListsWithIndex($member).get(i__))) {
         return false;
     }
 }
 #*----*##else
-    if(!${member.name}#arraydimensionListsWithIndex($member).equals(otherObj.#*
+    if(!this.${member.name}#arraydimensionListsWithIndex($member).equals(otherObj.#*
 -------*#${member.name}#arraydimensionListsWithIndex($member))) {
         return false;
     }
 
 #*----*##end
 #*--*##elseif($member.seqSize || $member.strSize || $member.typeKind=="user")
-if(!${member.name}#arraydimensionListsWithIndex($member).equals(otherObj.${member.name}#arraydimensionListsWithIndex($member))) {
+if(!this.${member.name}#arraydimensionListsWithIndex($member).equals(otherObj.${member.name}#arraydimensionListsWithIndex($member))) {
     return false;
 }
 #*--*##elseif ($member.isOptional && !$member.dimensionList)
-if(!${member.name}.equals(otherObj.${member.name})) {
+if(!this.${member.name}.equals(otherObj.${member.name})) {
     return false;
 }
 #*--*##else
-if($member.name#arraydimensionListsWithIndex($member) != otherObj.$member.name#arraydimensionListsWithIndex($member)) {
+if(this.$member.name#arraydimensionListsWithIndex($member) != otherObj.$member.name#arraydimensionListsWithIndex($member)) {
     return false;
 }
 #*--*##end
@@ -334,9 +342,9 @@ if($member.name#arraydimensionListsWithIndex($member) != otherObj.$member.name#a
 ##  Macro to generate the hasCode of the memberFieldMapList of a Type 
 ##******************************************************************************
 
-#macro(hashCode $memberFieldMapList)
+#macro(hashCode $memberFieldMapList $hasOnlyADefaultCase)
 #if($constructMap.constructKind.equals("union"))
-#unionHasCode ($memberFieldMapList)
+#unionHashCode ($memberFieldMapList $hasOnlyADefaultCase)
 #else
 #*--*##foreach($member in $memberFieldMapList)
 #*----*##if($member.directive)
@@ -360,21 +368,25 @@ if ($member.name != null) {
 ##-----------------------------------------------------------------------------
 
 
-#macro (unionHasCode $memberFieldMapList)
+#macro (unionHashCode $memberFieldMapList $hasOnlyADefaultCase)
 #*--*##set($pos = "1")
 #*--*##foreach($member in $memberFieldMapList)
 #*---*##if($member.directive)
 #*---*##copyDirectiveNoBegin ($member)
 #*---*##else
 #*------*##foreach($element in $member.labelList)
-#*------*##initCases($element $pos)
+#*--------*##if(!$hasOnlyADefaultCase)
+#*----------*##initCases($element $pos)
+#*--------*##end
 #*------*##set($pos = "-1")
 #*------*##hashCodeMember($member)
 #*----*##end ## if
 #*------*##end ## for
 #*--*##end ## for
+#*--*##if(!$hasOnlyADefaultCase)
 }
-#end               
+#*--*##end
+#end
 
 
 
@@ -421,9 +433,9 @@ for(int i__ = 0; i__< $member.name#arraydimensionListsWithIndex($member).size();
 ##  Macro to copy the the memberFieldMapList of a Type 
 ##******************************************************************************
 
-#macro(copy $memberFieldMapList)
+#macro(copy $memberFieldMapList $hasOnlyADefaultCase)
 #if($constructMap.constructKind.equals("union"))
-#copyUnion($memberFieldMapList " ")
+#copyUnion($memberFieldMapList " " $hasOnlyADefaultCase)
 #else
 #*--*##foreach($member in $memberFieldMapList)
 #*-----*##if($member.directive)
@@ -444,7 +456,7 @@ for(int i__ = 0; i__< $member.name#arraydimensionListsWithIndex($member).size();
 ##  Macro to copy the the memberFieldMapList of an union 
 ##-----------------------------------------------------------------------------
 
-#macro(copyUnion $memberFieldMapList $kindCopy)
+#macro(copyUnion $memberFieldMapList $kindCopy $hasOnlyADefaultCase)
 #*--*##set($pos = "1")
 #if($constructMap.unionDiscriminatorMap.typeKind=="enum")
 #if ($kindCopy.equals("coypyData"))
@@ -460,9 +472,11 @@ for(int i__ = 0; i__< $member.name#arraydimensionListsWithIndex($member).size();
 #*----*##if($member.directive)
 #*----*##copyDirectiveNoBegin ($member)
 #*----*##else
-#*------*##set($pos = $velocityCount)
+#*------*##set($pos = $foreach.count)
 #*------*##foreach($element in $member.labelList)
-#*------*##initCases($element $pos)
+#*--------*##if(!$hasOnlyADefaultCase)
+#*----------*##initCases($element $pos)
+#*--------*##end
 #*------*##set($pos = "-1")
 #*-------*##if($member.isOptional)
 #*-----*##copyOptionalMember($member " ")
@@ -472,7 +486,9 @@ for(int i__ = 0; i__< $member.name#arraydimensionListsWithIndex($member).size();
 #*------*##end ## for
 #*----*##end ## if
 #*--*##end ## for
+#*--*##if(!$hasOnlyADefaultCase)
                }
+#*--*##end
 #end
 
 ##-----------------------------------------------------------------------------
@@ -497,7 +513,7 @@ typedDst.${member.name}#arraydimensionListsWithIndex($member) = ($member.nativeT
 #*--*##closeForLoopIfArray($member)
 #*--*##else
 #*--*##openForLoopIfArrayForCopy($member)
-#*--*#         System.arraycopy(typedSrc.${member.name}#arraydimensionListsWithIndexForCopy($member),0,
+#*--*#         java.lang.System.arraycopy(typedSrc.${member.name}#arraydimensionListsWithIndexForCopy($member),0,
 #*--*#                         typedDst.${member.name}#arraydimensionListsWithIndexForCopy($member),0,
 #*--*#                         typedSrc.${member.name}#arraydimensionListsWithIndexForCopy($member).length); 
 #*--*##closeForLoopIfArrayForCopy($member)
@@ -547,7 +563,7 @@ typedDst.$member.name =
 }
 if(typedSrc.$member.name !=null){
 #end
-#copyMember($member)
+#copyMember($member "")
 #if(${member.typeKind}=="user" || $member.seqSize || $member.dimensionList)
 } else{
     typedDst.$member.name=null;
@@ -563,16 +579,16 @@ if(typedSrc.$member.name !=null){
 ##  Macro to convert to a String the memberFieldMapList of a Type 
 ##******************************************************************************
 
-#macro(toString $constructMap)
+#macro(toString $constructMap $hasOnlyADefaultCase)
 #if($constructMap.constructKind.equals("union"))
-#toStringUnion($constructMap)
+#toStringUnion($constructMap $hasOnlyADefaultCase)
 #else
 #*--*##foreach($member in $constructMap.memberFieldMapList)
 #*----*##if($member.directive)
 #*----*##copyDirectiveNoBegin ($member)
 #*----*##elseif(!$member.constructKind.equals("const"))
 #*------*##if($member.isOptional)
-if ($member.name != null) {
+if (this.$member.name != null) {
 #*------*##end ## if
 #*------*##toStringMember($member)
 #*------*##if($member.isOptional)
@@ -590,7 +606,7 @@ if ($member.name != null) {
 ##  Macro to convert to a String the memberFieldMapList of an union 
 ##-----------------------------------------------------------------------------
 
-#macro (toStringUnion $constructMap)
+#macro (toStringUnion $constructMap $hasOnlyADefaultCase)
 #if($constructMap.unionDiscriminatorMap.typeKind=="enum")
 #*--*#        strBuffer.append(_d.toString("_d ", indent+1));
 #else
@@ -603,14 +619,17 @@ if ($member.name != null) {
 #*----*##copyDirectiveNoBegin ($member)
 #*----*##else
 #*------*##foreach($element in $member.labelList)
-#*------*##initCases($element $pos)
+#*--------*##if(!$hasOnlyADefaultCase)
+#*----------*##initCases($element $pos)
+#*--------*##end
 #*------*##set($pos = "-1")
 #*------*##toStringMember($member)
 #*------*##end ## for
 #*----*##end ## if
 #*--*##end ## for
+#*--*##if(!$hasOnlyADefaultCase)
                }
-
+#*--*##end
 #end
 
 ##-----------------------------------------------------------------------------
@@ -625,10 +644,10 @@ if ($member.name != null) {
 #*--*##elseif( $member.dimensionList)
 #*----*##toStringArray($member)
 #*--*##elseif($member.typeKind=="user")
-strBuffer.append(${member.name}.toString("$member.name ", indent+1));
+strBuffer.append(this.${member.name}.toString("$member.name ", indent+1));
 #*--*##else
 CdrHelper.printIndent(strBuffer, indent+1);        
-strBuffer.append("$member.name: ").append($member.name).append("\n");  
+strBuffer.append("$member.name: ").append(this.$member.name).append("\n");  
 #*--*##end 
 #end ## macro
 
@@ -644,8 +663,8 @@ strBuffer.append("${member.name}:\n");
 #*----*##openForLoopIfArray($member)        
 CdrHelper.printIndent(strBuffer, indent+2);
 strBuffer.append(#toStringUserArrayAppend($member)+":\n");
-for(int i__ = 0; i__ < $member.name#arraydimensionListsWithIndex($member).size(); ++i__) {
-    strBuffer.append((($member.nativeTypeFQName)$member.name#arraydimensionListsWithIndex($member).get(i__)).
+for(int i__ = 0; i__ < this.$member.name#arraydimensionListsWithIndex($member).size(); ++i__) {
+    strBuffer.append((($member.nativeTypeFQName)this.$member.name#arraydimensionListsWithIndex($member).get(i__)).
               toString(Integer.toString(i__),indent+4));
 }
 
@@ -656,11 +675,11 @@ strBuffer.append("${member.name}:#if($member.dimensionList)\n#end#if(!$member.di
          
 #*--*##openForLoopIfArray($member)
 CdrHelper.printIndent(strBuffer, indent+2);
-strBuffer.append(#foreach($element in $member.dimensionList)"["+Integer.toString(i${velocityCount}__)+"]"+#end": ");
+strBuffer.append(#foreach($element in $member.dimensionList)"["+java.lang.Integer.toString(i${foreach.count}__)+"]"+#end": ");
 
-for(int i__ = 0; i__ < ${member.name}#arraydimensionListsWithIndex($member).size(); ++i__) {
+for(int i__ = 0; i__ < this.${member.name}#arraydimensionListsWithIndex($member).size(); ++i__) {
     if (i__!=0) strBuffer.append(", ");
-        strBuffer.append(${member.name}#arraydimensionListsWithIndex($member).get(i__));
+        strBuffer.append(this.${member.name}#arraydimensionListsWithIndex($member).get(i__));
 }
     strBuffer.append("\n"); 
 #closeForLoopIfArray($member)
@@ -675,14 +694,14 @@ for(int i__ = 0; i__ < ${member.name}#arraydimensionListsWithIndex($member).size
 CdrHelper.printIndent(strBuffer, indent+1);
 #*--*##if($member.typeKind=="user")
 strBuffer.append("${member.name}:\n");
-for(int i__ = 0; i__ < ${member.name}.size(); ++i__) {
-    strBuffer.append((($member.nativeTypeFQName)${member.name}.get(i__)).toString(Integer.toString(i__),indent+2));
+for(int i__ = 0; i__ < this.${member.name}.size(); ++i__) {
+    strBuffer.append((($member.nativeTypeFQName)this.${member.name}.get(i__)).toString(java.lang.Integer.toString(i__),indent+2));
 }
 #*--*##else
 strBuffer.append("$member.name: ");
-for(int i__ = 0; i__ < ${member.name}#arraydimensionListsWithIndex($member).size(); ++i__) {
+for(int i__ = 0; i__ < this.${member.name}#arraydimensionListsWithIndex($member).size(); ++i__) {
     if (i__!=0) strBuffer.append(", ");
-        strBuffer.append(${member.name}#arraydimensionListsWithIndex($member).get(i__));
+        strBuffer.append(this.${member.name}#arraydimensionListsWithIndex($member).get(i__));
     }
 strBuffer.append("\n"); 
 #*--*##end
@@ -701,11 +720,11 @@ strBuffer.append("$member.name: ");
 #*--*##end      
 #*--*##openForLoopIfArray($member)
 #*--*##if($member.typeKind=="user")     
-strBuffer.append(${member.name}#arraydimensionListsWithIndex($member).toString(
+strBuffer.append(this.${member.name}#arraydimensionListsWithIndex($member).toString(
             #toStringUserArrayAppend($member),indent+2));
 #*----*##closeForLoopIfArray($member)
 #*--*##else
-strBuffer.append(${member.name}#arraydimensionListsWithIndex($member)).append(", ");
+strBuffer.append(this.${member.name}#arraydimensionListsWithIndex($member)).append(", ");
 #*----*##closeForLoopIfArray($member)
 strBuffer.append("\n");
 #*--*##end
@@ -718,8 +737,8 @@ strBuffer.append("\n");
 ##----------------------------------------------
 
 #macro(toStringUserArrayAppend $member)
-#foreach($element in $member.dimensionList)"["+Integer.toString(i${velocityCount}__)+"]"#*
-*##if($member.dimensionList.size()>$velocityCount)+#end#end#end ##macro
+#foreach($element in $member.dimensionList)"["+java.lang.Integer.toString(i${foreach.count}__)+"]"#*
+*##if($member.dimensionList.size()>$foreach.count)+#end#end#end ##macro
 
 
 #macro(addUnionMemberInitializationType $member)
@@ -727,7 +746,7 @@ strBuffer.append("\n");
 *#$member.nativeTypeSeq #declareEmptyArraydimensionLists($member)#*
 *##elseif($member.typeKind=="user")#*
 *#$member.nativeTypeFQName #declareEmptyArraydimensionLists($member)#*
-*##elseif($member.strSize) String#declareEmptyArraydimensionLists($member)#*
+*##elseif($member.strSize) java.lang.String#declareEmptyArraydimensionLists($member)#*
 *##else $member.nativeTypeFQName#declareEmptyArraydimensionLists($member)#*
 *##end ## if
 #end ##macro
