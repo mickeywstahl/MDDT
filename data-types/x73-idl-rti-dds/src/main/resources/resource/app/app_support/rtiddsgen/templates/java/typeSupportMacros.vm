@@ -135,11 +135,11 @@ currentAlignment+=  CdrHeader.getHeaderMaxSize(currentAlignment, _cdrPrimitiveTy
     for (int i = 0; i <(int) ($member.arrayTotalSize); i++) {
         maxSize +=#alignmentMaxSizeSeq($member "maxSize"));
     }
-    maxSerialized = Math.max((maxSize - $member.currentAlignment) , 
+    maxSerialized = java.lang.Math.max((maxSize - $member.currentAlignment),
                                    maxSerialized);
 }                                   
 #*------*##else
-maxSerialized = Math.max(#alignmentMaxSizeMember($serializeSuffix $member), maxSerialized);
+maxSerialized = java.lang.Math.max(#alignmentMaxSizeMember($serializeSuffix $member), maxSerialized);
 #*------*##end
 #*----*##end
 #*--*##end 
@@ -296,11 +296,11 @@ currentAlignment+= CdrHeader.getHeaderMinSize(currentAlignment, _cdrPrimitiveTyp
     for (int i = 0; i <(int) ($member.arrayTotalSize); i++) {
         minSize +=#alignmentMinSizeSeq($member "minSize"));
     }
-    minSerialized = Math.min((minSize - $member.currentAlignment) , 
+    minSerialized = java.lang.Math.min((minSize - $member.currentAlignment),
                                    minSerialized);
 }                                   
 #*------*##else
-#*----*#minSerialized = Math.min(#alignmentMinSizeMember($member), minSerialized);
+#*----*#minSerialized = java.lang.Math.min(#alignmentMinSizeMember($member), minSerialized);
 #*------*##end
 #*----*##end
 #*--*##end 
@@ -420,7 +420,7 @@ currentAlignment += _cdrPrimitiveType.getPadSize(currentAlignment, 4);
 ## Macro for alignmentSample for an union
 ##------------------------------------------------------------------------
 
-#macro (alignmentSampleUnion $constructMap $currentAlignment)
+#macro (alignmentSampleUnion $constructMap)
 #*---------*##if($constructMap.extensibility.equals("MUTABLE_EXTENSIBILITY"))
 currentAlignment+= CdrHeader.getHeaderSizeAndAlign(epd, currentAlignment, _cdrPrimitiveType, xcdr1,
         ExtensibilityKind.$constructMap.extensibility, false,#* 
@@ -433,13 +433,15 @@ currentAlignment += ${constructMap.unionDiscriminatorMap.nativeTypeFQName}TypeSu
 #*----*##alignmentSampleMember($constructMap.unionDiscriminatorMap)
 #*--*##end
 #*--*##foreach($member in $constructMap.memberFieldMapList)
-#*----*##set($loopNumber = $velocityCount)
+#*----*##set($loopNumber = $foreach.count)
 #*----*##if($member.directive)
 #*------*##copyDirective ($member)
 #*----*##else
 #*------*##foreach($element in $member.labelList)
-#*--------*##if($loopNumber==1 && $velocityCount==1)
+#*--------*##if($loopNumber==1 && $foreach.count==1)
+#*----------*##if(!$constructMap.hasOnlyADefaultCase)
 if (typedSrc._d == ($element)){
+#*----------*##end
 #*--------*##elseif(!$element.contains("default"))
 } else if (typedSrc._d == ($element)){
 #*--------*##elseif($element.contains("default"))
@@ -454,7 +456,9 @@ currentAlignment+= CdrHeader.getHeaderSizeAndAlign(epd, currentAlignment, _cdrPr
 #*------*##end ## for
 #*----*##end ## if
 #*--*##end ## for
+#*--*##if(!$constructMap.hasOnlyADefaultCase)
 }
+#*--*##end
 #end
 
 ##------------------------------------------------------------------------
@@ -580,10 +584,12 @@ dst.writeMemberLength(xcdr1, memberLengthPosition, $constructMap.unionDiscrimina
 #*----*##if($member.directive)
 #*----*##copyDirective ($member)
 #*----*##else
-#*--*##set($loopNumber = $velocityCount)
+#*--*##set($loopNumber = $foreach.count)
 #*------*##foreach($element in $member.labelList)
-#*------*##if($loopNumber==1 && $velocityCount==1)
+#*------*##if($loopNumber==1 && $foreach.count==1)
+#*----------*##if(!$constructMap.hasOnlyADefaultCase)
 if (typedSrc._d == ($element)){
+#*----------*##end
 #*------*##elseif(!$element.contains("default"))
 } else if (typedSrc._d == ($element)){
 #*------*##elseif($element.contains("default"))
@@ -605,7 +611,9 @@ dst.writeMemberLength(
 #*------*##end ## for
 #*--*##end ## if
 #*--*##end ## for
+#*--*##if(!$constructMap.hasOnlyADefaultCase)
 }
+#*--*##end
 #end               
 
 ##------------------------------------------------------------------------
@@ -770,10 +778,12 @@ buffer.restore(tmpSize, (int)(tmpPosition + tmpLength));
 #*----*##if($member.directive)
 #*----*##copyDirective ($member)
 #*----*##else
-#*--*##set($loopNumber = $velocityCount)
+#*--*##set($loopNumber = $foreach.count)
 #*--------*##foreach($element in $member.labelList)
-#*----------*##if($loopNumber==1 && $velocityCount==1 )
+#*----------*##if($loopNumber==1 && $foreach.count==1 )
+#*------------*##if(!$constructMap.hasOnlyADefaultCase)
 if (typedDst._d == ($element)){
+#*------------*##end
 #*----------*##elseif(!$element.contains("default"))
 } else if (typedDst._d == ($element)){
 #*----------*##elseif($element.contains("default"))
@@ -783,7 +793,9 @@ if (typedDst._d == ($element)){
 #*---------*##end ## for
 #*----*##end
 #*--*##end ## for
+#*--*##if(!$constructMap.hasOnlyADefaultCase)
 }
+#*--*##end
 #*--*##if($constructMap.extensibility.equals("EXTENSIBLE_EXTENSIBILITY") &&
     !$constructMap.hasADefaultCaseLabel)
 else {
@@ -908,7 +920,14 @@ typedDst.$member.name#arraydimensionListsWithIndex($member) = src.${member.eleme
 #*--*##end
 #*--*##if($member.explicitMinValue && $member.explicitMaxValue)
 if (${prefix}.${member.name} < $member.explicitMinValue 
-    || ${prefix}.${member.name} >$member.explicitMaxValue){
+    || ${prefix}.${member.name} >$member.explicitMaxValue
+#*----*##if($member.typeKindResolved=="double")
+    || Double.isNaN(${prefix}.${member.name})
+#*----*##end
+#*----*##if($member.typeKindResolved=="float")
+    || Float.isNaN(${prefix}.${member.name})
+#*----*##end    
+    ){
          throw new RETCODE_ERROR("${member.FQName} $auxErrorMessage error. Primitive value "+ ${prefix}.${member.name}
          + " outside valid range [$member.explicitMinValue, $member.explicitMaxValue]"  );
     }
@@ -970,10 +989,12 @@ if (xcdr1) {
 #*----*##if($member.directive)
 #*----*##copyDirective ($member)
 #*----*##else
-#*--*##set($loopNumber = $velocityCount)
+#*--*##set($loopNumber = $foreach.count)
 #*--------*##foreach($element in $member.labelList)
-#*----------*##if($loopNumber==1 && $velocityCount==1 )
+#*----------*##if($loopNumber==1 && $foreach.count==1 )
+#*------------*##if(!$constructMap.hasOnlyADefaultCase)
 if (disc == ($element)){
+#*------------*##end
 #*----------*##elseif(!$element.contains("default"))
 } else if (disc == ($element)){
 #*-----------*##elseif($element.contains("default"))
@@ -983,7 +1004,9 @@ if (disc == ($element)){
 #*---------*##end ## for
 #*------*##end ## if
 #*--*##end ## for
+#*--*##if(!$constructMap.hasOnlyADefaultCase)
 }
+#*--*##end
 #end
 
 #macro (skipDiscriminator $discriminator)
@@ -1050,7 +1073,7 @@ currentAlignment += (_cdrPrimitiveType.getPadSize(currentAlignment, 4) + 12);
 #*------*##if($member.dimensionList && $member.seqSize)
 #*--------*##alignmentMaxSizeArrayOfSeq($member $ignoreHeader)#*
 #*------*##else
-currentAlignment += #alignmentMaxSizeMember($serializeSuffix $member $ignoreHeader);#*
+currentAlignment += #alignmentMaxSizeMember($serializeSuffix $member);#*
 ---------*##end
 
 #*----*##end ##if
