@@ -783,7 +783,7 @@ public class AP4000 extends AbstractSerialDevice {
 		toDevice.write(controlBytes);
 		toDevice.flush();
 		log.info("Request control with "+new String(controlBytes));
-		externalLog.trace("Request control with "+new String(controlBytes));
+		otherLog("Request control with "+new String(controlBytes));
 		byte responseBytes[]=new byte[MAX_RESPONSE_LEN];
 		int bytesRead=0;
 		while(bytesRead<9 || responseBytes[bytesRead-7] != '|') {
@@ -794,28 +794,28 @@ public class AP4000 extends AbstractSerialDevice {
 		String response=new String(responseBytes,0,bytesRead);
 //		System.err.println("CNTLREQ response is "+response);
 		log.info("CNTLREQ response is "+response);
-		externalLog.info("CNTLREQ response is "+response);
+		otherLog("CNTLREQ response is "+response);
 		parts=response.split("\\^");
 		System.err.println(parts[0]);
 		if(!parts[0].equals("!CNTLREQ")) {
 			toDevice.write(controlBytes);
 			toDevice.flush();
-			externalLog.trace("Attempted rewrite of CNTLREQ");
+			otherLog("Attempted rewrite of CNTLREQ");
 			log.info("Attempted rewrite of CNTLREQ");
 			while(bytesRead<9 || responseBytes[bytesRead-7] != '|') {
 				bytesRead+=fromDevice.read(responseBytes,bytesRead,responseBytes.length-bytesRead);
 			}
 			response=new String(responseBytes,0,bytesRead);
-			externalLog.info("CNTLREQ rewrite response is "+response);
+			otherLog("CNTLREQ rewrite response is "+response);
 			parts=response.split("\\^");
 		}
 		else {
-			externalLog.trace("CNTLREQ came out fine");
+			otherLog("CNTLREQ came out fine");
 		}
 		
 		String authKey=parts[3];
 		log.info("Obtained "+authKey+" from control request");
-		externalLog.info("Obtained "+authKey+" from control request");
+		otherLog("Obtained "+authKey+" from control request");
 		currentAuthKey=authKey;
 		if(renewer==null) {
 			renewer=new AuthKeyRenewer();

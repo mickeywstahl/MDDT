@@ -278,7 +278,10 @@ public class AP4000Controller extends AbstractControllablePump {
 			addAlertListener(a, ageLabel);
 		}
 		if(a.getIdentifier().equals("Neurowave_PT_STATUS")) {
-			addAlertListener(a, asaLabel);
+//			Boss asked for ASA label to be removed for ASA demo - change corresponding fxml too!
+//			addAlertListener(a, asaLabel);
+			asaLabel.setText("");
+			
 		}
 //		if(a.getIdentifier().equals("Current_Alarm")) {
 //			addAlertListener(a, alarmLabel);

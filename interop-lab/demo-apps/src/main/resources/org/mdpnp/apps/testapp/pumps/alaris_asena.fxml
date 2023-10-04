@@ -66,7 +66,7 @@
                   </HBox>
                   <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="75.0">
                      <children>
-                        <Label fx:id="asaLabel" text="ASA:" textFill="#b5b4b4" />
+                        <Label fx:id="asaLabel" text="" textFill="#b5b4b4" />
                      </children>
                   </HBox>
                </children>

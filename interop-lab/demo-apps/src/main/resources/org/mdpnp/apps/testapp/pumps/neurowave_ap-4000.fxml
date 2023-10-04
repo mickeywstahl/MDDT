@@ -64,13 +64,14 @@
                   </HBox>
                   <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="75.0">
                      <children>
-                        <Label fx:id="asaLabel" text="ASA: " />
+                        <Label fx:id="asaLabel" text="" />
                      </children>
                   </HBox>
                </children>
             </HBox>
          </children>
       </HBox>
+      <Label text="Alarm Status,:" styleClass="heading" />
       <HBox alignment="CENTER_LEFT" prefHeight="150.0" prefWidth="800.0">
          <children>
             <TableView fx:id="alertTable" prefWidth="-1.0"
