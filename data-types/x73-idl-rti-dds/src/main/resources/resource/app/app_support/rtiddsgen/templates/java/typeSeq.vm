@@ -68,6 +68,9 @@ $element.getValue()
  * A sequence of $constructMap.name instances.
  */
 public final class $constructMap.typeSeqName extends LoanableSequence implements Copyable {
+    
+    private static final long serialVersionUID = ${constructMap.typeSeqserialVersionUID}L;
+    
     // -----------------------------------------------------------------------
     // Package Fields
     // -----------------------------------------------------------------------

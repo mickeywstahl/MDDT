@@ -56,20 +56,22 @@
 #* --------------------------------------------------- *#
 #* --------------------------------------------------- *#
 
+
 #macro (declareConstant $constructMap)
 
 #*--*##if($constructMap.typeName!="unsigned long long")
 public class $constructMap.name {
     public static final ${constructMap.nativeTypeFQName} VALUE = #*
-    *##if($constructMap.nativeTypeFQName=="byte"||
-            $constructMap.nativeTypeFQName=="float" ||
-            $constructMap.nativeTypeFQName=="short" ||
-            $constructMap.nativeTypeFQName=="int")#*
-    *# (${constructMap.nativeTypeFQName}) #end#*
+#*----*##if($constructMap.nativeTypeFQName=="byte")#*
+    *# (${constructMap.nativeTypeFQName}) 
+#*----*##end#*
     *#${constructMap.value};
 #*--*##else
 import java.math.BigInteger;
 
+// Depending on the type represented in the IDL, we may perform some redundant
+// casts, we are suppressing that warning
+@SuppressWarnings("cast")
 public class $constructMap.name {
     public static final ${constructMap.nativeTypeFQName} VALUE = #*
     *#(${constructMap.nativeTypeFQName})(new BigInteger("${constructMap.value}").longValue());
@@ -409,24 +411,24 @@ if (_d == ($element)){
 ##  Macro to generate the hasCode of a member
 ##-----------------------------------------------------------------------------
 
-#macro(hashCodeMember $member)
-#*--*##openForLoopIfArray($member)
-#*--*##if($member.strSize || ${member.seqSize} ||$member.typeKind=="user")
-#*----*##if($member.dimensionList && $member.seqSize )
-for(int i__ = 0; i__< $member.name#arraydimensionListsWithIndex($member).size(); ++i__) {
+#macro(hashCodeMember $member__)
+#*--*##openForLoopIfArray($member__)
+#*--*##if($member__.strSize || ${member__.seqSize} ||$member__.typeKind=="user")
+#*----*##if($member__.dimensionList && $member__.seqSize )
+for(int i__ = 0; i__< $member__.name#arraydimensionListsWithIndex($member__).size(); ++i__) {
 #*----*##end
-    __result += ${member.name}#arraydimensionListsWithIndex($member).hashCode(); 
-#*----*##if($member.dimensionList && $member.seqSize)
+    __result = __prime * __result + ${member__.name}#arraydimensionListsWithIndex($member__).hashCode(); 
+#*----*##if($member__.dimensionList && $member__.seqSize)
 }
 #*----*##end
-#*--*##elseif($member.nativeTypeFQName=="boolean")
-    __result += ($member.name#arraydimensionListsWithIndex($member) == true)?1:0;
-#*--*##elseif($member.isOptional && !$member.dimensionList) ##CODEGENII-182
-    __result += ${member.name}.hashCode();
+#*--*##elseif($member__.nativeTypeFQName=="boolean")
+    __result = __prime * __result + (($member__.name#arraydimensionListsWithIndex($member__) == true)?1:0);
+#*--*##elseif($member__.isOptional && !$member__.dimensionList) ##CODEGENII-182
+    __result = __prime * __result + ${member__.name}.hashCode();
 #*--*##else 
-    __result += (int)$member.name#arraydimensionListsWithIndex($member);
+    __result = __prime * __result + (int)$member__.name#arraydimensionListsWithIndex($member__);
 #*--*##end
-#closeForLoopIfArray($member)   
+#closeForLoopIfArray($member__)   
 #end
 
 ##******************************************************************************
@@ -442,9 +444,9 @@ for(int i__ = 0; i__< $member.name#arraydimensionListsWithIndex($member).size();
 #*-----*##copyDirectiveNoBegin ($member)
 #*-----*##elseif(!$member.constructKind.equals("const"))
 #*-------*##if($member.isOptional)
-#*-----*##copyOptionalMember($member " ")
+#*-----*##copyOptionalMember($member)
 #*-------*##else
-#*-----*##copyMember($member " ")
+#*-----*##copyMember($member)
 #*-------*##end
 #*----*##end ## if
 #*--*##end ## for
@@ -479,9 +481,9 @@ for(int i__ = 0; i__< $member.name#arraydimensionListsWithIndex($member).size();
 #*--------*##end
 #*------*##set($pos = "-1")
 #*-------*##if($member.isOptional)
-#*-----*##copyOptionalMember($member " ")
+#*-----*##copyOptionalMember($member)
 #*-------*##else
-#*-----*##copyMember($member " ")
+#*-----*##copyMember($member)
 #*-------*##end
 #*------*##end ## for
 #*----*##end ## if
@@ -495,7 +497,7 @@ for(int i__ = 0; i__< $member.name#arraydimensionListsWithIndex($member).size();
 ##  Macro to copy the a member
 ##-----------------------------------------------------------------------------
 
-#macro(copyMember $member $kindCopy)
+#macro(copyMember $member)
 #*--*##if($member.seqSize)
 #*----*##openForLoopIfArray($member)
 typedDst.$member.name#arraydimensionListsWithIndex($member).copy_from(typedSrc.$member.name#arraydimensionListsWithIndex($member));
@@ -503,13 +505,8 @@ typedDst.$member.name#arraydimensionListsWithIndex($member).copy_from(typedSrc.$
 #elseif($member.dimensionList)
 #*--*##if($member.typeKind=="user")
 #*--*##openForLoopIfArray($member)
-#if ($kindCopy.equals("coypyData"))
-typedDst.${member.name}#arraydimensionListsWithIndex($member) = ($member.nativeTypeFQName) #*
-*#${member.nativeTypeFQName}TypeSupport.get_instance().copy_data(typedDst.$member.name#arraydimensionListsWithIndex($member),typedSrc.$member.name#arraydimensionListsWithIndex($member));
-#else
 typedDst.${member.name}#arraydimensionListsWithIndex($member) = ($member.nativeTypeFQName) typedDst.${member.name}#*
 *##arraydimensionListsWithIndex($member).copy_from(typedSrc.$member.name#arraydimensionListsWithIndex($member));
-#end
 #*--*##closeForLoopIfArray($member)
 #*--*##else
 #*--*##openForLoopIfArrayForCopy($member)
@@ -520,11 +517,7 @@ typedDst.${member.name}#arraydimensionListsWithIndex($member) = ($member.nativeT
 #*--*##end
 
 #elseif($member.typeKind=="user")
-#if ($kindCopy.equals("coypyData"))
-typedDst.${member.name} = ($member.nativeTypeFQName) ${member.nativeTypeFQName}TypeSupport.get_instance().copy_data(typedDst.$member.name,typedSrc.$member.name);
-#else
 typedDst.${member.name} = ($member.nativeTypeFQName) typedDst.${member.name}.copy_from(typedSrc.$member.name);
-#end
 #else       
 typedDst.$member.name = typedSrc.$member.name;
 #end        
@@ -534,7 +527,7 @@ typedDst.$member.name = typedSrc.$member.name;
 ##  Macro to copy optional member
 ##-----------------------------------------------------------------------------
 
-#macro (copyOptionalMember $member $kindCopy)
+#macro (copyOptionalMember $member)
 #** The copy for optional primitives is just the copyMember **#
 #if(${member.typeKind}=="user" || $member.seqSize || $member.dimensionList)
 if (typedDst.$member.name == null && typedSrc.$member.name !=null){
@@ -563,7 +556,7 @@ typedDst.$member.name =
 }
 if(typedSrc.$member.name !=null){
 #end
-#copyMember($member "")
+#copyMember($member)
 #if(${member.typeKind}=="user" || $member.seqSize || $member.dimensionList)
 } else{
     typedDst.$member.name=null;

@@ -216,7 +216,8 @@ public class $constructMap.typeSupportName extends TypeSupportImpl {
      * This method will perform a deep copy of <code>source</code> into
      * <code>destination</code>.
      * 
-     * @param src The Object which contains the data to be copied.
+     * @param source The Object which contains the data to be copied.
+     * @param destination The object where data will be copied to.
      * @return Returns <code>destination</code>.
      * @exception NullPointerException If <code>destination</code> or 
      * <code>source</code> is null.
@@ -249,23 +250,39 @@ return $constructMap.xcdr1_maxSize;
         throw new java.lang.ArithmeticException();
 #*--*##else
 #updateEncapsulation($constructMap "true")
-#originalAligment("false")
+#defineDefaultEndpointData()
+#originalAligment("true")
+#*
+  - maxAlignment: Store the currentAlignment after serializing
+            the biggest member.
+  - maxBaseAlignment: Store the baseAlignment after serializing
+            the biggest member.
+  - previousAlignment: Store the currentAlignment value before
+            calculating which is the biggest member of the union.
+  - previousBaseAlignment: Store the baseAlignment value before
+            calculating which is the biggest member of the union.
+
+
+*#
 #*----*##if($constructMap.unionDiscriminatorMap)
-       long maxSerialized = 0;
+        long maxAlignment = 0;
+        long maxBaseAlignment = 0;
+        long previousAlignment = 0;
+        long previousBaseAlignment = 0;
 #*----*##end
 #*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && ($constructMap.constructKind!="enum")
           && ($constructMap.constructKind!="alias"))
 #addDHeaderSize()
-#end
+#*--*##end
    
      
 #*----*##if($constructMap.baseTypeFQName)
-        currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_sample_max_size(endpoint_data,false,final_encapsulation_id,currentAlignment);
+        currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_sample_max_size(epd,false,final_encapsulation_id,currentAlignment);
 #*----*##end
 
 #*----*##if($constructMap.constructKind=="enum")
-currentAlignment += _cdrPrimitiveType.getIntMaxSizeSerialized(currentAlignment);
+currentAlignment += _cdrPrimitiveType.getIntMaxSizeSerialized(epd.getAlignment(currentAlignment));
 #*----*##else
 #alignmentMaxSize("sample" $constructMap "false")
 #*----*##end
@@ -278,7 +295,8 @@ if(xcdr1){
         if (include_encapsulation) {
             currentAlignment += encapsulation_size;
         }
-        return #if($constructMap.unionDiscriminatorMap)maxSerialized +#end currentAlignment - origAlignment;
+
+        return currentAlignment - origAlignment;
 #*--*##end 
 #end        
     }
@@ -293,10 +311,23 @@ return $constructMap.xcdr1_minSize;
 return get_serialized_sample_max_size(endpoint_data,include_encapsulation,final_encapsulation_id,currentAlignment);
 #*--*##else
 #updateEncapsulation($constructMap "true") 
-#originalAligment("false")     
-
+#defineDefaultEndpointData()
+#originalAligment("true")     
+#*
+  - minAlignment: Store the currentAlignment after serializing
+            the smallest member.
+  - minBaseAlignment: Store the baseAlignment after serializing
+            the smallest member.
+  - previousAlignment: Store the currentAlignment value before
+            calculating which is the smallest member of the union.
+  - previousBaseAlignment: Store the baseAlignment value before
+            calculating which is the smallest member of the union.
+*#
 #*----*##if($constructMap.unionDiscriminatorMap)
-        long minSerialized = java.lang.Integer.MAX_VALUE;
+        long minAlignment = java.lang.Integer.MAX_VALUE;
+        long minBaseAlignment = 0;
+        long previousAlignment = 0;
+        long previousBaseAlignment = 0;
 #*----*##end
 #*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && ($constructMap.constructKind!="enum")
@@ -305,7 +336,7 @@ return get_serialized_sample_max_size(endpoint_data,include_encapsulation,final_
 #end
    
 #*----*##if($constructMap.baseTypeFQName)
-            currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_sample_min_size(endpoint_data,false,final_encapsulation_id,currentAlignment);
+            currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_sample_min_size(epd,false,final_encapsulation_id,currentAlignment);
 #*----*##end
 #alignmentMinSize($constructMap)
 
@@ -318,7 +349,8 @@ if(xcdr1){
         if (include_encapsulation) {
             currentAlignment += encapsulation_size;
         }
-        return #if($constructMap.unionDiscriminatorMap)minSerialized +#end currentAlignment - origAlignment;
+
+        return currentAlignment - origAlignment;
 #*--*##end
 #end   
     }
@@ -343,13 +375,13 @@ if(xcdr1){
 #*--*##else
      #updateEncapsulation($constructMap "true")
      $constructMap.name typedSrc = ($constructMap.name) sample;
-     DefaultEndpointData epd = ((DefaultEndpointData) endpoint_data) ;
+     DefaultEndpointData epd = ((DefaultEndpointData) endpoint_data);
 #originalAligment("true")
-#*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
+#*----*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && ($constructMap.constructKind!="enum")
           && ($constructMap.constructKind!="alias"))
 #addDHeaderSize()
-#end
+#*----*##end
        
 #*----*##if($constructMap.baseTypeFQName)
         currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_sample_size(
@@ -357,13 +389,13 @@ if(xcdr1){
 #*----*##end
 
 #alignmentSample($constructMap)
-#*--*##if($constructMap.extensibility.equals("MUTABLE_EXTENSIBILITY") && !$constructMap.constructKind.equals("enum"))
+#*----*##if($constructMap.extensibility.equals("MUTABLE_EXTENSIBILITY") && !$constructMap.constructKind.equals("enum"))
 if(xcdr1){
       // Sentinel
       currentAlignment += (_cdrPrimitiveType.getPadSize(epd.getAlignment(currentAlignment), 4) + 4);
       epd.setBaseAlignment(currentAlignment);
 }      
-#*--*##end           
+#*----*##end           
 
         if (include_encapsulation) {
             currentAlignment += encapsulation_size;
@@ -391,7 +423,8 @@ return $constructMap.xcdr1_keyMaxSize;
         throw new java.lang.ArithmeticException();
 #*----*##else
 #updateEncapsulation($constructMap "true")
-#originalAligment("false")
+#defineDefaultEndpointData()
+#originalAligment("true")
 #*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && ($constructMap.constructKind!="enum")
           && ($constructMap.constructKind!="alias")
@@ -402,7 +435,7 @@ return $constructMap.xcdr1_keyMaxSize;
 #end
 #*------*##if($constructMap.hasKeyBaseType)
         currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_key_max_size(
-            endpoint_data,
+            epd,
             false,final_encapsulation_id,currentAlignment);
 #*------*##end
 #*------*##if(${constructMap.hasKey})
@@ -419,7 +452,7 @@ if(xcdr1){
 #createAlignmentMaxSizeMember("key" $constructMap.firstMember);
 #*------*##elseif(!$constructMap.hasKeyBaseType)
 currentAlignment += get_serialized_sample_max_size(
-                            endpoint_data,false,final_encapsulation_id,currentAlignment);
+                            epd,false,final_encapsulation_id,currentAlignment);
 #*------*##end
         if (include_encapsulation) {
             currentAlignment += encapsulation_size;
@@ -451,6 +484,7 @@ currentAlignment += get_serialized_sample_max_size(
 if (xcdr1){
 	return get_serialized_key_max_size( endpoint_data, include_encapsulation, final_encapsulation_id, currentAlignment) ;
 }
+#defineDefaultEndpointData()
 #originalAligment("false")
 #*----*##if($constructMap.baseTypeFQName && ($constructMap.hasKeyBaseType|| !${constructMap.hasKey}))
         currentAlignment += ${constructMap.baseTypeFQName}TypeSupport.get_instance().get_serialized_key_for_keyhash_max_size(
@@ -469,7 +503,7 @@ if (xcdr1){
         if (include_encapsulation) {
             currentAlignment += encapsulation_size;
         }
-
+        
         return currentAlignment - origAlignment;
 #*----*##end
 
@@ -486,11 +520,16 @@ if (xcdr1){
         int position = 0;
 #*--*##if($constructMap.constructKind=="enum")
 $constructMap.name typedSrc = ($constructMap.name) src;
-#*--*##elseif ($constructMap.extensibility.equals("MUTABLE_EXTENSIBILITY") || $constructMap.hasOptionalMember)
+#*--*##else
+        int dheaderArrPosition = -1;
+        int dheaderSeqPosition = -1;
+#*----*##if ($constructMap.extensibility.equals("MUTABLE_EXTENSIBILITY") || $constructMap.hasOptionalMember)
         long memberId = 0;
         int memberLengthPosition = 0;
 #*----*##calculateUseExtendedMemberId($constructMap)
+#*----*##end
 #*--*##end
+
 #*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && ($constructMap.constructKind!="enum"))
         int dheaderPosition = -1;
@@ -537,9 +576,7 @@ dst.writeInt(typedSrc.ordinal());
 #*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY") 
             && ($constructMap.constructKind!="enum")
             && ($constructMap.constructKind!="alias"))
-if(!xcdr1){            
-#setDHeader()
-}
+#*----*##setDHeader("dheaderPosition")
 #*--*##end
     }
 
@@ -585,6 +622,8 @@ if(!xcdr1){
 #*--*##if($constructMap.constructKind=="enum")
  serialize(endpoint_data, src, dst, serialize_encapsulation, final_encapsulation_id, serialize_key, endpoint_plugin_qos);    
 #*--*##else    
+        int dheaderArrPosition = -1;
+        int dheaderSeqPosition = -1;
         int position = 0;
 #*--*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
           && (${constructMap.hasKey} || $constructMap.hasKeyBaseType ||$constructMap.constructKind=="alias"))
@@ -647,9 +686,7 @@ serialize(endpoint_data, src, dst, false, final_encapsulation_id, true, endpoint
 
 #*----*##if (!$constructMap.extensibility.equals("FINAL_EXTENSIBILITY")
             && (${constructMap.hasKey} || $constructMap.hasKeyBaseType))
-if(!xcdr1){            
-        #setDHeader()
-}          
+#*------*##setDHeader("dheaderPosition")
 #*----*##end 
         }
 
@@ -673,7 +710,9 @@ if(!xcdr1){
 #*--*##if($constructMap.constructKind=="enum")
  serialize(endpoint_data, src, dst, serialize_encapsulation, final_encapsulation_id, serialize_key, endpoint_plugin_qos);    
 #*--*##else 
-   int position = 0;  
+    int position = 0;
+    int dheaderArrPosition = -1;
+    int dheaderSeqPosition = -1;
 #updateEncapsulation($constructMap "true")
 	if (xcdr1){
 	   	serialize_key (
@@ -728,7 +767,9 @@ dst.inBaseClass = false;
 #*--*##end
  }
     
-
+    // Depending on the type represented in the IDL, we may perform some redundant
+    // casts, we are suppressing that warning
+    @SuppressWarnings("cast")
     @Override 
     public java.lang.Object deserialize_sample(
         java.lang.Object endpoint_data,
@@ -832,19 +873,7 @@ src.inBaseClass = false;
        #restoreDHeaderBuffer()
 #end
 #*--*##else
-            int ordinal = src.readInt();
-            dst = ${constructMap.name}.valueOf(ordinal);
-            if (dst == null) {
-                    
-                if (endpoint_data == null ||
-                    ((DefaultEndpointData)endpoint_data).getSampleAssignabilityProperty().acceptUnknownEnumValue) {
-                    dst = ${constructMap.name}.valueOf(
-                        $constructMap.defaultLiteralMember.ordinal);
-                } else {
-	                throw new java.lang.IllegalArgumentException(
-	                    "invalid enumerator " + ordinal);
-                }
-           }
+#*----*##deserializeEnum($constructMap $constructMap.name "dst" false)
 #*--*##end
         }
         if (deserialize_encapsulation) {

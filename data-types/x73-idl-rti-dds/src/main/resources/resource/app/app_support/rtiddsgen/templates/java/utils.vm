@@ -63,14 +63,22 @@
 #*--*##if (!$member.initialized)
 #*----*##set($member.initialized="true") ##We check that this set is only done once
 #*----*##if($member.typeName)## to avoid warnings because of the directive members
-#*------*##if($extensibility.equals("MUTABLE_EXTENSIBILITY")|| $member.isOptional)
-#*-------*##set($member.currentAlignment="(xcdr1? 0 : currentAlignment)")
-#*-----*##else
-#*-------*##set($member.currentAlignment="currentAlignment")
-#*-------*##end
-#*----*##if($extensibility.equals("MUTABLE_EXTENSIBILITY") || $member.isOptional)
-#*----*##assignNeedExtendedId($member)
-#*----*##end
+#*
+    We only truly serialize primitive types, that's why if a type is a 
+    user type, it will have a method get_serialized_sample_max_size where 
+    it will use epd.getAlignment(currentAlignment) for its primitive members.
+    The members which type is a user type will call get_serialized_sample_max_size 
+    with (currentAlignment)
+*#
+#*------*##if($member.typeKind=="user" || $member.typeKind=="enum")
+#*--------*##set($member.currentAlignment="(currentAlignment)")
+#*------*##else
+#*--------*##set($member.currentAlignment="epd.getAlignment(currentAlignment)")
+#*------*##end
+#*------*##set($member.currentAlignmentV2="currentAlignment")
+#*------*##if($extensibility.equals("MUTABLE_EXTENSIBILITY") || $member.isOptional)
+#*--------*##assignNeedExtendedId($member)
+#*------*##end
 #if($member.typeKind=="user" ||$member.typeKind=="enum" )
  #set($member.typeClass=$member.typeName)  
  #set($member.defaultValue="null")
@@ -566,7 +574,7 @@ if (typedDst.${member.name} == null) {
 #*----*##if($member.typeKind=="user")
  #*----*##openForLoopIfArray($member)
     typedDst.${member.name}#arraydimensionListsWithIndex($member) =
-      ($member.nativeTypeFQName) ${member.nativeTypeFQName}.create();
+        ($member.nativeTypeFQName)${member.nativeTypeFQName}.create();
  #*----*##closeForLoopIfArray($member)          
 #*----*##end        
 #*--*##elseif($member.seqSize)
@@ -574,7 +582,7 @@ if (typedDst.${member.name} == null) {
         new  $member.nativeTypeSeq (#getSeqSize($member, "init"));
 #*--*##elseif($member.typeKind=="user")
     typedDst.${member.name} = 
-        ($member.nativeTypeFQName) ${member.nativeTypeFQName}.create();
+        ($member.nativeTypeFQName)${member.nativeTypeFQName}.create();
 #end
 }
 #end

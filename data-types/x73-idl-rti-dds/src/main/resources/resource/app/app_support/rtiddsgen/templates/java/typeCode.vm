@@ -82,6 +82,9 @@ $element.getValue()
 public class  $constructMap.typecodeName {
     public static final TypeCode VALUE = getTypeCode();
 
+    // Depending on the type represented in the IDL, we may perform some redundant
+    // casts, we are suppressing that warning
+    @SuppressWarnings("cast")
     private static TypeCode getTypeCode() {
         TypeCode tc = null;
 ##------------------------Elements initialization------------------------------------------

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:dds="http://www.omg.org/dds" xmlns:tns="http://www.omg.org/IDL-Mapped/" targetNamespace="http://www.omg.org/IDL-Mapped/"> 
+<xsd:import namespace="http://www.omg.org/dds" schemaLocation="../schema/rti_dds_topic_types_common.xsd"/>
+  <xsd:simpleType name="dds.ReturnCode_t">
+    <xsd:restriction base="xsd:int">
+     </xsd:restriction>
+   </xsd:simpleType>
+  <xsd:complexType name="dds.GuidPrefix_t">
+    <xsd:sequence>
+      <xsd:element name="item" minOccurs="12" maxOccurs="12" type="xsd:unsignedByte"/>
+     </xsd:sequence>
+   </xsd:complexType>
+  <xsd:complexType name="dds.EntityId_t_entityKey_ArrayOfbyte">
+    <xsd:sequence>
+      <xsd:element name="item" minOccurs="3" maxOccurs="3" type="xsd:unsignedByte"/>
+     </xsd:sequence>
+   </xsd:complexType>
+  <xsd:complexType name= "dds.EntityId_t">
+    <xsd:sequence>
+                <xsd:element name="entityKey" minOccurs="1" maxOccurs="1" type="tns:dds.EntityId_t_entityKey_ArrayOfbyte"/>
+                <xsd:element name="entityKind" minOccurs="1" maxOccurs="1" type="xsd:unsignedByte"/>
+  </xsd:sequence>
+</xsd:complexType>
+<!-- @nested true -->
+ <!-- @struct true -->
+  <xsd:complexType name= "dds.GUID_t">
+    <xsd:sequence>
+                <xsd:element name="guidPrefix" minOccurs="1" maxOccurs="1" type="tns:dds.GuidPrefix_t"/>
+                <xsd:element name="entityId" minOccurs="1" maxOccurs="1" type="tns:dds.EntityId_t"/>
+  </xsd:sequence>
+</xsd:complexType>
+<!-- @nested true -->
+ <!-- @struct true -->
+  <xsd:complexType name= "dds.SequenceNumber_t">
+    <xsd:sequence>
+                <xsd:element name="high" minOccurs="1" maxOccurs="1" type="xsd:int"/>
+                <xsd:element name="low" minOccurs="1" maxOccurs="1" type="xsd:unsignedInt"/>
+  </xsd:sequence>
+</xsd:complexType>
+<!-- @nested true -->
+ <!-- @struct true -->
+  <xsd:complexType name= "dds.SampleIdentity_t">
+    <xsd:sequence>
+                <xsd:element name="writer_guid" minOccurs="1" maxOccurs="1" type="tns:dds.GUID_t"/>
+                <xsd:element name="sequence_number" minOccurs="1" maxOccurs="1" type="tns:dds.SequenceNumber_t"/>
+  </xsd:sequence>
+</xsd:complexType>
+<!-- @nested true -->
+ <!-- @struct true -->
+  <xsd:simpleType name="dds.rpc.UnknownOperation">
+    <xsd:restriction base="xsd:unsignedByte">
+     </xsd:restriction>
+   </xsd:simpleType>
+  <xsd:simpleType name="dds.rpc.UnknownException">
+    <xsd:restriction base="xsd:unsignedByte">
+     </xsd:restriction>
+   </xsd:simpleType>
+  <xsd:simpleType name="dds.rpc.UnusedMember">
+    <xsd:restriction base="xsd:unsignedByte">
+     </xsd:restriction>
+   </xsd:simpleType>
+  <xsd:simpleType name="dds.rpc.RemoteExceptionCode_t">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="REMOTE_EX_OK">
+      </xsd:enumeration>
+      <xsd:enumeration value="REMOTE_EX_UNSUPPORTED">
+      </xsd:enumeration>
+      <xsd:enumeration value="REMOTE_EX_INVALID_ARGUMENT">
+      </xsd:enumeration>
+      <xsd:enumeration value="REMOTE_EX_OUT_OF_RESOURCES">
+      </xsd:enumeration>
+      <xsd:enumeration value="REMOTE_EX_UNKNOWN_OPERATION">
+      </xsd:enumeration>
+      <xsd:enumeration value="REMOTE_EX_UNKNOWN_EXCEPTION">
+      </xsd:enumeration>
+    </xsd:restriction>
+  </xsd:simpleType> 
+    <xsd:simpleType name="dds.rpc.InstanceName">
+    <xsd:restriction base="xsd:string">
+      <xsd:maxLength value="255" fixed="true"/>
+     </xsd:restriction>
+   </xsd:simpleType>
+  <xsd:complexType name= "dds.rpc.RequestHeader">
+    <xsd:sequence>
+                <xsd:element name="requestId" minOccurs="1" maxOccurs="1" type="tns:dds.SampleIdentity_t"/>
+                <xsd:element name="instanceName" minOccurs="1" maxOccurs="1" type="tns:dds.rpc.InstanceName"/>
+  </xsd:sequence>
+</xsd:complexType>
+<!-- @nested true -->
+ <!-- @struct true -->
+  <xsd:complexType name= "dds.rpc.ReplyHeader">
+    <xsd:sequence>
+                <xsd:element name="relatedRequestId" minOccurs="1" maxOccurs="1" type="tns:dds.SampleIdentity_t"/>
+                <xsd:element name="remoteEx" minOccurs="1" maxOccurs="1" type="tns:dds.rpc.RemoteExceptionCode_t"/>
+  </xsd:sequence>
+</xsd:complexType>
+<!-- @nested true -->
+ <!-- @struct true -->
+</xsd:schema>

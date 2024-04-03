@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<types xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="../../../../schema/rti_dds_topic_types.xsd">
+<module name="dds">
+  <typedef name="ReturnCode_t" type="int32"/>
+  <const name="RETCODE_OK" type="nonBasic"  nonBasicTypeName= "dds::ReturnCode_t" value="0"/>
+  <typedef name="GuidPrefix_t" type="byte" arrayDimensions="12"/>
+  <struct name= "EntityId_t" nested="true">
+    <member name="entityKey" type="byte" arrayDimensions="3"/>
+    <member name="entityKind" type="byte"/>
+  </struct>
+  <struct name= "GUID_t" nested="true">
+    <member name="guidPrefix" type="nonBasic"  nonBasicTypeName= "dds::GuidPrefix_t"/>
+    <member name="entityId" type="nonBasic"  nonBasicTypeName= "dds::EntityId_t"/>
+  </struct>
+  <struct name= "SequenceNumber_t" nested="true">
+    <member name="high" type="int32"/>
+    <member name="low" type="uint32"/>
+  </struct>
+  <struct name= "SampleIdentity_t" nested="true">
+    <member name="writer_guid" type="nonBasic"  nonBasicTypeName= "dds::GUID_t"/>
+    <member name="sequence_number" type="nonBasic"  nonBasicTypeName= "dds::SequenceNumber_t"/>
+  </struct>
+  <module name="rpc">
+    <typedef name="UnknownOperation" type="byte"/>
+    <typedef name="UnknownException" type="byte"/>
+    <typedef name="UnusedMember" type="byte"/>
+    <enum name="RemoteExceptionCode_t">
+      <enumerator name="REMOTE_EX_OK"/>
+      <enumerator name="REMOTE_EX_UNSUPPORTED"/>
+      <enumerator name="REMOTE_EX_INVALID_ARGUMENT"/>
+      <enumerator name="REMOTE_EX_OUT_OF_RESOURCES"/>
+      <enumerator name="REMOTE_EX_UNKNOWN_OPERATION"/>
+      <enumerator name="REMOTE_EX_UNKNOWN_EXCEPTION"/>
+    </enum> 
+    <typedef name="InstanceName" stringMaxLength="255" type="string"/>
+    <struct name= "RequestHeader" nested="true">
+      <member name="requestId" type="nonBasic"  nonBasicTypeName= "dds::SampleIdentity_t"/>
+      <member name="instanceName" type="nonBasic"  nonBasicTypeName= "dds::rpc::InstanceName"/>
+    </struct>
+    <struct name= "ReplyHeader" nested="true">
+      <member name="relatedRequestId" type="nonBasic"  nonBasicTypeName= "dds::SampleIdentity_t"/>
+      <member name="remoteEx" type="nonBasic"  nonBasicTypeName= "dds::rpc::RemoteExceptionCode_t"/>
+    </struct>
+  </module>
+</module>
+</types>
