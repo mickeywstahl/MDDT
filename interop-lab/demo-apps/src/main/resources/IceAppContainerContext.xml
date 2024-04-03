@@ -94,6 +94,15 @@
         <constructor-arg ref="domainParticipant" />
     </bean>
 
+	<bean id="docBoxMDSWriter" class="org.mdpnp.rtiapi.data.DocBoxMDSDataWriterFactory" lazy-init="true">
+	    <constructor-arg ref="publisher" />
+        <constructor-arg ref="domainParticipant" />
+	</bean>
+
+	<bean id="docBoxNOVWriter" class="org.mdpnp.rtiapi.data.DocBoxNumericObservedValueWriterFactory" lazy-init="true">
+	    <constructor-arg ref="publisher" />
+        <constructor-arg ref="domainParticipant" />
+	</bean>
 
     <!-- This is only needed when Charting apps are installed -->
     <bean id="patientAssessmentWriter" class="org.mdpnp.rtiapi.data.PatientAssessmentDataWriterFactory" lazy-init="true">
