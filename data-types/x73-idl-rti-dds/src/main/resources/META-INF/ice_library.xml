@@ -636,4 +636,558 @@
     </qos_profile>
 
   </qos_library>
+  
+    <qos_library name="DICES">
+    <!-- Set logging here -->
+    <qos_profile name="ParticipantFactoryProfile" is_default_participant_factory_profile="true">
+      <participant_factory_qos>
+        <logging>
+          <category>ALL</category>
+          <verbosity>ERROR</verbosity>
+        </logging>
+      </participant_factory_qos>
+    </qos_profile>
+
+    <qos_profile name="Base" base_name="BuiltinQosLibExp::Pattern.LastValueCache" is_default_qos="true">
+      <participant_qos>
+        <transport_builtin>
+          <mask>UDPv4</mask>
+        </transport_builtin>
+ 
+        <wire_protocol>
+          <rtps_host_id>$(DOCBOX_RTPS_HOST_ID)</rtps_host_id>
+          <rtps_app_id>$(DOCBOX_RTPS_APP_ID)</rtps_app_id>
+        </wire_protocol>
+
+        <discovery_config>
+          <participant_liveliness_lease_duration>
+            <sec>5</sec>
+            <nanosec>500000000</nanosec>
+          </participant_liveliness_lease_duration>
+          <participant_liveliness_assert_period>
+            <sec>1</sec>
+            <nanosec>0</nanosec>
+          </participant_liveliness_assert_period>
+          <max_liveliness_loss_detection_period>
+            <sec>1</sec>
+            <nanosec>0</nanosec>
+          </max_liveliness_loss_detection_period>
+        </discovery_config>
+
+        <database>
+          <shutdown_cleanup_period>
+            <sec>0</sec>
+            <nanosec>100000000</nanosec>
+          </shutdown_cleanup_period>
+        </database>
+
+        <property>
+          <value>
+            <element>
+              <name>dds.transport.UDPv4.builtin.ignore_loopback_interface</name>
+              <value>0</value>
+            </element>
+          </value>
+        </property>
+
+        <resource_limits>
+          <contentfilter_property_max_length>350</contentfilter_property_max_length>
+          <type_code_max_serialized_length>65530</type_code_max_serialized_length>
+          <type_object_max_serialized_length>65000</type_object_max_serialized_length>
+        </resource_limits>
+
+      </participant_qos>
+
+      <!-- NOTE: datawriter and datareader qos should already be set to
+           TRANSIENT_LOCAL_DURABILITY_QOS in
+           BuiltinQosLibExp::Pattern.LastValueCache -->
+
+      <datareader_qos>
+        <reader_resource_limits>
+          <max_samples_per_read>65536</max_samples_per_read>
+        </reader_resource_limits>
+        <!-- Added for heartbeat -->
+        <property>
+          <value>
+            <element>
+              <name>dds.data_reader.state.filter_redundant_samples</name>
+              <value>0</value>
+            </element>
+          </value>
+        </property>
+      </datareader_qos>
+
+      <datawriter_qos>
+        <writer_data_lifecycle>
+          <autodispose_unregistered_instances>false</autodispose_unregistered_instances>
+        </writer_data_lifecycle>
+        <property>
+          <value>
+            <element>
+              <name>dds.data_writer.history.memory_manager.fast_pool.pool_buffer_max_size</name>
+              <value>2048</value>
+            </element>
+          </value> 
+        </property>
+      </datawriter_qos>
+
+      <publisher_qos>
+        <presentation>
+          <access_scope>TOPIC_PRESENTATION_QOS</access_scope>
+          <ordered_access>true</ordered_access>
+        </presentation>
+      </publisher_qos>
+      <subscriber_qos>
+        <presentation>
+          <access_scope>TOPIC_PRESENTATION_QOS</access_scope>
+          <ordered_access>true</ordered_access>
+        </presentation>
+      </subscriber_qos>
+
+    </qos_profile>
+
+    <qos_profile name="Manager" base_name="Base">
+      <participant_qos>
+        <discovery>
+          <!-- Manager participants send multicast discovery -->
+          <initial_peers>
+            <element>239.255.0.2</element>
+            <element>100@builtin.udpv4://127.0.0.1</element>
+          </initial_peers>
+          <!-- Manager participants do not receive multicast discovery -->
+          <multicast_receive_addresses />
+          <accept_unknown_peers>true</accept_unknown_peers>
+        </discovery>
+        <!-- Increase multicast time-to-live so that the manager discovery
+             will propagate to subnet where the coordinator is running. The
+             default value is 1. When the router receives a multicast message
+             the ttl is decremented and will not be propagated if it is <= 0. -->
+        <property>
+          <value>
+            <element>
+              <name>dds.transport.UDPv4.builtin.multicast_ttl</name>
+                <value>5</value>
+              </element>
+            </value>
+        </property>
+      </participant_qos>
+    </qos_profile>
+
+    <qos_profile name="DeviceModule" base_name="Base">
+      <participant_qos>
+        <discovery>
+          <initial_peers>
+            <element>100@builtin.udpv4://127.0.0.1</element>
+          </initial_peers>
+          <multicast_receive_addresses>
+            <element>239.255.0.2</element>
+          </multicast_receive_addresses>
+          <accept_unknown_peers>true</accept_unknown_peers>
+        </discovery>
+        <property>
+          <value>
+            <element>
+              <name>dds.transport.UDPv4.builtin.parent.deny_interfaces</name>
+              <value>10.1.127.*,10.1.128.*,10.1.129.*,10.1.130.*</value>
+            </element>
+          </value>
+        </property>          
+      </participant_qos>
+    </qos_profile>
+
+    <qos_profile name="Coordinator" base_name="Base">
+      <participant_qos>
+        <discovery>
+          <multicast_receive_addresses>
+            <element>239.255.0.2</element>
+          </multicast_receive_addresses>
+        </discovery>
+      </participant_qos>
+    </qos_profile>
+
+    <qos_profile name="LocalApp" base_name="Base">
+      <participant_qos>
+        <discovery>
+          <accept_unknown_peers>true</accept_unknown_peers>
+          <initial_peers>
+            <element>100@builtin.udpv4://127.0.0.1</element>
+          </initial_peers>
+          <multicast_receive_addresses />
+        </discovery>
+        <discovery_config>
+          <ignore_default_domain_announcements>true</ignore_default_domain_announcements>
+          <default_domain_announcement_period>
+            <sec>DURATION_INFINITE_SEC</sec>
+            <nanosec>DURATION_INFINITE_NSEC</nanosec>
+          </default_domain_announcement_period>
+        </discovery_config>
+        <property>
+          <value>
+            <element>
+              <name>dds.transport.UDPv4.builtin.multicast_enabled</name>
+              <value>0</value>
+            </element>
+            <element>
+              <name>dds.transport.UDPv4.builtin.ignore_loopback_interface</name>
+              <value>0</value>
+            </element>
+            <element>
+              <name>dds.transport.UDPv4.builtin.parent.deny_interfaces</name>
+              <value>10.1.127.*,10.1.128.*,10.1.129.*,10.1.130.*</value>
+            </element>
+            <element>
+              <name>dds.transport.UDPv4.builtin.parent.allow_interfaces</name>
+              <value>127.0.0.1</value>
+            </element>
+          </value>
+        </property>
+      </participant_qos>
+    </qos_profile>
+
+    <qos_profile name="RS" base_name="LocalApp" />
+
+  </qos_library>
+
+  <!-- Another level of indirection solves all problems except too many levels of indirection. -->
+  <qos_library name="dices_dim_library">
+    <qos_profile name="dices_dim_durable_profile" base_name="$(DICES_DIM_DURABLE_QOS_PROFILE_BASE_NAME)" />
+  </qos_library>
+
+    <domain_library name="DICESDomainLibrary">
+
+        <!-- DICESManagerDomain -->
+        <domain name="DICESManagerDomain" domain_id="2"/>
+
+        <!-- DICESCoordinatorDomain -->
+        <domain name="DICESCoordinatorDomain" domain_id="$(COORDINATOR_DOMAIN_ID)"/>
+
+    </domain_library>
+  
+    <!-- Domain Library -->
+  <domain_library name="MyDomainLibrary">
+      <domain name="MyDomain" domain_id="2">
+          <register_type name="ice::Location"  type_ref="ice::Location" />
+          <topic name="ice--Location"    register_type_ref="ice::Location"/>
+
+          <register_type name="ice::PatientIdentification"  type_ref="ice::PatientIdentification" />
+          <topic name="ice--PatientIdentification"    register_type_ref="ice::PatientIdentification"/>
+          <topic name="ice--PatientIdentificationReq" register_type_ref="ice::PatientIdentification"/>
+
+          <register_type name="ice::NumericObservedValue"  type_ref="ice::NumericObservedValue" />
+          <topic name="ice--NumericMeasObservedValue"    register_type_ref="ice::NumericObservedValue"/>
+          <topic name="ice--NumericSettObservedValue"    register_type_ref="ice::NumericObservedValue"/>
+
+          <register_type name="ice::RTSAContext"  type_ref="ice::RTSAContext" />
+          <topic name="ice--RTSAMeasContext"    register_type_ref="ice::RTSAContext"/>
+          <topic name="ice--RTSASettContext"    register_type_ref="ice::RTSAContext"/>
+
+          <register_type name="ice::RTSAObservedValue"  type_ref="ice::RTSAObservedValue" />
+          <topic name="ice--RTSAMeasObservedValue"    register_type_ref="ice::RTSAObservedValue"/>
+          <topic name="ice--RTSASettObservedValue"    register_type_ref="ice::RTSAObservedValue"/>
+
+          <register_type name="ice::PatientDemographics"  type_ref="ice::PatientDemographics" />
+          <topic name="ice--PatientDemographics" register_type_ref="ice::PatientDemographics"/>
+          <topic name="ice--PatientDemographicsReq" register_type_ref="ice::PatientDemographics"/>          
+
+          <register_type name="ice::Allergy" type_ref="ice::Allergy"/>
+          <topic name="ice--Allergy" register_type_ref="ice::Allergy"/>
+          <topic name="ice--AllergyReq" register_type_ref="ice::Allergy"/>
+
+          <register_type name="ice::CarePlanActivity" type_ref="ice::CarePlanActivity"/>
+          <topic name="ice--CarePlanActivity" register_type_ref="ice::CarePlanActivity"/>
+
+          <register_type name="ice::ClinicalNote" type_ref="ice::ClinicalNote"/>
+          <topic name="ice--ClinicalNote" register_type_ref="ice::ClinicalNote"/>
+          
+          <register_type name="ice::Operator" type_ref="ice::Operator"/>
+          <topic name="ice--Operator" register_type_ref="ice::Operator"/>
+          
+          <register_type name="ice::OperatorAuthentication" type_ref="ice::OperatorAuthentication"/>
+          <topic name="ice--OperatorAuthentication" register_type_ref="ice::OperatorAuthentication"/>
+          <topic name="ice--OperatorAuthenticationReq" register_type_ref="ice::OperatorAuthentication"/>
+
+          <register_type name="ice::Clock" type_ref="ice::Clock"/>
+          <topic name="ice--Clock" register_type_ref="ice::Clock"/>
+          
+          <register_type name="expr::Diagnosis" type_ref="expr::Diagnosis"/>
+          <topic name="expr--Diagnosis" register_type_ref="expr::Diagnosis"/>
+          <topic name="expr--DiagnosisReq" register_type_ref="expr::Diagnosis"/>
+
+          <register_type name="expr::DxHistory" type_ref="expr::DxHistory"/>
+          <topic name="expr--DxHistory" register_type_ref="expr::DxHistory"/>
+          <topic name="expr--DxHistoryReq" register_type_ref="expr::DxHistory"/>
+
+          <register_type name="expr::PatientMedication" type_ref="expr::PatientMedication"/>
+          <topic name="expr--PatientMedication" register_type_ref="expr::PatientMedication"/>
+          <topic name="expr--PatientMedicationReq" register_type_ref="expr::PatientMedication"/>
+
+          <register_type name="ice::NumericContext" type_ref="ice::NumericContext"/>
+          <topic name="ice--NumericMeasContext" register_type_ref="ice::NumericContext"/>
+
+          <register_type name="ice::EnumerationObservedValue" type_ref="ice::EnumerationObservedValue"/>
+          <topic name="ice--EnumerationSettObservedValue" register_type_ref="ice::EnumerationObservedValue"/>
+          <topic name="ice--EnumerationMeasObservedValue" register_type_ref="ice::EnumerationObservedValue"/>
+
+          <register_type name="ice::MDS" type_ref="ice::MDS"/>
+          <topic name="ice--MDS" register_type_ref="ice::MDS"/>
+
+          <register_type name="ice::Observation" type_ref="ice::Observation"/>
+          <topic name="ice--Observation" register_type_ref="ice::Observation"/>
+
+          <register_type name="ice::DiagnosticReport" type_ref="ice::DiagnosticReport"/>
+          <topic name="ice--DiagnosticReport" register_type_ref="ice::DiagnosticReport"/>
+
+          <register_type name="docbox::DeviceDriverState" type_ref="docbox::DeviceDriverState"/>
+          <topic name="docbox--DeviceDriverState" register_type_ref="docbox::DeviceDriverState"/>
+          <topic name="docbox--DeviceDriverStateReq" register_type_ref="docbox::DeviceDriverState"/>
+          <topic name="docbox--DeviceDriverStateObj" register_type_ref="docbox::DeviceDriverState"/>
+          <topic name="docbox--DeviceDriverStateError" register_type_ref="docbox::DeviceDriverState"/>
+
+          <register_type name="docbox::DriverManagerState" type_ref="docbox::DriverManagerState"/>
+          <topic name="docbox--DriverManagerState" register_type_ref="docbox::DriverManagerState"/>
+          <topic name="docbox--DriverManagerStateReq" register_type_ref="docbox::DriverManagerState"/>
+
+          <register_type name="ice::SCOOperationInvoke" type_ref="ice::SCOOperationInvoke"/>
+          <topic name="ice--SCOOperationInvoke" register_type_ref="ice::SCOOperationInvoke"/>
+
+          <register_type name="ice::SCOOperationInvokeResult" type_ref="ice::SCOOperationInvokeResult"/>
+          <topic name="ice--SCOOperationInvokeResult" register_type_ref="ice::SCOOperationInvokeResult"/>
+
+          <register_type name="ice::SCOOperationInvokeError" type_ref="ice::SCOOperationInvokeError"/>
+          <topic name="ice--SCOOperationInvokeError" register_type_ref="ice::SCOOperationInvokeError"/>
+
+          <register_type name="ice::AlarmSignal" type_ref="ice::AlarmSignal"/>
+          <topic name="ice--PhysiologicalAlarmSignal" register_type_ref="ice::AlarmSignal"/>
+          <topic name="ice--TechnicalAlarmSignal"     register_type_ref="ice::AlarmSignal"/>
+
+          <register_type name="ice::AlarmContext" type_ref="ice::AlarmContext"/>
+          <topic name="ice--PhysiologicalAlarmContext" register_type_ref="ice::AlarmContext"/>
+          <topic name="ice--TechnicalAlarmContext"     register_type_ref="ice::AlarmContext"/>
+      </domain>
+
+      <domain name="TransferDomain" domain_id="$(TRANSFER_DOMAIN_ID)">
+          <register_type name="ice::PatientIdentification" type_ref="ice::PatientIdentification" />
+          <topic name="ice--PatientIdentification" register_type_ref="ice::PatientIdentification"/>
+
+          <register_type name="ice::VirtualPatientIdentification" type_ref="ice::VirtualPatientIdentification"/>
+          <topic name="virtual--PatientIdentification" register_type_ref="ice::VirtualPatientIdentification"/>
+          <topic name="virtual--PatientIdentificationReq" register_type_ref="ice::VirtualPatientIdentification"/>
+
+          <register_type name="ice::VirtualLocation" type_ref="ice::VirtualLocation"/>
+          <topic name="virtual--Location" register_type_ref="ice::VirtualLocation"/>
+      </domain>
+  </domain_library>
+
+
+
+  <!-- Participant library -->
+  <domain_participant_library name="MyParticipantLibrary">
+
+    <domain_participant name="Transfer" domain_ref="MyDomainLibrary::TransferDomain">
+      <participant_qos base_name="DICES::Base"/>
+
+      <subscriber name="MyTransferSubscriber">
+        <subscriber_qos base_name="DICES::Base"/>
+        <data_reader name="VirtualLocationReader" topic_ref="virtual--Location">
+          <datareader_qos base_name="DICES::Base"/>
+        </data_reader>
+        <data_reader name="VirtualPatientIdentificationReqReader" topic_ref="virtual--PatientIdentificationReq">
+          <datareader_qos base_name="DICES::Base"/>
+        </data_reader>
+        <data_reader name="VirtualPatientIdentificationReader" topic_ref="virtual--PatientIdentification">
+          <datareader_qos base_name="DICES::Base"/>
+        </data_reader>
+      </subscriber>
+
+      <publisher name="MyTransferPublisher">
+        <publisher_qos base_name="DICES::Base"/>
+        <data_writer name="PatientIdentificationReq" topic_ref="virtual--PatientIdentificationReq">
+          <datawriter_qos base_name="DICES::Base"/>
+        </data_writer>
+        <data_writer name="PatientIdentification" topic_ref="virtual--PatientIdentification">
+          <datawriter_qos base_name="DICES::Base"/>
+        </data_writer>
+      </publisher>
+    </domain_participant>
+
+    <domain_participant name="Local" domain_ref="MyDomainLibrary::MyDomain">
+
+      <participant_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+
+      <subscriber name="MySubscriber">
+        <subscriber_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        <data_reader name="MyLocationReader" topic_ref="ice--Location">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="MyPatientReader" topic_ref="ice--PatientIdentification">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <!--- numeric -->
+        <data_reader name="NumericMeasObservedValueReader" topic_ref="ice--NumericMeasObservedValue">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="NumericSettObservedValueReader" topic_ref="ice--NumericSettObservedValue">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <!-- alarms -->
+        <data_reader name="PhysiologicalAlarmContextReader" topic_ref="ice--PhysiologicalAlarmContext">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="PhysiologicalAlarmSignalReader" topic_ref="ice--PhysiologicalAlarmSignal">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="TechnicalAlarmContextReader" topic_ref="ice--TechnicalAlarmContext">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="TechnicalAlarmSignalReader" topic_ref="ice--TechnicalAlarmSignal">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <!-- RTSA -->
+        <data_reader name="RTSAMeasContextReader" topic_ref="ice--RTSAMeasContext">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="RTSASettContextReader" topic_ref="ice--RTSASettContext">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="RTSAMeasObservedValueReader" topic_ref="ice--RTSAMeasObservedValue">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="RTSASettObservedValueReader" topic_ref="ice--RTSASettObservedValue">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="MyPatientDemographicsReader" topic_ref="ice--PatientDemographics">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="PatientMedicationReader" topic_ref="expr--PatientMedication">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="DiagnosisReader" topic_ref="expr--Diagnosis">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="DxHistoryReader" topic_ref="expr--DxHistory">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="AllergyReader" topic_ref="ice--Allergy">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="CarePlanActivityReader" topic_ref="ice--CarePlanActivity">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="ClinicalNoteReader" topic_ref="ice--ClinicalNote">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="OperatorReader" topic_ref="ice--Operator">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="OperatorAuthenticationReader" topic_ref="ice--OperatorAuthentication">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="ClockReader" topic_ref="ice--Clock">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="DeviceDriverStateReader" topic_ref="docbox--DeviceDriverState">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="DeviceDriverStateObjReader" topic_ref="docbox--DeviceDriverStateObj">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="DeviceDriverStateErrorReader" topic_ref="docbox--DeviceDriverStateError">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="NumericMeasContextReader" topic_ref="ice--NumericMeasContext">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="EnumerationSettObservedValueReader" topic_ref="ice--EnumerationSettObservedValue">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="EnumerationMeasObservedValueReader" topic_ref="ice--EnumerationMeasObservedValue">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="MDSReader" topic_ref="ice--MDS">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="DriverManagerStateReader" topic_ref="docbox--DriverManagerState">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="ObservationReader" topic_ref="ice--Observation">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="DiagnosticReportReader" topic_ref="ice--DiagnosticReport">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <!-- SCO -->
+        <data_reader name="SCOOperationInvokeResultReader" topic_ref="ice--SCOOperationInvokeResult">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+        <data_reader name="SCOOperationInvokeErrorReader" topic_ref="ice--SCOOperationInvokeError">
+          <datareader_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_reader>
+      </subscriber>
+      <publisher name="MyPublisher">
+        <publisher_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        <data_writer name="MyPatientIdentification" topic_ref="ice--PatientIdentification">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="MyPatientIdentificationReq" topic_ref="ice--PatientIdentificationReq">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="PatientDemographics" topic_ref="ice--PatientDemographics">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="PatientDemographicsReq" topic_ref="ice--PatientDemographicsReq">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="Diagnosis" topic_ref="expr--Diagnosis">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="DiagnosisReq" topic_ref="expr--DiagnosisReq">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="DxHistory" topic_ref="expr--DxHistory">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="DxHistoryReq" topic_ref="expr--DxHistoryReq">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="PatientMedication" topic_ref="expr--PatientMedication">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="PatientMedicationReq" topic_ref="expr--PatientMedicationReq">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="Allergy" topic_ref="ice--Allergy">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="AllergyReq" topic_ref="ice--AllergyReq">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="ClinicalNote" topic_ref="ice--ClinicalNote">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="CarePlanActivity" topic_ref="ice--CarePlanActivity">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="OperatorAuthentication" topic_ref="ice--OperatorAuthentication">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="OperatorAuthenticationReq" topic_ref="ice--OperatorAuthenticationReq">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="DeviceDriverStateReq" topic_ref="docbox--DeviceDriverStateReq">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="Observation" topic_ref="ice--Observation">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="MDS" topic_ref="ice--MDS">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+        <data_writer name="SCOOperationInvoke" topic_ref="ice--SCOOperationInvoke">
+          <datawriter_qos base_name="dices_dim_library::dices_dim_durable_profile"/>
+        </data_writer>
+      </publisher>
+    </domain_participant>
+ </domain_participant_library>
+
+  
 </dds>

@@ -23,7 +23,11 @@ org.mdpnp.apps.testapp.openemr.OpenEMRTestApplicationFactory
 org.mdpnp.apps.testapp.mindware.BioLabAppFactory
 org.mdpnp.apps.testapp.vents.VentilatorsApplicationFactory
 org.mdpnp.apps.testapp.vents.control.VentControlApplicationFactory
+<<<<<<< HEAD
+org.mdpnp.apps.docbox.DocBoxApplicationFactory
+=======
 org.mdpnp.apps.testapp.bis.BisSimulatorApplicationFactory
 org.mdpnp.apps.testapp.alaris.AlarisSimulatorApplicationFactory
 org.mdpnp.apps.testapp.easytiva.EasyTivaSimulatorApplicationFactory
 org.mdpnp.apps.testapp.docbox.DocBoxApplicationFactory
+>>>>>>> 0d1f56e027572a736d4ee451699531a2bbd1a4c9
