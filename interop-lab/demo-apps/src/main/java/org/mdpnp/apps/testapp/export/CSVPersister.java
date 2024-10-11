@@ -216,9 +216,17 @@ public class CSVPersister extends DataCollectorAppFactory.PersisterUIController 
         
     }
     
+    void setup(int maxBackupIndex, String maxFileSize) throws Exception {
+		fileHandler=new FileHandler(defaultLogFileName.getAbsolutePath(), getMaxFileSize(maxFileSize), maxBackupIndex);
+		fileHandler.setFormatter(new PlainTextFormatter());
+    }
+    
     
  private void configureLoggerFromSettings() {
 	 
+	 	if(filePathLabel==null) {
+	 		return; 	//
+	 	}
 	 	String fileName = filePathLabel.getText();
 	 	String maxFileSize = fSize.getSelectionModel().getSelectedItem();
 	 	String SmaxBackupIndex = backupIndex.getSelectionModel().getSelectedItem();
