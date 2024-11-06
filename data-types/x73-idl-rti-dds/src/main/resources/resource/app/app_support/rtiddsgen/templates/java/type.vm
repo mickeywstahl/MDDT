@@ -101,12 +101,16 @@ import java.math.BigInteger;
 #*----*##foreach($element in $constructMap.directives)
 #*------*#$element.getValue()
 #*----*##end
-
+// Depending on the type represented in the IDL, we may perform some redundant
+// casts, we are suppressing that warning
+@SuppressWarnings("cast")
 public class $constructMap.name #if($constructMap.constructKind=="enum") extends Enum #*
 **##else #if($constructMap.constructKind=="union")extends Union#end 
 #if($constructMap.baseTypeFQName)extends $constructMap.baseTypeFQName#else implements Copyable, Serializable#end#end
 {
 
+    private static final long serialVersionUID = ${constructMap.serialVersionUID}L;
+    
 #*-************************Enum code****************************************-*# 
 #*----*##if ($constructMap.constructKind=="enum")
 #*------*##foreach($member in $constructMap.memberFieldMapList)
@@ -160,7 +164,7 @@ public class $constructMap.name #if($constructMap.constructKind=="enum") extends
 
         return valueOf(#setDefaultEnumValue($constructMap));
     }
-    
+
     /**
      * Print Method
      */     
@@ -191,11 +195,16 @@ public class $constructMap.name #if($constructMap.constructKind=="enum") extends
 #*----*##else
 #*-************************Non-enum code****************************************-*#   
 #*------*##if($constructMap.constructKind=="union")
-#*--------*##assignMemberVariables($constructMap.unionDiscriminatorMap  $extensibility $constructMap)
-#*--------*##assignMemberVariables($constructMap.typeCodeUnionDiscriminatorMap  $extensibility $constructMap)
+#*--------*##assignMemberVariables($constructMap.unionDiscriminatorMap $constructMap.extensibility $constructMap)
+#*--------*##assignMemberVariables($constructMap.typeCodeUnionDiscriminatorMap $constructMap.extensibility $constructMap)
 
+#*------*##if($foreach.count==$constructMap.defaultIndex +1
+             || !($constructMap.unionDiscriminatorMap.typeName.equals("boolean") 
+             || $constructMap.unionDiscriminatorMap.typeName.equals("enum"))
+             || !$constructMap.hasAllCaseCovered)
     private static final $constructMap.unionDiscriminatorMap.nativeTypeFQName _default = getDefaultDiscriminator();
-  
+
+#*------*##end
     public $constructMap.unionDiscriminatorMap.nativeTypeFQName _d #*
 --------*##if($constructMap.unionDiscriminatorMap.typeKind=="enum")#*
 --------*# = ${constructMap.unionDiscriminatorMap.nativeTypeFQName}.create()#end;
@@ -393,7 +402,8 @@ public class $constructMap.name #if($constructMap.constructKind=="enum") extends
 
     @Override
     public int hashCode() {
-        int __result = 0;
+        final int __prime = 31;
+        int __result = 1;
 #*------*##if($constructMap.baseTypeFQName)
 
         __result = super.hashCode();

@@ -78,6 +78,8 @@ public class CSVPersister extends DataCollectorAppFactory.PersisterUIController 
     	backupIndex.setDisable(false);
     	fSize.setDisable(false);
     	changeButton.setDisable(false);
+    	fileHandler.flush();
+    	fileHandler.close();
     }
     
     private static NumberFormat valueFormat = NumberFormat.getNumberInstance();
@@ -170,7 +172,7 @@ public class CSVPersister extends DataCollectorAppFactory.PersisterUIController 
     @FXML public void clickBackupIndex(ActionEvent evt) {
         String s = backupIndex.getSelectionModel().getSelectedItem();
         //if(appender != null) {
-        	configureLoggerFromSettings2(Integer.parseInt(s), null, null);
+        	configureLoggerFromSettings();
             //appender.setMaxBackupIndex(Integer.parseInt(s));
             //appender.activateOptions();
         //}
@@ -179,7 +181,7 @@ public class CSVPersister extends DataCollectorAppFactory.PersisterUIController 
     @FXML public void clickFSize(ActionEvent evt) {
         String s = fSize.getSelectionModel().getSelectedItem();
         //if(appender != null) {
-        	configureLoggerFromSettings2(-1,s,null);
+        	configureLoggerFromSettings();
             //appender.setMaxFileSize(s);
             //appender.activateOptions();
         //}
@@ -193,7 +195,7 @@ public class CSVPersister extends DataCollectorAppFactory.PersisterUIController 
         File f = fc.showSaveDialog(null);
         if(null != f) {
             filePathLabel.setText(f.getAbsolutePath());
-            configureLoggerFromSettings2(-1,null,f.getAbsolutePath());
+            configureLoggerFromSettings();
             //appender.setFile(f.getAbsolutePath());
             //appender.activateOptions();
         }
@@ -209,69 +211,26 @@ public class CSVPersister extends DataCollectorAppFactory.PersisterUIController 
     }
 
     public void setup() {
-        int maxBackupIndex = Integer.parseInt(backupIndex.getSelectionModel().getSelectedItem());
-        String maxFileSize = fSize.getSelectionModel().getSelectedItem();
-        setup(maxBackupIndex, maxFileSize);
-    }
 
-    void setup(int maxBackupIndex, String maxFileSize) {
-
-
-        // Help me here. How do I get JFileChooser have  'new file name' text box on mac os?
-        // And FileDialog's file filter does no work.
-        //
-            /*
-            final JFileChooser fc = new JFileChooser();
-            JButton fileSelector = new JButton("Change File");
-            fileSelector.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    int returnVal = fc.showOpenDialog(CSVPersister.this);
-
-                    if (returnVal == JFileChooser.APPROVE_OPTION) {
-                        File file = fc.getSelectedFile();
-                        filePathLabel.setText(file.getAbsolutePath());
-                        appender.setFile(file.getAbsolutePath());
-                        appender.activateOptions();
-                    }
-                }
-            });
-            fc.setDialogType(JFileChooser.SAVE_DIALOG);
-            fc.addChoosableFileFilter(new FileFilter() {
-                @Override
-                public boolean accept(File f) {
-                    return f != null && f.getName().endsWith(".csv");
-                }
-
-                @Override
-                public String getDescription() {
-                    return "CSV Files";
-                }
-            });
-            */
-
-
-        // add file size controls.
-    	
-    	configureLoggerFromSettings2(maxBackupIndex, maxFileSize, null);
-    	
-    	
-
+        configureLoggerFromSettings();
+        
     }
     
-    private void configureLoggerFromSettings2(int maxBackupIndex, String maxFileSize, String fileName) {
-    	
-    	if(maxBackupIndex==-1) {
-    		maxBackupIndex=Integer.parseInt(backupIndex.getValue());
-    	}
-    	
-    	if(maxFileSize==null) {
-    		maxFileSize=fSize.getValue();
-    	}
-    	
-    	if(fileName==null) {
-    		fileName=defaultLogFileName.getAbsolutePath();
-    	}
+    void setup(int maxBackupIndex, String maxFileSize) throws Exception {
+		fileHandler=new FileHandler(defaultLogFileName.getAbsolutePath(), getMaxFileSize(maxFileSize), maxBackupIndex);
+		fileHandler.setFormatter(new PlainTextFormatter());
+    }
+    
+    
+ private void configureLoggerFromSettings() {
+	 
+	 	if(filePathLabel==null) {
+	 		return; 	//
+	 	}
+	 	String fileName = filePathLabel.getText();
+	 	String maxFileSize = fSize.getSelectionModel().getSelectedItem();
+	 	String SmaxBackupIndex = backupIndex.getSelectionModel().getSelectedItem();
+	 	int maxBackupIndex = Integer.parseInt(SmaxBackupIndex);
     	String fileWithoutSuffix=null;
     	String suffix=null;
     	if(fileName.indexOf('.')!=-1) {
@@ -286,6 +245,9 @@ public class CSVPersister extends DataCollectorAppFactory.PersisterUIController 
     	int numericMax=getMaxFileSize(maxFileSize);
     	
     	try {
+    		if(fileHandler != null) {
+    			fileHandler.close();
+    		}
 			 fileHandler=new FileHandler(fileNamePattern, numericMax, maxBackupIndex);
 			 fileHandler.setFormatter(new PlainTextFormatter());
 		} catch (SecurityException | IOException e) {

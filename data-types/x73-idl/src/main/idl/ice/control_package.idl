@@ -1,0 +1,781 @@
+/**
+ * file   control_package.idl
+ * author WMS
+ * date   2020-05-21
+ * brief  Model for the DocBox ICE Control Package.
+ * see    ISO/IEEE 11073 Health informatics - Point-of-care medical device
+ *          communication - Parts 10101 and 10201
+ * see    "ICE data model - Control Package.docx"
+ * note   x73 = "ISO/IEEE 11073"
+ *
+ * updated FEB 2021. M Szwaja, W Saari
+ */
+#ifndef __ice_control_package__idl
+#define __ice_control_package__idl
+
+//@copy (//==========================================================================)
+//@copy (//          (c) Copyright 2020 DocBox, Inc. All rights reserved.)
+//@copy (//)
+//@copy (//       Permission to modify and use for internal purposes granted.)
+//@copy (// This software is provided "as is", without warranty, express or implied.)
+//@copy (//==========================================================================)
+
+#include <common.idl>
+
+module ice
+{
+//=============================================================================
+
+/**
+ * Control Package
+ *
+ * The DocBox Control Package (based on the x73-10201 Control Package) contains
+ * objects that allow remote measurement control and device control.
+ *
+ * Two basic concepts are modeled: The Operation object and the Service and
+ * Control (SCO) object.
+ *
+ * Operation object
+ * The Operation object is the abstract base class for classes that
+ * represent remote-controllable items. An Operation object allows modification
+ * of a virtual attribute. This virtual attribute may, for example, be a
+ * measurement label, or a filter state (on/off). The attribute is called
+ * virtual because it need not correspond to any attribute in other objects
+ * instantiated in the system. The following specializations of the Operation
+ * object are defined:
+ *
+ *  - Select Item Operation
+ *  - Set Value Operation
+ *  - Set String Operation
+ *  - Toggle Flag Operation
+ *  - Activate Operation
+ *  - Limit Alert Operation
+ *  - Set Range Operation
+ *
+ * Service and Control (SCO) object
+ * Operation objects cannot directly be accessed. Instead, all controls are
+ * routed through the SCO. The object supports a simple locking mechanism to
+ * prevent side effects caused by simultaneous calls.
+ *
+ * The SCO groups together all Operation objects that belong to a specific
+ * entity (i.e., MDS, VMD). The SCO allows feedback to a controlled device, for
+ * example, for a visual indication that the device is currently
+ * remote-controlled.
+ */
+
+//=============================================================================
+/**
+ * SCO (Service and Control) object
+ *
+ * The SCO is responsible for managing all remote control capabilities that are
+ * supported by an ICE component. The SCO is the primary access point for
+ * invoking remote control functions.
+ */
+
+/**
+ * Activity-Indicator attribute can be set by a remote system to indicate that
+ * remote control is active
+ */
+enum ScoActivityIndicator
+{
+  sco_act_ind_off = 0,
+  sco_act_ind_on = 1,
+  sco_act_ind_blinking = 2
+};
+
+/**
+ * Sco-Capability bits
+ */
+typedef BITS16 ScoCapability;
+enum ScoCapabilityBits
+{
+  sco_cap_act_indicator = 0x1, // supports activity indicator
+  sco_cap_locks = 0x2,      // at least one operation sets the SCO lock flag
+  sco_cap_ctxt_help = 0x10  // SCO supports context-dependent dynamic help
+};
+
+/**
+ * Administrative state defines if a certain object is locked or unlocked.
+ * If locked, no operation can be invoked.
+ */
+enum AdministrativeState
+{
+  sco_adminst_locked = 0,
+  sco_adminst_unlocked = 1,
+  sco_adminst_shutting_down = 2
+};
+
+//=============================================================================
+struct SCO : VMO
+{
+  // Use the VMO::Type attribute to define the primary scope of Operations
+  // within this SCO by means of a nomenclature code. The attribute should
+  // contain the nomenclature ID of the MDS, the VMD, or the Channel object
+  // that best reflects the scope of the operations within the SCO.
+
+  string<LONG_STRING_LEN> vmo_label_string;
+  // Text that describes the overall purpose of the SCO to the user
+
+  ScoCapability sco_capability;
+  // (sco_cap_act_indicator | sco_cap_locks | sco_cap_ctxt_help)
+  // Bit field that defines static optional capabilities of the SCO. It defines
+  // if the SCO supports an activity indicator, an operation locking mechanism
+  // or a dynamic help capability.
+
+  string<LONG_STRING_LEN> help_text_string; //@optional
+  // Static string that can be shown to a user. If supported, it should contain
+  // a descriptive help text for the SCO that provides additional information
+  // over the label string. A system may show this help string on request by
+  // the user.
+
+  HANDLE vmo_reference;
+  // Allows pointing to an object in the containment tree that is
+  // affected by operations in the SCO. If multiple objects are affected,
+  // then it points to the root of the tree of all affected objects. The
+  // attribute is a hint only. The managing system must not assume that only
+  // the referenced object (hierarchy) is affected by the SCO.
+  // 
+  // NOTE The VMO Reference attribute is useful for user interface
+  // implementations. It allows a managing system to learn the relation
+  // of MDIB objects and control objects. If the end user would like to
+  // control a metric on the device display, the manager implementation could
+  // find a related SCO object by walking the MDIB hierarchy and display the
+  // corresponding operations.
+
+  ScoActivityIndicator activity_indicator; //@optional
+  // (act_ind_off, act_ind_on, act_ind_blinking)
+  // Can be set by remote system to give feedback that the local system is
+  // under remote control.
+
+  // The following are members of the "SCO Transaction Group", per x73
+
+  AdministrativeState lock_state;
+  // (sco_adminst_locked, sco_adminst_unlocked, sco_adminst_shutting_down)
+
+  INTU32 invoke_cookie;
+  // Transaction ID assigned by invoke command.
+}; //@top-level true
+
+//=============================================================================
+/**
+ * SCO methods
+ *
+ * The SCO defines two methods: Operation Invoke ACTION and Get Context Help
+ * ACTION. These are considered commands issued by the ICE Manager to a device
+ * subject to remote control by the Manager.
+ *
+ * see ISO/IEEE 11073-10101:2004(E) HEALTH INFORMATICS —
+ * POINT-OF-CARE MEDICAL DEVICE COMMUNICATION
+ *
+ * MDC_ACT_SCO_OP_INVOK
+ * MDC_ACT_GET_CTXT_HELP
+ */
+
+/**
+ * The SCO Operation Invoke Action message alters the contents of the settable
+ * Operation object attribute(s) or it starts an activity as defined by the
+ * Operation object (Activate Operation class). The settable Operation object
+ * attribute(s) are specified in the definitions of x73-10201.
+ *
+ * Action:    Operation Invoke
+ * Mode:      Confirmed
+ * Action ID: MDC_ACT_SCO_OP_INVOK (from Object Infrastructure partition)
+ * Action parameter:  OperationInvoke
+ * Action Result:     OperationInvokeResult
+ */
+
+enum OpModType
+{
+  op_replace = 0,               // normally replace value of virtual attribute
+  op_setToDefault = 3,          // set to default value if this is supported
+  op_invokeAction = 10,         // needed for singular action type of operations
+  op_invokeActionWithArgs = 15  // action with arguments
+};
+
+typedef string<LONG_STRING_LEN> AVString;
+struct AVAType
+{
+  OIDType attribute_id;
+  AVString attribute_value;
+}; //@top-level false
+
+/**
+ * Attribute List
+ * A list of attribute ID-attribute value pairs. The value is represented as
+ * a string, which the application must parse and interpret based on
+ * attribute_id.
+ */
+const long MAX_ATTRIBUTE_ELEMENTS = 10; // Review this (arbitrary) limit
+struct AttributeList
+{
+  INTU16 count;
+  sequence<AVAType, MAX_ATTRIBUTE_ELEMENTS> value;
+}; //@top-level false
+
+struct OpElementAttr
+{
+  OIDType op_class_id;
+/*
+  Set op_class_id to one of these values from
+  object-oriented nomenclature partition (ISO/IEEE 11073-10101:2004).
+ 
+  MDC_MOC_CNTRL_OP_SEL_IT - Select Item Operation
+  MDC_MOC_CNTRL_OP_SET_VAL - Set Value Operation
+  MDC_MOC_CNTRL_OP_SET_STRING - Set String Operation
+  MDC_MOC_CNTRL_OP_TOG - Toggle Flag Operation
+  MDC_MOC_CNTRL_OP_ACTIV - Activate Operation
+  MDC_MOC_CNTRL_OP_LIM - Limit Alert Operation
+  MDC_MOC_CNTRL_OP_SET_RANGE - Set Range Operation
+*/
+  InstNumber op_instance_no;
+  AttributeList attributes;
+}; //@top-level false
+
+struct OpInvokeElement
+{
+  OpModType op_mod_type;
+  OpElementAttr op_elem_attr;
+}; //@top-level false
+
+const long MAX_OPINVOKE_ELEMENTS = 10; // Review this (arbitrary) limit
+typedef sequence<OpInvokeElement, MAX_OPINVOKE_ELEMENTS> OpInvokeList;
+
+/**
+ * Identifier for a managed data object (MDO) sample
+ */
+struct MDO_ID
+{
+  ICE_ID ice_id;
+  HANDLE handle;
+}; //@top-level false
+
+struct SCOOperationInvoke : Top
+{
+  MDO_ID sco_id; //@key
+  // Identifier for the SCO intended to invoke this operation.
+  // Consider redefining this as GUID (and adding GUID field to SCO).
+
+  INT16 checksum;
+  // If check-summing is not used, the checksum field shall be 0. 
+  // If calculated checksum is 0, the checksum field shall be -1.
+  // Checksum calculation is the 16-bit twos-complement sum of 16-bit words
+  // in the message starting at the address after the checksum field.
+
+  INTU32 invoke_cookie;
+  // arbitrary ID mirrored back in resulting updates
+
+  OpInvokeList op_elem_list;
+}; //@top-level true
+
+//@copy-c-declaration #define OP_INVOKE_CHECKSUM_DEFAULT (0)
+//@copy-c-declaration #define OP_INVOKE_CHECKSUM_VALUE_IS_0 (-1)
+
+/**
+ * SCOOperationInvokeResult
+ *
+ * SCOOperationInvokeResult confirms reception (and execution) of operations.
+ * Updated attributes are communicated via normal update method, e.g., DDS
+ * data writer.
+ *
+ * SCOOperationInvokeResult responds to the SCO Operation Invoke Action message.
+ * The SCOOperationInvokeResult indicates that the device correctly received a
+ * valid command message. After it sends the response, the agent starts the
+ * actual command processing.
+ */
+enum OpInvResult
+{
+  opres_successful = 0,
+  opres_failure = 1
+};
+
+struct SCOOperationInvokeResult : Top
+{
+  MDO_ID manager_application_id; //@key
+  INTU32 invoke_cookie; //@key
+  OpInvResult result;
+}; //@top-level true
+
+/**
+ * SCOOperationInvokeError
+ */
+enum OpError
+{
+  operr_unspec = 0,
+  operr_checksum_error = 1,
+  operr_sco_lock_violation = 2,
+  operr_unknown_operation = 3,
+  operr_invalid_value = 4,
+  operr_invalid_mod_type = 5  
+};
+
+struct SCOOperationInvokeError : Top
+{
+  MDO_ID manager_application_id; //@key
+
+  INTU32 invoke_cookie; //@key
+  OpError op_error;
+  sequence<InstNumber, MAX_OPINVOKE_ELEMENTS> failed_operation_list;
+}; //@top-level true
+
+/**
+ * SCOOperAttributeUpdate
+ */
+typedef sequence<OpElementAttr, MAX_OPINVOKE_ELEMENTS> OpElemAttrList;
+
+struct SCOOperAttributeUpdate : Top
+{
+  MDO_ID manager_application_id; //@key
+
+  INTU16 report_number;
+  HANDLE sco_handle;
+
+  INTU32 invoke_cookie;
+  AdministrativeState lock_state;
+  // (sco_adminst_locked, sco_adminst_unlocked, sco_adminst_shutting_down)
+
+  OpElemAttrList op_elem_updt_list;
+}; //@top-level true
+
+//=============================================================================
+/**
+ * Operation object
+ *
+ * The Operation object is the abstract base class for classes that represent
+ * remote-controllable items.
+ */
+
+/*  Operation texts  */
+struct OperTextStrings
+{
+  string<LONG_STRING_LEN> label;
+  // the label string indicates the meaning of the operation
+
+  string<LONG_STRING_LEN> help;
+  // the help string may contain additional help for the user
+
+  string<LONG_STRING_LEN> confirm;
+  // the confirm string is shown by manager to a user to reconfirm the
+  // operation (e.g., "do you really want to shut down?")
+}; //@top-level false
+
+/*  Operation options  */
+typedef BITS16 OpOptions;
+enum OpOptionsBits
+{
+  op_needs_confirmation = 0x1,
+  op_supports_default = 0x2, // a default value is supported for the virtual attributes
+  op_sets_sco_lock = 0x4, // needs transaction processing to avoid side effects
+  op_is_setting = 0x8,    // value preserved over system power fail
+  op_dependency = 0x40,   // operation has dependencies to others
+                          // (always set if sets_sco_lock bit is set)
+  op_auto_repeat = 0x80,  // supports auto repeat
+  op_ctxt_help = 0x100    // provides context-dependent help via SCO action
+};
+
+/**
+ * Level
+ *
+ * The OpLevel flag field provides hints to the manager device about the
+ * relative importance of the operations. This allows to structure a UI for
+ * the remote control items. For each operation object, the component shall
+ * set exactly one op_level flag and at least one op_item flag. 
+ */
+typedef BITS16 OpLevel;
+enum OpLevelBits
+{
+  // op_level flags
+  op_level_basic = 0x1,     // a normal operation
+  op_level_advanced = 0x2,  // an advanced operation
+  op_level_professional = 0x4,
+
+  // op_item flags
+  op_item_normal = 0x80,    // operation modifies a normal user item
+  op_item_config = 0x100,   // operation modifies a configuration item
+  op_item_service = 0x200   // operation modifies a service item (not
+                            // used by regular operator)
+};
+
+/**
+ * Field for grouping operations, i.e., defines logical relations. Can be used
+ * to organize operations in a useful sequence on a UI (display)
+ */
+struct OpGrouping
+{
+  INTU8 group;
+  INTU8 priority;
+}; // @top-level false
+
+/**
+ * Operation-Spec attribute indicates what this operation really does
+ */
+struct OperSpec
+{
+  TYPE vattr_id;  // Virtual Attribute identifier
+  // Defines the purpose of the operation.
+  // vattr_id.code is the object identifier (OID) of the virtual attribute that
+  // is changed by operation. vattr_id.partition is always the virtual
+  // attribute partition (enum NomPartition::nom_part_vattr (5)).
+  // Virtual Attributes are attributes of an ICE component, which may or may
+  // not map to concrete attributes of objects in the containment tree.
+
+  TYPE op_target;
+  // op_target.code defines the item that this operation is applied to.
+  // op_target.partition is one of the following nomenclature partitions:
+  //  - metric partition (enum NomPartition::nom_metric_vattr (2))
+  //  - object-oriented partition (enum NomPartition::nom_obj_vattr (1))
+
+  OpOptions options;
+  // (op_needs_confirmation | op_supports_default | op_sets_sco_lock | op_is_setting
+  //  | op_dependency | op_auto_repeat | op_ctxt_help )
+  // special options
+
+  OpLevel level;
+  // (op_level_basic | op_level_advanced | op_level_professional | op_item_normal
+  //  | op_item_config | op_item_service)
+  // range of importance
+
+  OpGrouping grouping;
+  // (group; priority;)
+  // to describe relations between operations
+}; //@top-level false
+
+/**
+ * Operational state data type
+ *
+ * The operational state data type defines if a certain object or other
+ * property is enabled or disabled. The definitions are derived from ISO/IEC
+ * 10164-2
+ */
+enum OperationalState
+{
+  ost_disabled = 0,
+  ost_enabled = 1,
+  ost_not_available = 2
+};
+
+//=============================================================================
+struct Operation : Top
+{
+  InstNumber instance_number; //@key
+  // Unique within SCO for operation identification.
+  // The Instance Number is the unique identification of the Operation object
+  // within the parent SCO. All Operations within one SCO shall have unique
+  // Instance Number attributes. The numbering of operation objects shall start
+  // with 1.
+  //
+  // NOTE   The instance number 0 is reserved as it can be used in some
+  // commands to address the parent SCO object.
+
+  OperSpec operation_spec;
+  // Structure defines operation types and properties.
+
+  OperTextStrings operation_text_strings;
+  // Static description of operation.
+
+  OperTextStrings operation_text_strings_dyn;
+  // Dynamic description of operation.
+
+  HANDLE vmo_reference;
+  // Reference to an object.
+  // Points to an object in the MDIB that is affected by the operation.
+  // If multiple objects are affected, then it points to the root of the tree
+  // of all affected objects. The attribute is a hint only. The manager system
+  // must not assume that only the referenced object (hierarchy) is affected by
+  // the operation.
+
+  OperationalState operational_state;
+  // Specifies whether operation is accessible.
+}; //@top-level false
+
+//=============================================================================
+/**
+ * Specialized Operation objects
+ */
+
+//=============================================================================
+/**
+ * Select Item Operation object
+ *
+ * The Select Item Operation object allows selection of one item out of a
+ * given list. The list can have different types.
+ *
+ * Set OpInvokeElement::op_class_id to MDC_MOC_CNTRL_OP_SEL_IT from
+ * object-oriented nomenclature partition.
+ */
+
+const long MAX_SELECT_ITEMS = 10; // Review this (arbitrary) limit
+
+struct OIDList
+{
+  NomPartition partition; // nomenclature partition that is used
+  sequence<OIDType, MAX_SELECT_ITEMS> oid_list;
+}; //@top-level false
+
+struct StringList
+{
+  sequence<string<LONG_STRING_LEN>, MAX_SELECT_ITEMS> string_list;
+}; //@top-level false
+
+struct SelectItemOperation : Operation
+{
+  INTU16 selected_item_index;
+  // Index of current selection.
+
+  // One of these must be defined
+
+  OIDList oid_list;       //@optional
+  StringList string_list; //@optional
+/**
+  Not yet implemented:
+    -- FLOATType value_list
+    -- SelectUValue value_u_list // Value with a unit/dimension code
+ */
+}; //@top-level true
+
+//=============================================================================
+/**
+ * Set Value Operation object
+ *
+ * The Set Value Operation object allows the system to adjust a value within a
+ * given range with a given resolution.
+ *
+ * Set OpInvokeElement::op_class_id to MDC_MOC_CNTRL_OP_SET_VAL from
+ * object-oriented nomenclature partition.
+ */
+
+/*  Set-Value-Range attribute defines range and minimum resolution  */
+struct OpSetValueRange
+{
+  FLOATType minimum;
+  FLOATType maximum;
+  FLOATType resolution;
+}; //@top-level false
+
+/**
+  Step-Width attribute is an ordered (in ascending order) array of ranges and
+  corresponding minimum step widths. The lower edge is defined in the minimum
+  value of the range specification.
+ */
+struct StepWidthEntry
+{
+  FLOATType upper_edge;
+  FLOATType step_width;
+}; //@top-level false
+
+const long MAX_STEP_WIDTH_ENTRIES = 10; // Review this (arbitrary) limit
+typedef sequence<StepWidthEntry, MAX_OPINVOKE_ELEMENTS> OpValStepWidth;
+
+struct SetValueOperation : Operation
+{
+  FLOATType current_value;
+
+  OpSetValueRange set_value_range;
+  // Range of legal values.
+
+  OpValStepWidth step_width; //@optional
+  // Allowed step width.
+
+  OIDType unit_code;
+  // From dimensions nomenclature partition.
+}; //@top-level true
+
+//=============================================================================
+/**
+ * Set String Operation object
+ *
+ * The Set String Operation object is used to set the contents of a string
+ * type virtual attribute.
+ *
+ * Set OpInvokeElement::op_class_id to MDC_MOC_CNTRL_OP_SET_STRING from
+ * object-oriented nomenclature partition.
+ */
+
+typedef BITS16 SetStrOpt;
+enum SetStrOptBits
+{
+  setstr_null_terminated = 0x1, // string is terminated with NULL character
+  setstr_displayable  = 0x2, // string is displayable
+  setstr_var_length   = 0x4, // string has variable length (up to maximum)
+  setstr_hidden_val   = 0x8  // actual contents is hidden (for password entry)
+};
+
+struct SetStringSpec
+{
+  INTU16 max_str_len;
+  // Maximum supported string length.
+  // See the definition for the SetStringOperation::current_string attribute.
+
+  INTU16 char_size;
+  // Character size in bits, e.g., 7, 8, or 16 (as of FEB 2021 make this 8)
+
+  SetStrOpt set_str_opt;
+  //special option bits
+}; //@top-level false
+
+struct SetStringOperation : Operation
+{
+  string<LONGLONG_STRING_LEN> current_string;
+  // Current value of the string type virtual attribute.
+  // TODO: Define how to handle this value when the
+  // SetStringSpec::setstr_hidden_val flag is set
+
+  SetStringSpec set_string_spec;
+  // Properties of the string type virtual attribute.
+}; //@top-level true
+
+//=============================================================================
+/**
+ * Toggle Flag Operation object
+ *
+ * The Toggle Flag Operation object allows a switch to be toggled with two
+ * states, e.g., on/off.
+ *
+ * Set OpInvokeElement::op_class_id to MDC_MOC_CNTRL_OP_TOG from
+ * object-oriented nomenclature partition.
+ */
+
+/*  Toggle-State attribute  */
+enum ToggleState
+{
+  tog_state0 = 0,
+  tog_state1 = 1
+};
+
+/*  Each state has a label  */
+struct ToggleLabelStrings
+{
+  string<MEDIUM_STRING_LEN> lbl_state0;
+  string<MEDIUM_STRING_LEN> lbl_state1;
+}; // @top-level false
+
+struct ToggleFlagOperation : Operation
+{
+  ToggleState toggle_state;
+  // (tog_state0, tog_state1)
+  // Current state of toggle
+
+  ToggleLabelStrings toggle_label_strings;
+  // Each state has a label string
+}; //@top-level true
+
+//=============================================================================
+/**
+ * Activate Operation object
+ *
+ * The Activate Operation object allows a defined activity to be started,
+ * e.g., take blood pressure.
+ *
+ * Set OpInvokeElement::op_class_id to MDC_MOC_CNTRL_OP_ACTIV from
+ * object-oriented nomenclature partition.
+ */
+struct ActivateOperation : Operation
+{
+  // The Activate Operation object class defines no additional attributes.
+}; //@top-level true
+
+//=============================================================================
+/**
+ * Limit Alert Operation object
+ *
+ * The Limit Alert Operation object allows the limits of a limit alarm
+ * detector to be adjusted and the limit alarm to be switched on or off.
+ *
+ * Set OpInvokeElement::op_class_id to MDC_MOC_CNTRL_OP_LIM from
+ * object-oriented nomenclature partition.
+ */
+
+/*  Alert operation static flags indicate which on/off flags are supported  */
+typedef BITS16 AlOpCapability;
+enum AlOpCapabilityBits
+{
+  aoc_low_limit_sup = 0x1,         // supports low limit
+  aoc_high_limit_sup = 0x2,        // supports high limit
+  aoc_auto_limit_sup = 0x10,       // supports automatic limits
+  aoc_low_lim_on_off_sup = 0x80,   // supports to switch on/off low limit
+  aoc_high_lim_on_off_sup = 0x100, // supports to switch on/off high limit
+  aoc_lim_on_off_sup = 0x200       // supports to switch on/off the complete alarm
+};
+
+/*  AlertOpTextString assigns individual labels to upper and lower alarm limit  */
+struct AlertOpTextString
+{
+  string<MEDIUM_STRING_LEN> lower_text;
+  string<MEDIUM_STRING_LEN> upper_text;
+}; //@top-level false
+
+struct LimitAlertOperation : Operation
+{
+  AlOpCapability alert_op_capability;
+  // Indicates what can be switched on or off.
+
+  CurLimAlStat alert_op_state;
+  // Current on/off state. Can be set by SCOOperationInvoke.
+  // See common.idl for definition.
+
+  CurLimAlVal current_limits;
+  // Current alarm limits. Can be set by SCOOperationInvoke.
+  // See common.idl for definition.
+
+  AlertOpTextString alert_op_text_string;
+  // Assigns individual labels to upper and lower alarm limit.
+
+  OIDType   unit_code;
+  // Dimensions of values
+
+  OIDType   metric_id;
+  // Measurement, i.e., Numeric object, to which the limit applies, from
+  // metric nomenclature partition.
+}; //@top-level true
+
+//=============================================================================
+/**
+ * Set Range Operation object
+ *
+ * The Set Range Operation object allows the system to adjust low and high
+ * values, i.e., a value range, within defined boundaries.
+ *
+ * Set OpInvokeElement::op_class_id to MDC_MOC_CNTRL_OP_SET_RANGE from
+ * object-oriented nomenclature partition.
+ */
+
+struct CurrentRange
+{
+  FLOATType lower;
+  FLOATType upper;
+}; //@top-level false
+
+struct RangeOpText
+{
+  string <MEDIUM_STRING_LEN> low_text;   // printable label text for low value
+  string <MEDIUM_STRING_LEN> high_text;  // printable label text for high value
+}; //@top-level false
+
+struct SetRangeOperation : Operation
+{
+  CurrentRange current_range;
+  // The current upper and lower range values;
+
+  RangeOpText range_op_text;
+  // Individual texts for upper and lower boundaries.
+}; //@top-level true
+
+/**
+ * Topic definitions
+ */
+const string SCOTopic = "ice--SCO";
+const string SCOOperationInvokeTopic = "ice--SCOOperationInvoke";
+const string SCOOperationInvokeResultTopic  = "ice--SCOOperationInvokeResult";
+const string SCOOperationInvokeErrorTopic   = "ice--SCOOperationInvokeError";
+const string SCOOperAttributeUpdateTopic    = "ice--SCOOperAttributeUpdate";
+
+const string SelectItemOperationTopic = "ice--SelectItemOperation";
+const string SetValueOperationTopic   = "ice--SetValueOperation";
+const string SetStringOperationTopic  = "ice--SetStringOperation";
+const string ToggleFlagOperationTopic = "ice--ToggleFlagOperation";
+const string ActivateOperationTopic   = "ice--ActivateOperation";
+const string LimitAlertOperationTopic = "ice--LimitAlertOperation";
+const string SetRangeOperationTopic   = "ice--SetRangeOperation";
+
+};  // module ice
+
+#endif

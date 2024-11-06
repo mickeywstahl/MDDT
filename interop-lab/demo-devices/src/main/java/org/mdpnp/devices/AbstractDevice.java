@@ -48,10 +48,6 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-
 import org.mdpnp.rtiapi.data.EventLoop;
 import org.mdpnp.rtiapi.data.EventLoop.ConditionHandler;
 import org.mdpnp.sql.SQLLogging;
@@ -79,6 +75,9 @@ import com.rti.dds.subscription.Subscriber;
 import com.rti.dds.subscription.ViewStateKind;
 import com.rti.dds.topic.Topic;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
 @ManagedResource(description="MDPNP Device Driver")
 public abstract class AbstractDevice {
 
@@ -356,18 +355,19 @@ public abstract class AbstractDevice {
         holder.data.value = newValue;
         if(time.hasDeviceTime()) {
             Time_t t = DomainClock.toDDSTime(time.getDeviceTime());
-            holder.data.device_time.sec = t.sec;
-            holder.data.device_time.nanosec = t.nanosec;
+            holder.data.device_time.sec = (int)(t.sec);
+            holder.data.device_time.nanosec = (int)t.nanosec;
         } else {
             holder.data.device_time.sec = 0;
             holder.data.device_time.nanosec = 0;
         }
         
         Time_t t = DomainClock.toDDSTime(time.getTime());
-        holder.data.presentation_time.sec = t.sec;
-        holder.data.presentation_time.nanosec = t.nanosec;
+        holder.data.presentation_time.sec = (int)(t.sec);
+        holder.data.presentation_time.nanosec = (int)(t.nanosec);
         
         numericDataWriter.write(holder.data, holder.handle);
+	/*
         if(numericStatement!=null) {
 	        try {
 				numericStatement.setInt(1, t.sec);
@@ -382,6 +382,7 @@ public abstract class AbstractDevice {
 				log.warn("Failed to execute numeric statement - "+e.getMessage());
 			}
         }
+	*/
         if(averagesByNumeric.containsKey(holder.data.metric_id)) {
         	averagesByNumeric.get(holder.data.metric_id).add(newValue);
         } else {
@@ -649,8 +650,8 @@ public abstract class AbstractDevice {
 
         if (deviceTimestamp.hasDeviceTime()) {
             Time_t t = DomainClock.toDDSTime(deviceTimestamp.getDeviceTime());
-            holder.data.device_time.sec = t.sec;
-            holder.data.device_time.nanosec = t.nanosec;
+            holder.data.device_time.sec = (int)(t.sec);
+            holder.data.device_time.nanosec = (int)(t.nanosec);
         } else {
 
             holder.data.device_time.sec = 0;

@@ -1,0 +1,79 @@
+module ice {
+    struct Timespec {
+        long seconds;    //@ID 0
+        long nanoseconds;    //@ID 1
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+    struct Top {
+        string<16> ice_id; //@key
+    //@ID 0
+        unsigned short handle; //@key
+    //@ID 1
+        unsigned short parent_handle; //@key
+    //@ID 2
+        Timespec source_timestamp;    //@ID 3
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+    enum NomPartition {
+        @default_literal
+        nom_part_unspec = 0,
+        nom_part_obj = 1,
+        nom_part_metric = 2,
+        nom_part_alert = 3,
+        nom_part_dim = 4,
+        nom_part_vattr = 5,
+        nom_part_pgrp = 6,
+        nom_part_sites = 7,
+        nom_part_infrastruct = 8,
+        nom_part_fef = 9,
+        nom_part_ecg_extn = 10,
+        nom_part_ext_nom = 256,
+        nom_part_priv = 1024
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+    struct TYPE {
+        NomPartition partition;    //@ID 0
+        unsigned short code;    //@ID 1
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+    struct VMO : Top {
+        TYPE type;    //@ID 4
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+    struct Duration {
+        long seconds;    //@ID 0
+        long nanoseconds;    //@ID 1
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+    struct MetricObservedValue : VMO {
+        long context_seq_number;    //@ID 5
+        NomPartition metric_id_partition;    //@ID 6
+        Timespec device_timestamp; //@Optional
+    //@ID 7
+        Duration device_relative_timestamp; //@Optional
+    //@ID 8
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+    struct NuObsValue {
+        unsigned short metric_id; //@key
+    //@ID 0
+        unsigned short state;    //@ID 1
+        unsigned short unit_code;    //@ID 2
+        float value;    //@ID 3
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+    struct NumericObservedValue : MetricObservedValue {
+        NuObsValue nu_observed_value;    //@ID 9
+    };
+    //@Extensibility EXTENSIBLE_EXTENSIBILITY
+
+}; // end of 'ice' module
+

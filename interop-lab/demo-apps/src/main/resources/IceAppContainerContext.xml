@@ -94,6 +94,15 @@
         <constructor-arg ref="domainParticipant" />
     </bean>
 
+	<bean id="docBoxMDSWriter" class="org.mdpnp.rtiapi.data.DocBoxMDSDataWriterFactory" lazy-init="true">
+	    <constructor-arg ref="publisher" />
+        <constructor-arg ref="domainParticipant" />
+	</bean>
+
+	<bean id="docBoxNOVWriter" class="org.mdpnp.rtiapi.data.DocBoxNumericObservedValueWriterFactory" lazy-init="true">
+	    <constructor-arg ref="publisher" />
+        <constructor-arg ref="domainParticipant" />
+	</bean>
 
     <!-- This is only needed when Charting apps are installed -->
     <bean id="patientAssessmentWriter" class="org.mdpnp.rtiapi.data.PatientAssessmentDataWriterFactory" lazy-init="true">
@@ -175,6 +184,15 @@
         <property name="qosLibrary"><value>ice_library</value></property>
         <property name="qosProfile"><value>waveform_data</value></property>
     </bean>    
+    
+    <bean id="docboxNumericList" class="org.mdpnp.apps.fxbeans.NumericObservedValueFxListFactory" lazy-init="false">
+        <property name="topicName"><value>ice--NumericMeasObservedValue</value></property>
+        <property name="subscriber" ref="subscriber"/>
+        <property name="eventLoop" ref="eventLoop"/>
+        <property name="qosLibrary"><value>dices_dim_library</value></property>
+        <property name="qosProfile"><value>dices_dim_durable_profile</value></property>
+    </bean>    
+
     
     <bean id="infusionStatusList" class="org.mdpnp.apps.fxbeans.InfusionStatusFxListFactory" lazy-init="false">
         <property name="topicName"><util:constant static-field="ice.InfusionStatusTopic.VALUE"/></property>

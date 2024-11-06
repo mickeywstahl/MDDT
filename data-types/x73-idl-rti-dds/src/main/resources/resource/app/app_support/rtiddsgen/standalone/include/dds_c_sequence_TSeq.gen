@@ -1,0 +1,1948 @@
+/*
+ * (c) Copyright, Real-Time Innovations, Inc. 2003-2022.  All rights reserved.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#ifndef RTI_CODEGEN_STANDALONE
+  #include "log/log_makeheader.h"
+
+  #ifndef osapi_heap_h
+    #include "osapi/osapi_heap.h"
+  #endif
+
+  #ifndef DDS_SEQUENCE_NO_HEADERS
+    #ifndef dds_c_log_impl_h
+      #include "dds_c/dds_c_log_impl.h"
+    #endif
+    #if defined(MEMORY_MANAGER)
+      #include "reda/reda_inlineMemory.h"
+    #endif
+  #endif
+
+  #define RTI_SUPPORT_ABSOLUTE_MAXIMUM
+#else
+  #ifdef __cplusplus
+    #include <new>
+    #define RTI_CPP
+  #endif
+#endif /* RTI_CODEGEN_STANDALONE */
+
+/* ================================================================== */
+/*i
+   \st_impl \st_generic
+
+   Defines:   TSeq, T
+ */
+
+#if defined(TSeq) && defined(T)
+/* ----------------------------------------------------------------- */
+/* Defines submodule for logging purposes
+ */
+#define DDS_CURRENT_SUBMODULE  DDS_SUBMODULE_MASK_SEQUENCE
+
+#define concatenate(A, B)   A ## B
+
+#define initialize_c(TSeq) concatenate(TSeq, _initialize)
+#define TSeq_initialize initialize_c(TSeq)
+
+#define get_element_pointers_allocation_c(TSeq) concatenate(TSeq, _get_element_pointers_allocation)
+#define TSeq_get_element_pointers_allocation get_element_pointers_allocation_c(TSeq)
+
+#define set_element_pointers_allocation_c(TSeq) concatenate(TSeq, _set_element_pointers_allocation)
+#define TSeq_set_element_pointers_allocation set_element_pointers_allocation_c(TSeq)
+
+#define get_element_allocation_params_c(TSeq) concatenate(TSeq, _get_element_allocation_params)
+#define TSeq_get_element_allocation_params get_element_allocation_params_c(TSeq)
+
+#define set_element_allocation_params_c(TSeq) concatenate(TSeq, _set_element_allocation_params)
+#define TSeq_set_element_allocation_params set_element_allocation_params_c(TSeq)
+
+#define get_element_deallocation_params_c(TSeq) concatenate(TSeq, _get_element_deallocation_params)
+#define TSeq_get_element_deallocation_params get_element_deallocation_params_c(TSeq)
+
+#define set_element_deallocation_params_c(TSeq) concatenate(TSeq, _set_element_deallocation_params)
+#define TSeq_set_element_deallocation_params set_element_deallocation_params_c(TSeq)
+
+#define get_maximum_c(TSeq) concatenate(TSeq, _get_maximum)
+#define TSeq_get_maximum get_maximum_c(TSeq)
+
+#if !defined(FLAT_DATA_TYPE)
+#define delete_bufferI_c(TSeq) concatenate(TSeq, _delete_bufferI)
+#define TSeq_delete_bufferI delete_bufferI_c(TSeq)
+#endif
+
+#define set_maximum_c(TSeq) concatenate(TSeq, _set_maximum)
+#define TSeq_set_maximum set_maximum_c(TSeq)
+
+#define set_absolute_maximum_c(TSeq) concatenate(TSeq, _set_absolute_maximum)
+#define TSeq_set_absolute_maximum set_absolute_maximum_c(TSeq)
+
+#define get_length_c(TSeq) concatenate(TSeq, _get_length)
+#define TSeq_get_length get_length_c(TSeq)
+
+#define set_length_c(TSeq) concatenate(TSeq, _set_length)
+#define TSeq_set_length set_length_c(TSeq)
+
+#define ensure_length_c(TSeq) concatenate(TSeq, _ensure_length)
+#define TSeq_ensure_length ensure_length_c(TSeq)
+
+#ifndef T_no_get /*For sequences of arrays*/
+
+#define get_c(TSeq) concatenate(TSeq, _get)
+#define TSeq_get get_c(TSeq)
+
+#endif
+
+#define get_address_c(TSeq) concatenate(TSeq, _get_reference)
+#define TSeq_get_reference get_address_c(TSeq)
+
+#define copy_no_allocI_c(TSeq) concatenate(TSeq, _copy_no_allocI)
+#define TSeq_copy_no_allocI copy_no_allocI_c(TSeq)
+
+#define copy_no_alloc_c(TSeq) concatenate(TSeq, _copy_no_alloc)
+#define TSeq_copy_no_alloc copy_no_alloc_c(TSeq)
+
+#define copy_c(TSeq) concatenate(TSeq, _copy)
+#define TSeq_copy copy_c(TSeq)
+
+#define from_array_c(TSeq) concatenate(TSeq, _from_array)
+#define TSeq_from_array from_array_c(TSeq)
+
+#define to_array_c(TSeq) concatenate(TSeq, _to_array)
+#define TSeq_to_array to_array_c(TSeq)
+
+#define loan_contiguous_c(TSeq) concatenate(TSeq, _loan_contiguous)
+#define TSeq_loan_contiguous loan_contiguous_c(TSeq)
+
+#define loan_discontiguous_c(TSeq) concatenate(TSeq, _loan_discontiguous)
+#define TSeq_loan_discontiguous loan_discontiguous_c(TSeq)
+
+#define unloan_c(TSeq) concatenate(TSeq, _unloan)
+#define TSeq_unloan unloan_c(TSeq)
+
+#define get_contiguous_bufferI_c(TSeq) concatenate(TSeq, _get_contiguous_bufferI)
+#define TSeq_get_contiguous_bufferI get_contiguous_bufferI_c(TSeq)
+
+#define get_contiguous_buffer_c(TSeq) concatenate(TSeq, _get_contiguous_buffer)
+#define TSeq_get_contiguous_buffer get_contiguous_buffer_c(TSeq)
+
+#define get_discontiguous_bufferI_c(TSeq) concatenate(TSeq, _get_discontiguous_bufferI)
+#define TSeq_get_discontiguous_bufferI get_discontiguous_bufferI_c(TSeq)
+
+#define get_discontiguous_buffer_c(TSeq) concatenate(TSeq, _get_discontiguous_buffer)
+#define TSeq_get_discontiguous_buffer get_discontiguous_buffer_c(TSeq)
+
+#define has_ownership_c(TSeq) concatenate(TSeq, _has_ownership)
+#define TSeq_has_ownership has_ownership_c(TSeq)
+
+#define finalize_c(TSeq) concatenate(TSeq, _finalize)
+#define TSeq_finalize finalize_c(TSeq)
+
+#define check_invariantsI_c(TSeq) concatenate(TSeq, _check_invariantsI)
+#define TSeq_check_invariantsI check_invariantsI_c(TSeq)
+
+#define xquote(name) #name
+#define quote(name) xquote(name)
+
+#define get_read_tokenI_c(TSeq) concatenate(TSeq, _get_read_tokenI)
+#define TSeq_get_read_tokenI get_read_tokenI_c(TSeq)
+
+#define set_read_tokenI_c(TSeq) concatenate(TSeq, _set_read_tokenI)
+#define TSeq_set_read_tokenI set_read_tokenI_c(TSeq)
+
+#define equals_c(TSeq) concatenate(TSeq, _equals)
+#define TSeq_equals equals_c(TSeq)
+
+#if defined(MEMORY_MANAGER)
+#define new_buffer_and_loan_w_memory_manager_c(TSeq) concatenate(TSeq, _new_buffer_and_loan_w_memory_manager)
+#define TSeq_new_buffer_and_loan_w_memory_manager new_buffer_and_loan_w_memory_manager_c(TSeq)
+
+#define unloan_and_finalize_w_memory_manager_c(TSeq) concatenate(TSeq, _unloan_and_finalize_w_memory_manager)
+#define TSeq_unloan_and_finalize_w_memory_manager unloan_and_finalize_w_memory_manager_c(TSeq)
+
+#define copy_w_memory_manager_c(TSeq) concatenate(TSeq, _copy_w_memory_manager)
+#define TSeq_copy_w_memory_manager copy_w_memory_manager_c(TSeq)
+#endif
+
+/* ------------------------------------------------------------------
+ * Element type manipulation
+ *
+ * Five point-cuts (in AOP terms) are defined, to manipulated the contained type.
+ *
+ *   T_initialize               Initialize element
+ *
+ *                              Syntax: T_initialize(T * self);
+ *
+ *   T_initialize_ex            Initialize element that can contain pointers.
+ *                              The function associated to this point-cut receives a second
+ *                              parameter that indicates if the sequence must do a deep allocation
+ *                              of the pointers of the element or not.
+ *                              The third parameter indicates whether any memory will be allocated at all.
+ *                              When set to false, the value allocatePointers is ignored.
+ *
+ *
+ *                              Syntax: T_initialize_ex(T * self,RTIBool allocatePointers, RTIBool allocateMemory);
+ *
+ *   T_finalize                 Finalize element
+ *
+ *                              Syntax: T_finalize(T * self);
+ *
+ *   T_finalize_ex              Finalize element that can contain pointers
+ *                              The function associated to this point-cut receives a second parameter
+ *                              that indicates if the sequence must release the memory associated to
+ *                              the pointers of the element or not.
+ *
+ *                              Syntax: T_finalize_ex(T * self,RTIBool deletePointers);
+ *
+ *   T_copy                     copy element
+ */
+
+/* Ensure that T_copy is defined */
+#ifndef T_copy /* Typically defined for C version only */
+#define T_copy(to, from)        *(to) = *((T *)from)    /* default */
+/* Note: In C++, this invokes the operator=() */
+#define undef_T_copy    /* So we can remove the above #define later */
+#endif /* T_copy */
+
+/* ------------------------------------------------------------------
+ * Private Method Prototypes
+ * ------------------------------------------------------------------ */
+
+#ifdef RTI_PRECONDITION_TEST
+RTI_PRIVATE RTIBool TSeq_check_invariantsI(const struct TSeq* self,
+        const char* method_name);
+#endif /*RTI_PRECONDITION_TEST*/
+
+#define TSeq_check_nullI(self__, returnStatement__)            \
+        if ((self__) == NULL) {                                    \
+            DDSLog_exception(&DDS_LOG_BAD_PARAMETER_s, "self"); \
+            returnStatement__;                                     \
+        }
+
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+#define TSeq_initialize_absolute_maximum(self__) \
+    (self__)->_absolute_maximum = RTI_INT32_MAX;
+#else
+#define TSeq_initialize_absolute_maximum(self__)
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+
+#define TSeq_check_initI(self__) \
+        do { \
+            if ((self__)->_sequence_init != DDS_SEQUENCE_MAGIC_NUMBER) { \
+                (self__)->_owned = DDS_BOOLEAN_TRUE; \
+                (self__)->_contiguous_buffer = NULL; \
+                (self__)->_discontiguous_buffer = NULL; \
+                (self__)->_maximum = 0; \
+                (self__)->_length = 0; \
+                (self__)->_sequence_init = DDS_SEQUENCE_MAGIC_NUMBER; \
+                (self__)->_read_token1 = NULL; \
+                (self__)->_read_token2 = NULL; \
+                DDS_SeqElementTypeAllocationParams_from_type_alloc_settings( \
+                        &(self__)->_elementAllocParams, \
+                        &DDS_TYPE_ALLOCATION_PARAMS_DEFAULT); \
+                DDS_SeqElementTypeDeallocationParams_from_type_dealloc_settings( \
+                        &(self__)->_elementDeallocParams, \
+                        &DDS_TYPE_DEALLOCATION_PARAMS_DEFAULT); \
+                        TSeq_initialize_absolute_maximum(self__); \
+            } \
+        } while (DDS_BOOLEAN_FALSE)
+
+/* ------------------------------------------------------------------
+ * Public Variables
+ * ------------------------------------------------------------------ */
+
+
+/* ------------------------------------------------------------------
+ * Public Methods
+ * ------------------------------------------------------------------ */
+DDS_Boolean TSeq_initialize(struct TSeq* self) {
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+    (self)->_owned = DDS_BOOLEAN_TRUE;
+    (self)->_contiguous_buffer = NULL;
+    (self)->_discontiguous_buffer = NULL;
+    (self)->_maximum = 0;
+    (self)->_length = 0;
+    (self)->_sequence_init = DDS_SEQUENCE_MAGIC_NUMBER;
+    (self)->_read_token1 = NULL;
+    (self)->_read_token2 = NULL;
+    DDS_SeqElementTypeAllocationParams_from_type_alloc_settings(
+            &(self)->_elementAllocParams, &DDS_TYPE_ALLOCATION_PARAMS_DEFAULT);
+    DDS_SeqElementTypeDeallocationParams_from_type_dealloc_settings(
+            &(self)->_elementDeallocParams, &DDS_TYPE_DEALLOCATION_PARAMS_DEFAULT);
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+    (self)->_absolute_maximum = RTI_INT32_MAX;
+#endif
+
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean TSeq_get_element_pointers_allocation(const struct TSeq* self)
+{
+    return self->_elementAllocParams.allocate_pointers;
+}
+
+DDS_Boolean TSeq_set_element_pointers_allocation(struct TSeq* self,DDS_Boolean allocatePointers)
+{
+    /* -- Check Preconditions --*/
+    if (self->_maximum >0 ) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "Pointers allocation policy can be configured only when the maximum size of the sequence is 0");
+        return DDS_BOOLEAN_FALSE;
+    }
+    self->_elementAllocParams.allocate_pointers = allocatePointers;
+    self->_elementDeallocParams.delete_pointers = allocatePointers;
+
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean TSeq_set_element_allocation_params(
+        struct TSeq* self,
+        const struct DDS_TypeAllocationParams_t * params)
+{
+    DDSLog_preconditionOnly(TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE));
+
+    if (params == NULL) {
+        DDSLog_exception(&DDS_LOG_BAD_PARAMETER_s, "params");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    /* -- Check Preconditions --*/
+    if (self->_maximum >0 ) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "Member allocation parameters can be configured only when the maximum size of the sequence is 0");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    DDS_SeqElementTypeAllocationParams_from_type_alloc_settings(
+            &(self)->_elementAllocParams, params);
+    return DDS_BOOLEAN_TRUE;
+}
+
+#ifdef RTI_CODEGEN_STANDALONE
+struct DDS_TypeAllocationParams_t TSeq_get_element_allocation_params(struct TSeq* self)
+{
+    struct DDS_TypeAllocationParams_t tmpParams =
+        DDS_TYPE_ALLOCATION_PARAMS_DEFAULT;
+    DDS_TypeAllocationParams_from_seq_type_alloc_settings(
+        &tmpParams, &(self)->_elementAllocParams);
+    return tmpParams;
+}
+#else
+void TSeq_get_element_allocation_params(
+        struct TSeq* self,
+        struct DDS_TypeAllocationParams_t * params)
+{
+    DDSLog_preconditionOnly(TSeq_check_nullI(self, return ));
+
+    if (params == NULL) {
+        DDSLog_exception(&DDS_LOG_BAD_PARAMETER_s, "params");
+        return;
+    }
+
+    DDS_TypeAllocationParams_from_seq_type_alloc_settings(
+            params, &(self)->_elementAllocParams);
+}
+#endif /* RTI_CODEGEN_STANDALONE */
+
+DDS_Boolean TSeq_set_element_deallocation_params(
+        struct TSeq* self,
+        const struct DDS_TypeDeallocationParams_t * params)
+{
+    DDSLog_preconditionOnly(TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE));
+
+    if (params == NULL) {
+        DDSLog_exception(&DDS_LOG_BAD_PARAMETER_s, "params");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    DDS_SeqElementTypeDeallocationParams_from_type_dealloc_settings(
+            &(self)->_elementDeallocParams,
+            params);
+    return DDS_BOOLEAN_TRUE;
+}
+
+#ifdef RTI_CODEGEN_STANDALONE
+struct DDS_TypeDeallocationParams_t TSeq_get_element_deallocation_params(
+        struct TSeq* self) {
+    struct DDS_TypeDeallocationParams_t tmpParams =
+        DDS_TYPE_DEALLOCATION_PARAMS_DEFAULT;
+    DDS_TypeDeallocationParams_from_seq_type_dealloc_settings(
+        &tmpParams, &(self)->_elementDeallocParams);
+    return tmpParams;
+}
+#else
+void TSeq_get_element_deallocation_params(
+        struct TSeq* self,
+        struct DDS_TypeDeallocationParams_t * params)
+{
+    DDSLog_preconditionOnly(TSeq_check_nullI(self, return ));
+
+    if (params == NULL) {
+        DDSLog_exception(&DDS_LOG_BAD_PARAMETER_s, "params");
+        return;
+    }
+
+    DDS_TypeDeallocationParams_from_seq_type_dealloc_settings(
+            params, &(self)->_elementDeallocParams);
+}
+#endif /* RTI_CODEGEN_STANDALONE */
+
+DDS_Long TSeq_get_maximum(const struct TSeq* self) {
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return 0);
+    TSeq_check_initI((struct TSeq *)self);
+
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return 0;
+            });
+    return (DDS_Long) self->_maximum;
+}
+
+DDS_Boolean TSeq_set_absolute_maximum(struct TSeq* self, DDS_Long new_max)
+{
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+
+    if ((DDS_UnsignedLong)new_max < self->_maximum) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "new absolute max cannot be smaller than max");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    self->_absolute_maximum = (DDS_UnsignedLong) new_max;
+#else
+    RTIOsapiUtility_unusedParameter(self);
+    RTIOsapiUtility_unusedParameter(new_max);
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+    return DDS_BOOLEAN_TRUE;
+}
+
+#if !defined(FLAT_DATA_TYPE)
+/* This function is only defined for non flat data types */
+void TSeq_delete_bufferI(
+        struct TSeq *self, 
+        T *buffer, 
+        DDS_UnsignedLong max, 
+        DDS_Boolean memory_manager)
+{
+    DDSLog_preconditionOnly(TSeq_check_nullI(self, return));
+#if !defined(T_finalize_ex) && !defined(T_finalize_w_params)
+    RTIOsapiUtility_unusedParameterInRelease(self);
+#if !defined(T_finalize)
+    RTIOsapiUtility_unusedParameter(max);
+#endif
+#endif
+
+#if !defined(MEMORY_MANAGER)
+    RTIOsapiUtility_unusedParameter(memory_manager);
+#endif
+
+    if (buffer != NULL) {
+#if defined(T_finalize) || defined(T_finalize_ex) \
+        || defined(T_finalize_w_params) || defined(T_finalize_w_memory_manager)
+        DDS_UnsignedLong i = 0;
+#endif
+#if defined(T_finalize_w_memory_manager) || defined(T_finalize_w_params)
+        struct DDS_TypeDeallocationParams_t deallocParams;
+        DDS_TypeDeallocationParams_from_seq_type_dealloc_settings(
+                &deallocParams,
+                &self->_elementDeallocParams);
+#endif
+#ifdef T_finalize_w_memory_manager
+        {
+            if (memory_manager) {
+                for (i = 0; i < max; ++i) {
+                    T_finalize_w_memory_manager(&buffer[i], &deallocParams);
+                }
+            } else {
+                for (i = 0; i < max; ++i) {
+#ifdef T_finalize_w_params
+                    T_finalize_w_params(&buffer[i], &deallocParams);
+#else
+    #ifdef T_finalize_ex
+                    T_finalize_ex(
+                            &buffer[i],
+                            self->_elementDeallocParams.delete_pointers);
+    #else
+        #ifdef T_finalize
+                    T_finalize(&buffer[i]);
+        #endif
+    #endif
+#endif
+                }
+            }
+        }
+#else
+#ifdef T_finalize_w_params
+        {
+            for (i = 0; i < max; ++i) {
+                T_finalize_w_params(&buffer[i], &deallocParams);
+            }
+        }
+#else
+#ifdef T_finalize_ex
+        for (i = 0; i < max; ++i) {
+            T_finalize_ex(
+                    &buffer[i],
+                    self->_elementDeallocParams.delete_pointers);
+        }
+#else
+#ifdef T_finalize
+        for (i = 0; i < max; ++i) {
+            T_finalize(&buffer[i]);
+        }
+#endif
+#endif /* T_finalize_ex */
+#endif /* T_finalize_w_params */
+#endif /* T_finalize_w_memory_manager */
+
+#ifdef RTI_CPP
+        delete[] buffer; /* C++: invokes destructor for each element */
+#else
+#if defined(MEMORY_MANAGER)
+        if (memory_manager) {
+            RTIOsapiUtility_unusedReturnValue(
+                    REDAInlineMemBuffer_release(buffer),
+                    RTIBool);
+        } else {
+            RTIOsapiHeap_freeArray(buffer);
+        }
+#else
+        RTIOsapiHeap_freeArray(buffer);
+#endif
+#endif
+    } /* buffer != NULL */
+}
+#endif /* FLAT_DATA_TYPE */
+
+DDS_Boolean TSeq_set_maximum(struct TSeq *self, DDS_Long new_max)
+{
+    DDS_Boolean ok = DDS_BOOLEAN_FALSE;
+#if !defined(FLAT_DATA_TYPE)
+    T *newBuffer = NULL;
+    T *oldBuffer = NULL;
+    DDS_Long newLength = 0;
+    DDS_UnsignedLong oldMaxLength = 0;
+#endif
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, goto done;);
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                goto done;
+            }
+    )
+
+    if (!self->_elementAllocParams.allocate_memory) {
+        /* This should not happen */
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "allocate_memory must be true");
+        goto done;
+    }
+
+    if (new_max < 0) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "max size must be positive");
+        goto done;
+    }
+
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+    if ((DDS_UnsignedLong) new_max > self->_absolute_maximum) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "new max cannot be larger than absolute maximum");
+        goto done;
+    }
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+
+    if (!self->_owned) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "buffer must not be loaned");
+        goto done;
+    }
+    /* since buffer is owned, it must be the contiguous buffer */
+    DDSLog_preconditionOnly(
+            if (self->_discontiguous_buffer != NULL) {
+                DDSLog_exception(
+                        &RTI_LOG_ASSERT_FAILURE_s,
+                        "discontiguous buffer is not NULL!");
+                goto done;
+            }
+    )
+
+    /* --- Bail out now if no change --- */
+    if ((DDS_UnsignedLong) new_max == self->_maximum) {
+        /* no size change */
+        return DDS_BOOLEAN_TRUE;
+    }
+
+    /* -- Allocate new contiguous buffer --- */
+    if (new_max > 0) {
+#if !defined(FLAT_DATA_TYPE)
+#ifdef RTI_CPP
+        /* C++: Invokes constructor for each element */
+        newBuffer = new (std::nothrow) T[new_max]();
+#else
+        RTIOsapiHeap_allocateArray(&newBuffer, (size_t) new_max, T);
+#endif
+        if (newBuffer == NULL) {
+            DDSLog_exception(
+                    &RTI_LOG_MALLOC_FAILURE_d,
+                    new_max * (DDS_Long) sizeof(T));
+            goto done;
+        }
+
+#ifdef T_initialize_w_params
+        {
+            int i;
+
+            struct DDS_TypeAllocationParams_t allocParams;
+            DDS_TypeAllocationParams_from_seq_type_alloc_settings(
+                    &allocParams, &self->_elementAllocParams);
+            for(i = 0; i < new_max; ++i) {
+                if(!T_initialize_w_params(&newBuffer[i],&allocParams)) {
+                    DDSLog_exception(
+                            &RTI_LOG_ANY_FAILURE_s,
+                            "initialize_w_params");
+                    goto done;
+                }
+            }
+        }
+#else
+#ifdef T_initialize_ex
+        {
+            int i;
+
+            for (i = 0; i < new_max; ++i) {
+                if (!T_initialize_ex(
+                        &newBuffer[i],
+                        self->_elementAllocParams.allocate_pointers,
+                        RTI_TRUE)) {
+                    DDSLog_exception(&RTI_LOG_ANY_FAILURE_s, "initialize_ex");
+                    goto done;
+                }
+            }
+        }
+#else
+#ifdef T_initialize
+        {
+            int i;
+
+            for (i = 0; i < new_max; ++i) {
+                if (!T_initialize(&newBuffer[i])) {
+                    DDSLog_exception(&RTI_LOG_ANY_FAILURE_s, "initialize");
+                    goto done;
+                }
+            }
+        }
+#endif
+#endif
+#endif
+#else /* FLAT_DATA_TYPE */
+        /*
+         * flat data types don't have value-type semantics; the sequence
+         * cannot grow because default-constructing and assigning samples is
+         * not possible
+         */
+        DDSLog_exception(
+                &RTI_LOG_ANY_FAILURE_s,
+                "flat data sequence is immutable");
+        goto done;
+#endif /* FLAT_DATA_TYPE */
+    }
+
+#if !defined(FLAT_DATA_TYPE)
+    /* --- Copy elements to new buffer --- */
+    newLength = (self->_length < (DDS_UnsignedLong) new_max)
+                        ? (DDS_Long) self->_length : new_max;
+#ifdef RTI_PRECONDITION_TEST
+    if (newLength > 0 && self->_contiguous_buffer == NULL) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "inconsistent buffer state");
+        goto done;
+    }
+#endif /*RTI_PRECONDITION_TEST*/
+
+    /* Don't use memcpy to copy all at once: in C++, we need to invoke
+     * operator= to copy the elements properly.
+     */
+    {
+        int i;
+
+        for (i = 0; i < newLength; ++i) {
+#ifdef undef_T_copy
+            T_copy(&newBuffer[i], (const T *) &self->_contiguous_buffer[i]);
+#else
+            if (!T_copy(&newBuffer[i],
+                    (const T *) &self->_contiguous_buffer[i])) {
+                DDSLog_exception(
+                        &RTI_LOG_ANY_FAILURE_s,
+                        "copy contiguous buffer");
+                goto done;
+            }
+#endif
+        }
+    }
+    /* --- Swap buffers --- */
+    oldBuffer = self->_contiguous_buffer;
+    oldMaxLength = self->_maximum;
+    self->_contiguous_buffer = newBuffer;
+    self->_maximum = (DDS_UnsignedLong) new_max;
+    self->_length = (DDS_UnsignedLong) newLength;
+
+    /* --- Free original buffer --- */
+    TSeq_delete_bufferI(self, oldBuffer, oldMaxLength, DDS_BOOLEAN_FALSE);
+#endif /* FLAT_DATA_TYPE */
+
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                goto done;
+            }
+    )
+    ok = DDS_BOOLEAN_TRUE;
+done:
+
+    if (!ok) {
+#if !defined(FLAT_DATA_TYPE)
+        /*
+         * ROBUSTNESS-418
+         * Deleting the new allocated buffer could lead to undefined behavior
+         * when there is a failure during type's initialization. This only
+         * happens when the system runs out of memory. This problem doesn't
+         * occur when Traditional C++ types are generated with constructors.
+         */
+        /* coverity[uninit_use_in_call] */
+        TSeq_delete_bufferI(
+                self, 
+                newBuffer, 
+                (DDS_UnsignedLong) new_max, 
+                DDS_BOOLEAN_FALSE);
+#endif /* FLAT_DATA_TYPE */
+    } /* !ok */
+    return ok;
+}
+
+#if defined(MEMORY_MANAGER)
+DDS_Boolean TSeq_new_buffer_and_loan_w_memory_manager(
+        struct TSeq *self,
+        struct REDAInlineMemory **memory_manager,
+        DDS_Long new_max)
+{
+    DDS_Boolean ok = DDS_BOOLEAN_FALSE;
+    T *newBuffer = NULL;
+    DDS_Long newLength = 0;
+    DDS_Long currentMax = 0;
+#ifdef T_initialize_w_memory_manager
+    int i = 0;
+#endif
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, goto done);
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                goto done;
+            }
+    )
+    DDSLog_preconditionOnly(
+            if (TSeq_get_maximum(self) != 0
+                    && TSeq_has_ownership(self)) {
+                goto done;
+            }
+    )
+
+    if (new_max < 0) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "max size must be positive");
+        goto done;
+    }
+
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+    if ((DDS_UnsignedLong) new_max > self->_absolute_maximum) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "new max cannot be larger than absolute maximum");
+        goto done;
+    }
+#else
+    if ((DDS_UnsignedLong) new_max > self->_maximum) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "new max cannot be larger than maximum");
+        goto done;
+    }
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+
+    currentMax = TSeq_get_maximum(self);
+
+    if (currentMax == new_max) {
+        ok = DDS_BOOLEAN_TRUE;
+        goto done;
+    }
+
+    if (currentMax != 0) {
+        /*
+         * We do not support release memory at this point. We just unloan
+         * the old buffer
+         */
+        if (!TSeq_unloan(self)) {
+            DDSLog_exception(
+                    &RTI_LOG_ANY_FAILURE_s,
+                    "unloan contiguous array");
+            goto done;
+        }
+    }
+
+    /* -- Allocate new contiguous buffer --- */
+    if (new_max > 0) {
+        newBuffer = REDAInlineMemory_reserveBuffer(
+                memory_manager,
+                (REDAInlineMemorySize) ((DDS_Long) sizeof(T) * new_max));
+
+        if (newBuffer == NULL) {
+            DDSLog_exception(
+                    &RTI_LOG_MALLOC_FAILURE_d,
+                    new_max * (DDS_Long) sizeof(T));
+            goto done;
+        }
+
+#ifdef T_initialize_w_memory_manager
+        {
+            struct DDS_TypeAllocationParams_t allocParams;
+            DDS_TypeAllocationParams_from_seq_type_alloc_settings(
+                    &allocParams,
+                    &self->_elementAllocParams);
+            for (i = 0; i < new_max; ++i) {
+                if (!T_initialize_w_memory_manager(
+                        &newBuffer[i],
+                        memory_manager,
+                        &allocParams)) {
+                    DDSLog_exception(
+                            &RTI_LOG_ANY_FAILURE_s,
+                            "initialize_w_memory_manager");
+                    goto done;
+                }
+            }
+        }
+#endif
+    }
+
+    if (!TSeq_loan_contiguous(
+            self,
+            newBuffer,
+            newLength,
+            new_max)) {
+        DDSLog_exception(
+                &RTI_LOG_ANY_FAILURE_s,
+                "loan contiguous buffer");
+        goto done;
+    }
+
+    ok = DDS_BOOLEAN_TRUE;
+done:
+
+    return ok;
+}
+
+struct TSeq * TSeq_copy_w_memory_manager(
+        struct TSeq *self,
+        struct REDAInlineMemory **memory_manager,
+        const struct TSeq *src)
+{
+    DDS_Long srcLength = 0;
+    DDS_Long i = 0;
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return NULL);
+    if (src == NULL) {
+        DDSLog_exception(&DDS_LOG_BAD_PARAMETER_s, "src");
+        return NULL;
+    }
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return NULL;
+            }
+    )
+    DDSLog_preconditionOnly(
+            if (TSeq_get_maximum(self) != 0
+                    && TSeq_has_ownership(self)) {
+                return NULL;
+            }
+    )
+
+    /* --- Check size --- */
+    srcLength = TSeq_get_length(src);
+    if (TSeq_get_maximum(self) < srcLength) {
+        /*
+         * new_buffer_and_loan_w_memory_manager releases the current buffer if
+         * the current maximum is smaller than the requested maximum
+         */
+        if (!TSeq_new_buffer_and_loan_w_memory_manager(
+                self,
+                memory_manager,
+                srcLength)) {
+            return NULL;
+        }
+    }
+
+    if (!TSeq_set_length(self, srcLength)) {
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+        DDSLog_exception(
+                &RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                self->_absolute_maximum,
+                srcLength);
+#else
+        DDSLog_exception(
+                &RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                self->_maximum,
+                srcLength);
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+        return NULL;
+    }
+
+    for (i = 0; i < srcLength; ++i) {
+#ifdef T_copy_w_memory_manager
+        if (!T_copy_w_memory_manager(
+                &self->_contiguous_buffer[i],
+                memory_manager,
+                (const T *) &src->_contiguous_buffer[i])) {
+            return NULL;
+        }
+#else
+        self->_contiguous_buffer[i] = src->_contiguous_buffer[i];
+#endif
+    }
+
+    return self;
+}
+
+DDS_Boolean TSeq_unloan_and_finalize_w_memory_manager(
+        struct TSeq *self)
+{
+    void *contiguousBuffer;
+    DDS_UnsignedLong maximum;
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+
+    contiguousBuffer = self->_contiguous_buffer;
+
+    if (contiguousBuffer == NULL) {
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    maximum = self->_maximum;
+
+    if (!TSeq_unloan(self)) {
+        DDSLog_exception(
+                &RTI_LOG_ANY_FAILURE_s,
+                "unloan contiguous array");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    TSeq_delete_bufferI(self, contiguousBuffer, maximum, DDS_BOOLEAN_TRUE);
+    return DDS_BOOLEAN_TRUE;
+}
+#endif
+
+DDS_Long TSeq_get_length(const struct TSeq *self) {
+
+    TSeq_check_nullI(self, return 0);
+    TSeq_check_initI((struct TSeq*)self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return 0;
+            }
+    )
+    return (DDS_Long) self->_length;
+}
+
+DDS_Boolean TSeq_set_length(struct TSeq *self, DDS_Long new_length) {
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+    if (new_length < 0 || ((DDS_UnsignedLong)new_length > self->_absolute_maximum)) {
+        DDSLog_exception(
+                &RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                self->_absolute_maximum,
+                new_length);
+        return DDS_BOOLEAN_FALSE;
+    }
+#else
+    if (new_length < 0 || ((DDS_UnsignedLong)new_length > self->_maximum)) {
+        DDSLog_exception(
+                &RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                self->_maximum,
+                new_length);
+        return DDS_BOOLEAN_FALSE;
+    }
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+
+    if (((DDS_UnsignedLong) new_length) <= self->_maximum) {
+        /* --- Set length --- */
+        self->_length = (DDS_UnsignedLong) new_length;
+    } else {
+        if (!TSeq_ensure_length(self, new_length, new_length)) {
+            return DDS_BOOLEAN_FALSE;
+        }
+    }
+
+    /* --- Check postconditions and return --- */
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean TSeq_ensure_length(struct TSeq *self, DDS_Long length, DDS_Long max) {
+
+    DDS_Boolean result = DDS_BOOLEAN_TRUE;
+    DDS_Long currMax = 0;
+    RTIBool sequenceResized = RTI_FALSE;
+
+    if (length > max) {
+        DDSLog_exception(&RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                length, max);
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    /* --- Check if we need to resize --- */
+    currMax = TSeq_get_maximum(self);
+    if (currMax >= length) {
+        /* Sequence has enough room: just set the length */
+        sequenceResized = TSeq_set_length(self, length);
+        if (!sequenceResized) {
+            DDSLog_exception(&DDS_LOG_SET_FAILURE_s, "length");
+            result = DDS_BOOLEAN_FALSE;
+            goto done;
+        }
+    } else if (TSeq_has_ownership(self)) {
+        /* Sequence needs more memory. We own our buffer, so we can
+         * go ahead and allocate more and then set the length.
+         */
+        sequenceResized = TSeq_set_maximum(self, max);
+        if (!sequenceResized) {
+            DDSLog_exception(
+                    &RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd, currMax, max);
+            result = DDS_BOOLEAN_FALSE;
+            goto done;
+        }
+        sequenceResized = TSeq_set_length(self, length);
+        if (!sequenceResized) {
+            DDSLog_exception(&DDS_LOG_SET_FAILURE_s, "length");
+            result = DDS_BOOLEAN_FALSE;
+            goto done;
+        }
+    } else {
+        /* Sequence needs more memory. Unfortunately, we don't own
+         * our buffer, so we can't do anything about it.
+         */
+        DDSLog_exception(&DDS_LOG_SEQUENCE_NOT_OWNER);
+        result = DDS_BOOLEAN_FALSE;
+        goto done;
+    }
+
+done:
+    return result;
+}
+
+#ifndef T_no_get
+
+T TSeq_get(const struct TSeq* self, DDS_Long i) {
+
+    /* --- Check preconditions --- */
+    /*
+     * "self" should not be NULL, otherwise we would need to return a T value in
+     * case of failure.
+     * We cannot create a dummy variable and initialize it with T_initialize
+     * since a T_finalize would need to be called after we return the value.
+     * Initialize the dummy variable to zero with a memset it's not safe when we
+     * are on C++ and the type class contains a virtual function
+     */
+    TSeq_check_initI((struct TSeq *) self);
+    DDSLog_preconditionOnly(
+            RTIOsapiUtility_unusedReturnValue(
+                    TSeq_check_invariantsI(self, RTI_FUNCTION_NAME),
+                    RTIBool));
+    if (i < 0 || (DDS_UnsignedLong) i >= self->_length) {
+        /* If the index is out of bounds, we print an error and return
+	   first element. If i < 0, this may cause a crash! */
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "index out of bounds");
+        i = 0;
+    }
+
+    /* --- Get element --- */
+    if (self->_discontiguous_buffer != NULL) {
+        return *(self->_discontiguous_buffer[i]);
+    } else {
+        /* coverity[var_deref_op : FALSE] */
+        return self->_contiguous_buffer[i];
+    }
+}
+
+#endif
+
+T * TSeq_get_reference(const struct TSeq *self, DDS_Long i)
+{
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return NULL);
+    TSeq_check_initI((struct TSeq *) self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return NULL;
+            }
+    )
+    if (i < 0 || (DDS_UnsignedLong) i >= self->_length) {
+        /*
+         * If the index is out of bounds, we print an error and return
+         * NULL.
+         */
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s, "index out of bounds");
+        return NULL;
+    }
+
+    /* --- Get element --- */
+    if (self->_discontiguous_buffer != NULL) {
+        return self->_discontiguous_buffer[i];
+    } else {
+        return &(self->_contiguous_buffer[i]);
+    }
+}
+
+#if !defined(FLAT_DATA_TYPE) /* flat data types cannot be assigned (copy) */
+DDS_Boolean TSeq_copy_no_alloc(struct TSeq* self, const struct TSeq* src) {
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+    if (src == NULL) {
+        DDSLog_exception(&DDS_LOG_BAD_PARAMETER_s, "src");
+        return DDS_BOOLEAN_FALSE;
+    }
+    TSeq_check_initI(self);
+    if (!TSeq_has_ownership(self) && (src->_length > self->_maximum)) {
+        DDSLog_exception(&DDS_LOG_SEQUENCE_NOT_OWNER);
+        return DDS_BOOLEAN_FALSE;
+    }
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+    return TSeq_copy_no_allocI(self, src);
+}
+
+DDS_Boolean TSeq_copy_no_allocI(struct TSeq* self, const struct TSeq* src) {
+    DDS_Boolean result = DDS_BOOLEAN_TRUE;
+    DDS_Long length = 0;
+
+    /* memory can either be owned not not owned, as long as the maximum
+       length is large enough */
+
+    /* --- Check source initialization --- */
+    /* Make sure that the sequence from which we're copying doesn't contain
+     * garbage values. If it does, consider it empty
+     * as in TSeq_check_initI(). (We can't actually initialize it here
+     * because it's const.)
+     */
+    if (src->_sequence_init == DDS_SEQUENCE_MAGIC_NUMBER) {
+        /* Sequence is initialized. We should set our length to its length. */
+        length = (DDS_Long) src->_length;
+    }
+
+    /* --- Copy length --- */
+    /* set_length() will check the new length against our max; it will
+     * also make sure the length is positive (i.e. that src is properly
+     * initialized).
+     */
+    if ((DDS_UnsignedLong)length > self->_maximum) {
+        DDSLog_exception(&RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                self->_maximum, length);
+        result = DDS_BOOLEAN_FALSE;
+        goto done;
+    }
+
+    result = TSeq_set_length(self, length);
+    if (!result) {
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+        DDSLog_exception(
+                &RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                self->_absolute_maximum,
+                length);
+#else
+        DDSLog_exception(
+                &RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                self->_maximum,
+                length);
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+        result = DDS_BOOLEAN_FALSE;
+        goto done;
+    }
+
+    /* --- Copy elements --- */
+    /* This sequence may be using its contiguous buffer or its discontiguous
+     * buffer; the same is true of the other sequence.
+     */
+    if (self->_contiguous_buffer != NULL) {
+        int i;
+
+        if (src->_contiguous_buffer != NULL) {
+            for(i = 0; i < length; ++i) {
+                /* Copy element-by-element (instead of using memcpy()) in
+                 * case this code is being compiled from C++: we want
+                 * operator= to be invoked.
+                 */
+#ifdef undef_T_copy
+                T_copy(&self->_contiguous_buffer[i], (const T *)&src->_contiguous_buffer[i]);
+#else
+                if (!T_copy(&self->_contiguous_buffer[i], (const T *)&src->_contiguous_buffer[i])) {
+                    result = DDS_BOOLEAN_FALSE;
+                    goto done;
+                }
+#endif
+            }
+        } else {
+            /* This condition should always being false, but we check
+                since coverity alert of a possible dereference null
+            */
+            if (src->_discontiguous_buffer == NULL && length > 0) {
+                DDSLog_exception(
+                        &RTI_LOG_ANY_FAILURE_s,
+                        "Unexpected NULL discontiguous buffer in the sequence");
+                result = DDS_BOOLEAN_FALSE;
+                goto done;
+            }
+            for(i = 0; i < length; ++i) {
+#ifdef undef_T_copy
+                T_copy(&self->_contiguous_buffer[i], (const T *)src->_discontiguous_buffer[i]);
+#else
+                if (!T_copy(&self->_contiguous_buffer[i], (const T *)src->_discontiguous_buffer[i])) {
+                    result = DDS_BOOLEAN_FALSE;
+                    goto done;
+                }
+#endif
+            }
+        }
+    } else {
+        int i;
+
+        if (src->_contiguous_buffer != NULL) {
+
+            /* This condition should always being false, but we check
+                since coverity alert of a possible dereference null
+            */
+            if (self->_discontiguous_buffer == NULL && length > 0) {
+                DDSLog_exception(
+                        &RTI_LOG_ANY_FAILURE_s,
+                        "Unexpected NULL discontiguous buffer in the sequence");
+                result = DDS_BOOLEAN_FALSE;
+                goto done;
+            }
+
+            for(i = 0; i < length; ++i) {
+#ifdef undef_T_copy
+                T_copy(self->_discontiguous_buffer[i], (const T *)&src->_contiguous_buffer[i]);
+#else
+                if (!T_copy(self->_discontiguous_buffer[i], (const T *)&src->_contiguous_buffer[i])){
+                    result = DDS_BOOLEAN_FALSE;
+                    goto done;
+                }
+#endif
+            }
+        } else {
+            /* This condition should always being false, but we check
+                since coverity alert of a possible dereference null
+            */
+            if ((src->_discontiguous_buffer == NULL || self->_discontiguous_buffer == NULL)
+                    && length > 0) {
+                DDSLog_exception(
+                        &RTI_LOG_ANY_FAILURE_s,
+                        "Unexpected NULL discontiguous buffer in the sequence");
+                result = DDS_BOOLEAN_FALSE;
+                goto done;
+            }
+            for(i = 0; i < length; ++i) {
+#ifdef undef_T_copy
+                T_copy(self->_discontiguous_buffer[i], (const T *)src->_discontiguous_buffer[i]);
+#else
+                if (!T_copy(self->_discontiguous_buffer[i], (const T *)src->_discontiguous_buffer[i])) {
+                    result = DDS_BOOLEAN_FALSE;
+                    goto done;
+                }
+#endif
+            }
+        }
+    }
+
+    /* --- Check postconditions and return --- */
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                result = DDS_BOOLEAN_FALSE;
+                goto done;
+            }
+    )
+done:
+    return result;
+}
+
+/*
+ * Only define the TSeq_equals function if T_equals has been defined.
+ * This means that we will have a compiler error if somebody attempts to call
+ * a TSeq_equals() function without first adding the T_equals function.
+ */
+#ifdef T_equals
+DDS_Boolean TSeq_equals(const struct TSeq *left, const struct TSeq *right)
+{
+    DDS_Long leftLen = 0;
+    DDS_Long rightLen = 0;
+    DDS_Long i = 0;
+
+    if (left == NULL && right == NULL) {
+        return DDS_BOOLEAN_TRUE;
+    }
+
+    if (left == NULL || right == NULL) {
+        return DDS_BOOLEAN_FALSE;
+    }
+    /* Check that the two TSeq are the same length */
+    leftLen = TSeq_get_length(left);
+    rightLen = TSeq_get_length(right);
+    if (leftLen != rightLen) {
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    /* Check each element of sequence for equality */
+    for (i = 0; i < leftLen; ++i) {
+        if (!T_equals(
+                TSeq_get_reference(left, i),
+                TSeq_get_reference(right, i))) {
+            return DDS_BOOLEAN_FALSE;
+        }
+    }
+    return DDS_BOOLEAN_TRUE;
+}
+#endif /* T_equals */
+
+struct TSeq* TSeq_copy(struct TSeq* self, const struct TSeq* src) {
+
+    DDS_Long myMax = 0;
+    DDS_Long srcMax = 0;
+    DDS_Boolean success = DDS_BOOLEAN_FALSE;
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return NULL);
+    if (src == NULL) {
+        DDSLog_exception(&DDS_LOG_BAD_PARAMETER_s, "src");
+        return NULL;
+    }
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return NULL;
+            }
+    )
+
+    /* --- Check size --- */
+    /* Copy_from doesn't allocate memory. We need to make sure
+       the sequence is large enough */
+    myMax = TSeq_get_maximum(self);
+    if (myMax < TSeq_get_length(src)) {
+        /* Use get_maximum() instead of get_length() to align with the
+         * copy constructor and avoid memory fragmentation
+         * when several assignments are being made to the same
+         * variable.
+         */
+        srcMax = TSeq_get_maximum(src);
+        success = TSeq_set_maximum(self, srcMax);
+        if (!success) {
+            /* No need to log: set_maximum() already did that */
+            return NULL;
+        }
+    }
+
+    /* --- Copy --- */
+    success = TSeq_copy_no_alloc(self, src);
+    if (!success) {
+        /* No need to log: TSeq_copy_no_alloc() already did that */
+        return NULL;
+    }
+
+    /* --- Check postconditions and return --- */
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return NULL;
+            }
+    )
+    return self;
+}
+
+
+
+DDS_Boolean TSeq_from_array(struct TSeq* self, const T *array, DDS_Long length) {
+#ifdef RTI_CPP
+    struct TSeq arraySeq;
+#else
+    struct TSeq arraySeq = DDS_SEQUENCE_INITIALIZER;
+#endif
+
+    /* Loan the array to a local sequence on the stack */
+    if (!TSeq_loan_contiguous(&arraySeq, (T*)array, length, length)) {
+        DDSLog_exception(
+                &RTI_LOG_ANY_FAILURE_s,
+                "loan contiguous array");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    /* Copy into this sequence, resizing if necessary */
+    if (TSeq_copy(self, &arraySeq) == NULL) {
+        DDSLog_exception(
+                &RTI_LOG_ANY_FAILURE_s,
+                "copy array sequence");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    /* Unloan the array from the local sequence on the stack */
+    if (!TSeq_unloan(&arraySeq)) {
+        DDSLog_exception(
+                &RTI_LOG_ANY_FAILURE_s,
+                "unloan contiguous array");
+    }
+
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean TSeq_to_array(struct TSeq* self, T *array, DDS_Long length) {
+#ifdef RTI_CPP
+    struct TSeq arraySeq;
+#else
+    struct TSeq arraySeq = DDS_SEQUENCE_INITIALIZER;
+#endif
+
+    /* Loan the array to a local sequence on the stack */
+    if (!TSeq_loan_contiguous(&arraySeq, (T*)array, length, length)) {
+        DDSLog_exception(&DDS_LOG_SET_FAILURE_s,
+                "loan contiguous array");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    /* Copy into this sequence, without resizing */
+    if (!TSeq_copy_no_allocI(&arraySeq, self)) {
+        DDSLog_exception(&DDS_LOG_SET_FAILURE_s,
+                "copying array sequence");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    /* Unloan the array from the local sequence on the stack */
+    if (!TSeq_unloan(&arraySeq)) {
+        DDSLog_exception(&DDS_LOG_SET_FAILURE_s,
+                "unloan contiguous array");
+    }
+
+    return DDS_BOOLEAN_TRUE;
+}
+
+#endif /* !defined(FLAT_DATA_TYPE) */
+
+DDS_Boolean TSeq_loan_contiguous(struct TSeq* self, T* buffer,
+        DDS_Long new_length, DDS_Long new_max) {
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+    if (self->_maximum != 0) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "max size must be 0");
+        return DDS_BOOLEAN_FALSE;
+    }
+    if (new_length < 0 || new_max < 0) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "negative argument");
+        return DDS_BOOLEAN_FALSE;
+    }
+    if (new_length > new_max) {
+        DDSLog_exception(&RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                new_max, new_length);
+        return DDS_BOOLEAN_FALSE;
+    }
+    if (new_max > 0 && buffer == NULL) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "NULL buffer can't have non-zero maximum");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+    if ((DDS_UnsignedLong) new_max > self->_absolute_maximum) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "new max cannot be larger than absolute maximum");
+        return DDS_BOOLEAN_FALSE;
+    }
+#else
+    if ((DDS_UnsignedLong) new_max > self->_maximum) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "new max cannot be larger than maximum");
+        return DDS_BOOLEAN_FALSE;
+    }
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+
+    /* --- Load buffer --- */
+    self->_contiguous_buffer = buffer;
+    self->_length = (DDS_UnsignedLong) new_length;
+    self->_maximum = (DDS_UnsignedLong) new_max;
+    self->_owned = DDS_BOOLEAN_FALSE;
+
+    /* --- Check postconditions and return --- */
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean TSeq_loan_discontiguous(struct TSeq* self, T** buffer,
+        DDS_Long new_length, DDS_Long new_max) {
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+    if (self->_maximum != 0) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "max size must be 0");
+        return DDS_BOOLEAN_FALSE;
+    }
+    if (new_length < 0 || new_max < 0) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "negative argument");
+        return DDS_BOOLEAN_FALSE;
+    }
+    if (new_length > new_max) {
+        DDSLog_exception(&RTI_LOG_INSUFFICIENT_SPACE_FAILURE_dd,
+                new_max, new_length);
+        return DDS_BOOLEAN_FALSE;
+    }
+    if (new_max > 0 && buffer == NULL) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "NULL buffer can't have non-zero maximum");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+    if ((DDS_UnsignedLong) new_max > self->_absolute_maximum) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "new max cannot be larger than absolute maximum");
+        return DDS_BOOLEAN_FALSE;
+    }
+#else
+    if ((DDS_UnsignedLong) new_max > self->_maximum) {
+        DDSLog_exception(
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "new max cannot be larger than maximum");
+        return DDS_BOOLEAN_FALSE;
+    }
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+
+    /* --- Load buffer --- */
+    self->_discontiguous_buffer = buffer;
+    self->_maximum = (DDS_UnsignedLong) new_max;
+    self->_length = (DDS_UnsignedLong) new_length;
+    self->_owned = DDS_BOOLEAN_FALSE;
+
+    /* --- Check postconditions and return --- */
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+    return DDS_BOOLEAN_TRUE;
+}
+
+DDS_Boolean TSeq_unloan(struct TSeq* self) {
+
+    /* --- Check preconditions --- */
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+    if (self->_owned) {
+        DDSLog_exception(&RTI_LOG_ASSERT_FAILURE_s,
+                "buffer must be loaned");
+        return DDS_BOOLEAN_FALSE;
+    }
+
+    /* --- Unload --- */
+    self->_contiguous_buffer = NULL;
+    self->_discontiguous_buffer = NULL;
+    self->_maximum = 0;
+    self->_length = 0;
+    self->_owned = DDS_BOOLEAN_TRUE;
+
+    /* --- Check postconditions and return --- */
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+    return DDS_BOOLEAN_TRUE;
+}
+
+
+/* This function is a duplicate of the TSeq_get_contiguous_buffer
+ * and is left for compatiblity reason only.
+ */
+T* TSeq_get_contiguous_bufferI(const struct TSeq* self) {
+
+    TSeq_check_nullI(self, return NULL);
+    TSeq_check_initI((struct TSeq *)self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return NULL;
+            }
+    )
+    return self->_contiguous_buffer;
+}
+
+T* TSeq_get_contiguous_buffer(const struct TSeq* self) {
+
+    TSeq_check_nullI(self, return NULL);
+    TSeq_check_initI((struct TSeq *)self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return NULL;
+            }
+    )
+    return self->_contiguous_buffer;
+}
+
+/* This function is a duplicate of the TSeq_get_discontiguous_buffer
+ * and is left for compatiblity reason only.
+ */
+T** TSeq_get_discontiguous_bufferI(const struct TSeq* self) {
+
+
+    TSeq_check_nullI(self, return NULL);
+    TSeq_check_initI((struct TSeq *)self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return NULL;
+            }
+    )
+    return self->_discontiguous_buffer;
+}
+
+T** TSeq_get_discontiguous_buffer(const struct TSeq* self) {
+
+
+    TSeq_check_nullI(self, return NULL);
+    TSeq_check_initI((struct TSeq *)self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return NULL;
+            }
+    )
+    return self->_discontiguous_buffer;
+}
+
+DDS_Boolean TSeq_has_ownership(const struct TSeq* self) {
+
+    TSeq_check_nullI(self, return DDS_BOOLEAN_FALSE);
+    TSeq_check_initI((struct TSeq *)self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return DDS_BOOLEAN_FALSE;
+            }
+    )
+    return self->_owned;
+}
+
+DDS_Boolean TSeq_finalize(struct TSeq* self) {
+    return TSeq_set_maximum(self, 0);
+}
+
+void TSeq_get_read_tokenI(const struct TSeq* self,
+        void** token1, void** token2) {
+
+
+    /* --- Check preconditions --- */
+    DDSLog_preconditionOnly(TSeq_check_nullI(self, return));
+
+    TSeq_check_initI((struct TSeq*) self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return;
+            });
+    if (token1 == NULL || token2 == NULL) {
+        DDSLog_exception(&DDS_LOG_GET_FAILURE_s, "token (NULL)");
+        return;
+    }
+
+    /* --- Get token --- */
+    *token1 = self->_read_token1;
+    *token2 = self->_read_token2;
+}
+
+
+void TSeq_set_read_tokenI(struct TSeq* self, void* token1, void* token2) {
+
+
+    /* --- Check preconditions --- */
+    DDSLog_preconditionOnly(TSeq_check_nullI(self, return));
+
+    TSeq_check_initI(self);
+    DDSLog_preconditionOnly(
+            if (!TSeq_check_invariantsI(self, RTI_FUNCTION_NAME)) {
+                return;
+            });
+
+    /* --- Get token --- */
+    self->_read_token1 = token1;
+    self->_read_token2 = token2;
+}
+
+#ifdef RTI_NAME_VALUE_SEQ
+#include "dds_c/generic/dds_c_sequence_TNameValuePairSeqSupport.gen"
+#endif
+
+/* ------------------------------------------------------------------
+ * Private Methods
+ * ------------------------------------------------------------------ */
+
+#ifdef RTI_PRECONDITION_TEST
+
+RTIBool TSeq_check_invariantsI(const struct TSeq* self,
+        const char* method_name) {
+    RTIBool invariantsHold = RTI_FALSE;
+
+    if (self->_sequence_init != DDS_SEQUENCE_MAGIC_NUMBER) {
+        DDSLog_logWithFunctionName(
+                RTI_LOG_BIT_EXCEPTION,
+                method_name,
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "invariant: uninitialized");
+        goto done;
+    }
+    if (self->_contiguous_buffer != NULL &&
+            self->_discontiguous_buffer != NULL) {
+        DDSLog_logWithFunctionName(
+                RTI_LOG_BIT_EXCEPTION,
+                method_name,
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "invariant: both buffers are non-NULL");
+        goto done;
+    }
+    if (self->_length > self->_maximum) {
+        DDSLog_logWithFunctionName(
+                RTI_LOG_BIT_EXCEPTION,
+                method_name,
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "invariant: length > maximum");
+        goto done;
+    }
+    if (self->_owned && self->_discontiguous_buffer != NULL) {
+        DDSLog_logWithFunctionName(
+                RTI_LOG_BIT_EXCEPTION,
+                method_name,
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "invariant: sequence owns memory but has "
+                "discontiguous buffer");
+        goto done;
+    }
+    if (self->_maximum > 0 && (self->_contiguous_buffer == NULL &&
+            self->_discontiguous_buffer == NULL)) {
+
+        DDSLog_logWithFunctionName(
+                RTI_LOG_BIT_EXCEPTION,
+                method_name,
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "invariant: maximum > 0 but buffer is NULL");
+        goto done;
+    }
+
+#ifdef RTI_SUPPORT_ABSOLUTE_MAXIMUM
+    if (self->_maximum > self->_absolute_maximum) {
+        DDSLog_logWithFunctionName(
+                RTI_LOG_BIT_EXCEPTION,
+                method_name,
+                &RTI_LOG_ASSERT_FAILURE_s,
+                "invariant: maximum > absolute_maximum");
+        goto done;
+    }
+#endif /* RTI_SUPPORT_ABSOLUTE_MAXIMUM */
+
+    invariantsHold = RTI_TRUE;
+done:
+    return invariantsHold;
+}
+
+#endif /*RTI_PRECONDITION_TEST*/
+
+#ifdef undef_T_copy
+/*If we defined T_copy ourselves, clean it up to avoid compiler warnings.*/
+#undef T_copy
+#undef undef_T_copy
+#endif
+
+#undef quote
+#undef xquote
+
+#undef concatenate
+
+#undef get_element_pointers_allocation_c
+#undef TSeq_get_element_pointers_allocation
+
+#undef set_element_pointers_allocation_c
+#undef TSeq_set_element_pointers_allocation
+
+#undef get_maximum_c
+#undef TSeq_get_maximum
+
+#if !defined(FLAT_DATA_TYPE)
+#undef delete_bufferI_c
+#undef TSeq_delete_bufferI
+#endif
+
+#undef set_maximum_c
+#undef TSeq_set_maximum
+
+#undef set_absolute_maximum_c
+#undef TSeq_set_absolute_maximum
+
+#undef get_length_c
+#undef TSeq_get_length
+
+#undef set_length_c
+#undef TSeq_set_length
+
+#undef ensure_length_c
+#undef TSeq_ensure_length
+
+#undef get_c
+#undef TSeq_get
+
+#undef get_address_c
+#undef TSeq_get_reference
+
+#undef copy_no_alloc_c
+#undef TSeq_copy_no_alloc
+
+#undef copy_no_allocI_c
+#undef TSeq_copy_no_allocI
+
+#undef from_array_c
+#undef TSeq_from_array
+
+#undef to_array_c
+#undef TSeq_to_array
+
+#undef loan_contiguous_c
+#undef TSeq_loan_contiguous
+
+#undef loan_discontiguous_c
+#undef TSeq_loan_discontiguous
+
+#undef unloan_c
+#undef TSeq_unloan
+
+#undef get_contiguous_bufferI_c
+#undef TSeq_get_contiguous_bufferI
+
+#undef get_contiguous_buffer_c
+#undef TSeq_get_contiguous_buffer
+
+#undef get_discontiguous_bufferI_c
+#undef TSeq_get_discontiguous_bufferI
+
+#undef get_discontiguous_buffer_c
+#undef TSeq_get_discontiguous_buffer
+
+#undef has_ownership_c
+#undef TSeq_has_ownership
+
+#undef finalize_c
+#undef TSeq_finalize
+
+#undef check_invariantsI_c
+#undef TSeq_check_invariantsI
+
+#undef get_read_tokenI_c
+#undef TSeq_get_read_tokenI
+
+#undef set_read_tokenI_c
+#undef TSeq_set_read_tokenI
+
+#undef TSeq_check_nullI
+#undef TSeq_check_initI
+
+#undef get_element_allocation_params_c
+#undef TSeq_get_element_allocation_params
+
+#undef set_element_allocation_params_c
+#undef TSeq_set_element_allocation_params
+
+#undef get_element_deallocation_params_c
+#undef TSeq_get_element_deallocation_params
+
+#undef set_element_deallocation_params_c
+#undef TSeq_set_element_deallocation_params
+
+#undef equals_c
+#undef TSeq_equals
+
+#if defined(MEMORY_MANAGER)
+#undef new_buffer_and_loan_w_memory_manager_c
+#undef TSeq_new_buffer_and_loan_w_memory_manager
+
+#undef unloan_and_finalize_w_memory_manager_c
+#undef TSeq_unloan_and_finalize_w_memory_manager
+
+#undef copy_w_memory_manager_c
+#undef TSeq_copy_w_memory_manager
+#endif
+
+#undef DDS_CURRENT_SUBMODULE
+#endif /* defined(TSeq) && defined(T) */
+
+/* ----------------------------------------------------------------- */
