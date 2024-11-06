@@ -30,6 +30,8 @@ public class TB800Balance extends AbstractSerialDevice {
 	boolean connected;
 	
 	private static final String MODE="C1";
+	private static final String CONT_OFF="C0\r\n";
+	private static final String CONT_ON="C1\r\n";
 	private static final String MODE_COMMAND=MODE+"\r\n";
 	
 	private InstanceHolder<Numeric> holder;
@@ -52,20 +54,11 @@ public class TB800Balance extends AbstractSerialDevice {
 
 	@Override
 	protected void doInitCommands(int idx) throws IOException {
-		while( ! connected ) {
-			writer.write(MODE_COMMAND);	//TODO: Is this the desired mode?
-			String response=reader.readLine().trim();
-			System.err.println("response to "+MODE+" is "+response+"$$$");
-			if(response.startsWith(MODE+" A") || response.startsWith(MODE+" D") || response.startsWith(MODE+" OK") || response.endsWith(" g")) {
-				reportConnected("Scale operating in "+MODE);
-				connected=true;
-			}
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+		
+		// Before connecting scale to OpenICE, please ensure it is in the "Continuous Transmission" Mode
+		reportConnected("Scale connected to OpenICE");
+		connected=true;
+		
 		
 	}
 

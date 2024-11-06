@@ -68,7 +68,7 @@ public class AP4000ChannelController {
 	@FXML
 	Label channelLabel;
 	@FXML
-	Spinner<Integer> targetInfusionRate;
+	Spinner<Double> targetInfusionRate;
 	@FXML
 	Spinner<Integer>	targetVTBI;
 	@FXML
@@ -362,7 +362,7 @@ public class AP4000ChannelController {
 	 * relevant fields, and the bolus method will ignore the infusion fields.
 	 */
 	public void programInfusion() {
-		String msg="Confirm you want to set channel "+myChannel+" to have infusion rate "+targetInfusionRate.getValue().floatValue()+" ml/h and VTBI "+targetVTBI.getValue().floatValue() + " ml";
+		String msg="Confirm you want to set channel "+myChannel+" to have infusion rate "+targetInfusionRate.getValue().floatValue()+" ml/h and VTBI "+targetVTBI.getValue() + " ml";
 		Alert confirm=new Alert(AlertType.CONFIRMATION,msg,new ButtonType[] {ButtonType.OK,ButtonType.CANCEL});
 		Optional<ButtonType> result=confirm.showAndWait();
 		try {
@@ -374,7 +374,7 @@ public class AP4000ChannelController {
 				program.bolusVolume=-1;	//Ignore
 //				targetInfusionRate.setValueFactory(null);
 				program.infusionRate=targetInfusionRate.getValue().floatValue();
-				program.VTBI=targetVTBI.getValue().floatValue();
+				program.VTBI=targetVTBI.getValue();
 				program.unique_device_identifier=device.getUDI();
 				program.requestor="ControlApp";	//Not really used at the moment.
 				infusionProgramDataWriter.write(program, InstanceHandle_t.HANDLE_NIL);

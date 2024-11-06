@@ -1,6 +1,8 @@
 package org.mdpnp.apps.testapp.pumps;
 
-import java.io.IOException;
+import java.text.FieldPosition;
+import java.text.Format;
+import java.text.ParsePosition;
 import java.util.Date;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -16,30 +18,27 @@ import com.rti.dds.infrastructure.InstanceHandle_t;
 import ice.InfusionObjectiveDataWriter;
 import ice.InfusionProgram;
 import ice.InfusionProgramDataWriter;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
-import javafx.collections.ListChangeListener.Change;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
+import javafx.scene.control.Label;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Label;
 import javafx.scene.control.Spinner;
-import javafx.scene.control.Alert.AlertType;
-import javafx.scene.layout.VBox;
 import javafx.util.StringConverter;
 
 /**
- * A UI controller1 for the Alaris Asena.  This is to work in the PumpControllerTestApplication,
+ * A UI controller for the AP-4000.  This is to work in the PumpControllerTestApplication,
  * not to interface with the device itself.
  * 
  * @author Simon
  * 
  */
-public class AsenaController extends AbstractControllablePump {
+public class AP4000vINTChannelController {
 	
-//	@FXML GridPane main;
 	@FXML
 	Label sysIDLabel;
 	@FXML
@@ -47,43 +46,106 @@ public class AsenaController extends AbstractControllablePump {
 	@FXML
 	Label drugLabel;
 	@FXML
+	Label concentrationLabel;
+	@FXML
+	Label weightLabel;
+	@FXML
+	Label heightLabel;
+	@FXML
+	Label ageLabel;
+	@FXML
+	Label asaLabel;
+	@FXML
 	Label infusionRateLabel;
 	@FXML
 	Label volumeInfusedLabel;
 	@FXML
 	Label targetVolumeInfusedLabel;
 	@FXML
-	Label bolusInfusedLabel;
+	Label currentBolusInfusedLabel;
+	@FXML
+	Label totalBolusInfusedLabel;
 	@FXML
 	Label channelLabel;
 	@FXML
-	Spinner<Double> targetInfusionRate;
+	Spinner<Integer> targetInfusionRate;
 	@FXML
-	Spinner<Double>	targetVTBI;
+	Spinner<Integer>	targetVTBI;
 	@FXML
 	Button pauseResumeInfusion;
 	@FXML
 	Button programInfusion;
 	@FXML
-	Spinner<Double> bolusDose;
+	Spinner<Integer> bolusDose;
 	@FXML
-	Spinner<Double> bolusRate;
+	Spinner<Integer> bolusRate;
 	@FXML
 	Button startBolus;
-	@FXML
-	Label pumpSerialLabel;
-	@FXML
-	Label pumpUDILabel;
-	@FXML
-	Label modelLabel;
 	
-	private final int myChannel = 1;
+	private NumericFxList numericList;
+	private AlertFxList alertList;
 	
 	
-	private String myDrugMetric, myVTBIRemainingMetric, myTargetVTBIMetric;
+	private int myChannel;
 	
-	private String myFlowRate = "MDC_FLOW_FLUID_PUMP";
+	private String myDrugNameMetric, myDrugConcMetric, myFluidDeliveredMetric, myTargetVTBIMetric, myVolumeRemainingMetric, myBolusInfusedMetric, myTotalBolusInfusedMetric;
 	
+	public int getChannel() {
+		return myChannel;
+	}
+
+	public void setChannel(int channel) {
+		this.myChannel = channel;
+		channelLabel.setText("Channel "+myChannel);
+		myDrugNameMetric="CHANNEL"+channel+"_DRUG_NAME";
+		myDrugConcMetric="CHANNEL"+channel+"_DRUG_CONC";
+		myFluidDeliveredMetric="MDC_VOL_FLUID_DELIVERED_"+channel;
+		myTargetVTBIMetric="ICE_PROGRAMMED_VTBI"+channel;
+		myVolumeRemainingMetric="MDC_VOL_FLUID_TBI_REMAIN_"+channel;
+		myBolusInfusedMetric="ICE_BOLUS_INFUSED_"+channel;
+		myTotalBolusInfusedMetric="ICE_BOLUS_SESSION_TOTAL_"+channel;
+	}
+
+	public void setNumericFxList(NumericFxList numericList) {
+		this.numericList=numericList;
+	}
+	
+	public void setAlertFxList(AlertFxList alertList) {
+		this.alertList=alertList;
+	}
+	
+	private String myFlowRate;
+	
+	private String pt_weight, pt_height, pt_age, pt_state;
+	
+	public void setMyFlowRate(String myFlowRate) {
+		this.myFlowRate=myFlowRate;
+	}
+	
+	private void setPatientInfo(String weight, String height, String age, String state) {
+		this.pt_weight = weight;
+		this.pt_height = height;
+		this.pt_age = age;
+		this.pt_state = state;
+	}
+	
+	private Device device;
+	
+	public void setDevice(Device device) {
+		this.device=device;
+	}
+	
+	private InfusionObjectiveDataWriter infusionObjectiveWriter;
+	
+	public void setInfusionObjectiveWriter(InfusionObjectiveDataWriter infusionObjectiveWriter) {
+		this.infusionObjectiveWriter = infusionObjectiveWriter;
+	}
+	
+	private InfusionProgramDataWriter infusionProgramDataWriter;
+
+	public void setInfusionProgramDataWriter(InfusionProgramDataWriter infusionProgramDataWriter) {
+		this.infusionProgramDataWriter = infusionProgramDataWriter;
+	}
 
 	/**
 	 * The current infusion rate for the head.  We have this in a variable so that we can reference
@@ -92,7 +154,7 @@ public class AsenaController extends AbstractControllablePump {
 	 */
 	private float currentInfusionRate;
 	
-	public AsenaController() {
+	public AP4000vINTChannelController() {
 		// TODO Auto-generated constructor stub
 	}
 	
@@ -105,13 +167,18 @@ public class AsenaController extends AbstractControllablePump {
 			//Our device and our metric.
 			addListener(n, infusionRateLabel);
 		}
-		if(n.getMetric_id().equals("VOLUME_INFUSED")) {
+		if(n.getMetric_id().equals(myFluidDeliveredMetric)) {
 			addListener(n, volumeInfusedLabel);
 		}
-		if(n.getMetric_id().equals("VTBI")) {
+		if(n.getMetric_id().equals(myTargetVTBIMetric)) {
 			addListener(n, targetVolumeInfusedLabel);
 		}
-		
+		if(n.getMetric_id().equals(myBolusInfusedMetric)) {
+			addListener(n, currentBolusInfusedLabel);
+		}
+		if(n.getMetric_id().equals(myTotalBolusInfusedMetric)) {
+			addListener(n, totalBolusInfusedLabel);
+		}
 	}
 	
 	private void assign(AlertFx a) {
@@ -119,59 +186,61 @@ public class AsenaController extends AbstractControllablePump {
 			//Not our device
 			return;
 		}
-		if(a.getIdentifier().equals("serialNumber")) {
+		
+		if(a.getIdentifier().equals(myDrugNameMetric)) {
 			//It seems VERY unlikely that this will change, but we'll handle it.
-			addAlertListener(a,pumpSerialLabel);
-		}
-		if(a.getIdentifier().equals("UDI")) {
-			addAlertListener(a, pumpUDILabel);
-		}
-		if(a.getIdentifier().equals("Model")) {
-			addAlertListener(a, modelLabel);
-		}
-	}
-
-	@Override
-	public void start() {
-		try {
-//			
-			
-			numericList.addListener(new ListChangeListener<NumericFx>() {
-
-				@Override
-				public void onChanged(Change<? extends NumericFx> c) {
-					while(c.next()) {
-						c.getAddedSubList().forEach( n -> {
-							assign(n);
-						});
-					}
-				}
-			});
-			numericList.forEach( n -> {
-				assign(n);
-			});
-			
-			alertList.addListener(new ListChangeListener<AlertFx>() {
-
-				@Override
-				public void onChanged(Change<? extends AlertFx> c) {
-					while(c.next()) {
-						c.getAddedSubList().forEach( a -> {
-							assign(a);
-						});
-					}
-				}
-			});
-			alertList.forEach( a -> {
-				assign(a);
-			});
-			
-		} catch (Exception ioe) {
-			ioe.printStackTrace();
+			addAlertListener(a,drugLabel);
 		}
 		
+		if(a.getIdentifier().equals(myDrugConcMetric)) {
+			//It seems VERY unlikely that this will change, but we'll handle it.
+			addAlertListener(a,concentrationLabel);
+		}
+		
+//		if(a.getIdentifier().equals("CASE_ID")) {
+//			addAlertListener(a, caseIDLabel);
+//		}
+//		if(a.getIdentifier().equals("SYS_ID")) {
+//			addAlertListener(a, sysIDLabel);
+//		}
 	}
-	
+
+	public void start() {
+		/*
+		 * We add a list change listener to the list, because the device might not yet have published
+		 * the numeric with the metric id that we care about.  So we listen for changes to the list so
+		 * that we can capture the correct numeric later on.
+		 */
+		numericList.addListener(new ListChangeListener<NumericFx>() {
+
+			@Override
+			public void onChanged(Change<? extends NumericFx> c) {
+				while(c.next()) {
+					c.getAddedSubList().forEach( n -> {
+						assign(n);
+					});
+				}
+			}
+		});
+		numericList.forEach( n -> {
+			assign(n);
+		});
+		
+		alertList.addListener(new ListChangeListener<AlertFx>() {
+
+			@Override
+			public void onChanged(Change<? extends AlertFx> c) {
+				while(c.next()) {
+					c.getAddedSubList().forEach( a -> {
+						assign(a);
+					});
+				}
+			}
+		});
+		alertList.forEach( a -> {
+			assign(a);
+		});
+	}
 	
 	private void addAlertListener(AlertFx a, Label targetLabel) {
 		if(targetLabel.getUserData()==null) {
@@ -293,7 +362,7 @@ public class AsenaController extends AbstractControllablePump {
 	 * relevant fields, and the bolus method will ignore the infusion fields.
 	 */
 	public void programInfusion() {
-		String msg="Confirm you want to set infusion rate "+targetInfusionRate.getValue().floatValue()+" ml/h and VTBI "+targetVTBI.getValue().floatValue() + " ml";
+		String msg="Confirm you want to set channel "+myChannel+" to have infusion rate "+targetInfusionRate.getValue()+" ml/h and VTBI "+targetVTBI.getValue() + " ml";
 		Alert confirm=new Alert(AlertType.CONFIRMATION,msg,new ButtonType[] {ButtonType.OK,ButtonType.CANCEL});
 		Optional<ButtonType> result=confirm.showAndWait();
 		try {
@@ -303,8 +372,9 @@ public class AsenaController extends AbstractControllablePump {
 				program.head=myChannel;	//TODO: variable here
 				program.bolusRate=-1;	//Ignore
 				program.bolusVolume=-1;	//Ignore
-				program.infusionRate=targetInfusionRate.getValue().floatValue();
-				program.VTBI=targetVTBI.getValue().floatValue();
+//				targetInfusionRate.setValueFactory(null);
+				program.infusionRate=targetInfusionRate.getValue();
+				program.VTBI=targetVTBI.getValue();
 				program.unique_device_identifier=device.getUDI();
 				program.requestor="ControlApp";	//Not really used at the moment.
 				infusionProgramDataWriter.write(program, InstanceHandle_t.HANDLE_NIL);
@@ -322,28 +392,24 @@ public class AsenaController extends AbstractControllablePump {
 	 * relevant fields, and the bolus method will ignore the infusion fields.
 	 */
 	public void programBolus() {
-//		String msg="Confirm you want to set channel "+myChannel+" to have bolus rate "+bolusRate.getValue()+" and dose "+bolusDose.getValue();
-//		Alert confirm=new Alert(AlertType.CONFIRMATION,msg,new ButtonType[] {ButtonType.OK,ButtonType.CANCEL});
-//		Optional<ButtonType> result=confirm.showAndWait();
-		String msg="Bolus is not supported by Alaris Asena pump";
-		Alert confirm=new Alert(AlertType.INFORMATION,msg,new ButtonType[] {ButtonType.OK});
+		String msg="Confirm you want to set channel "+myChannel+" to have bolus rate "+bolusRate.getValue()+" ml/h and dose "+bolusDose.getValue() + " ml";
+		Alert confirm=new Alert(AlertType.CONFIRMATION,msg,new ButtonType[] {ButtonType.OK,ButtonType.CANCEL});
 		Optional<ButtonType> result=confirm.showAndWait();
-//		try {
-//			InfusionProgram program=new InfusionProgram();
-//			program.head=myChannel;	//TODO: variable here
-//			program.bolusRate=bolusRate.getValue();
-//			program.bolusVolume=bolusDose.getValue();
-//			program.infusionRate=-1;	//Ignore
-//			program.VTBI=-1;	//Ignore
-//			program.unique_device_identifier=device.getUDI();
-//			program.requestor="ControlApp";	//Not really used at the moment.
-//			infusionProgramDataWriter.write(program, InstanceHandle_t.HANDLE_NIL);
-//		} catch (NoSuchElementException nsee) {
-//			//No return from dialog - no action...
-//			System.err.println("dialog was closed without result");
-//		}
+		try {
+			InfusionProgram program=new InfusionProgram();
+			program.head=myChannel;	//TODO: variable here
+			program.bolusRate=bolusRate.getValue();
+			program.bolusVolume=bolusDose.getValue();
+			program.infusionRate=-1;	//Ignore
+			program.VTBI=-1;	//Ignore
+			program.unique_device_identifier=device.getUDI();
+			program.requestor="ControlApp";	//Not really used at the moment.
+			infusionProgramDataWriter.write(program, InstanceHandle_t.HANDLE_NIL);
+		} catch (NoSuchElementException nsee) {
+			//No return from dialog - no action...
+			System.err.println("dialog was closed without result");
+		}
 	}
-	
-	
+		
 	
 }

@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+
+<VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" xmlns:fx="http://javafx.com/fxml/1" fx:id="veryTop" fx:controller="org.mdpnp.apps.testapp.pumps.AP4000vINTController" spacing="1" style="-fx-border-style: solid">
+   <children>
+      <HBox prefHeight="25.0" prefWidth="800.0">
+         <children>
+            <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="400.0">
+               <children>
+                  <Label fx:id="pumpUDILabel" text="Pump UDI:   " />
+               </children></HBox>
+            <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="400.0">
+               <children>
+                  <Label text="-- Patient Demographics --" />
+               </children>
+            </HBox>
+         </children>
+      </HBox>
+      <HBox prefHeight="25.0" prefWidth="800.0">
+         <children>
+            <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="200.0">
+               <children>
+                  <Label fx:id="pumpSerialLabel">Pump Serial #: </Label>
+               </children>
+            </HBox>
+            <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="200.0">
+               <children>
+                  <Label fx:id="modelLabel" text="Model:" />
+               </children>
+            </HBox>
+            <HBox alignment="TOP_RIGHT" prefHeight="25.0" prefWidth="400.0">
+               <HBox.margin>
+                  <Insets />
+               </HBox.margin>
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+               <children>
+                  <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="125.0">
+                     <children>
+                        <Label fx:id="weightLabel" text="Weight (kg): " />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="125.0">
+                     <children>
+                        <Label fx:id="heightLabel" text="Height (cm): " />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="75.0">
+                     <children>
+                        <Label fx:id="ageLabel" text="Age: " />
+                     </children>
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" prefHeight="25.0" prefWidth="75.0">
+                     <children>
+                        <Label fx:id="asaLabel" text="" />
+                     </children>
+                  </HBox>
+               </children>
+            </HBox>
+         </children>
+      </HBox>
+      <Label text="Alarm Status,:" styleClass="heading" />
+      <HBox alignment="CENTER_LEFT" prefHeight="150.0" prefWidth="800.0">
+         <children>
+            <TableView fx:id="alertTable" prefWidth="-1.0"
+      			 prefHeight="300.0" GridPane.rowIndex="1">
+      		 <columns>
+       			 <TableColumn prefWidth="200.0" text="Source Time">
+        			 <cellValueFactory>
+         				 <PropertyValueFactory property="when" />
+      				   </cellValueFactory>
+    		    </TableColumn>
+    		    <TableColumn prefWidth="50.0" text="Code">
+         			<cellValueFactory>
+         				 <PropertyValueFactory property="code" />
+       				</cellValueFactory>
+        		</TableColumn>
+        		<TableColumn prefWidth="200.0" text="Description">
+         			<cellValueFactory>
+          				<PropertyValueFactory property="description" />
+         			</cellValueFactory>
+         		</TableColumn>
+     			<TableColumn prefWidth="50" text="Priority">
+         			<cellValueFactory>
+          				<PropertyValueFactory property="priority" />
+         			</cellValueFactory>
+        		</TableColumn>
+		    </columns>
+	    	</TableView>
+         </children>
+      </HBox>
+      <HBox prefHeight="10.0" prefWidth="600.0" />
+      
+   </children>
+
+</VBox>

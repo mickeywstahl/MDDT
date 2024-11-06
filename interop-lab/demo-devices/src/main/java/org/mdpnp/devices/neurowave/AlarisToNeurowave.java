@@ -46,7 +46,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 	
 	private static final Logger log = LoggerFactory.getLogger(AlarisToNeurowave.class);
 	
-	private static final Logger alarisNeurowaveLog = LoggerFactory.getLogger("neurowave.alaris");
+	private static final Logger alarisNeurowaveLog = LoggerFactory.getLogger("easy.tiva");
 	
 	private static final Hashtable<String,String> AP4000AlarmMap=new Hashtable<>();
 
@@ -72,6 +72,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 		super(subscriber, publisher, eventLoop, 2);
 		super.debug=true;
 		populateAlarmMap();
+		System.err.println(AP4000AlarmMap.toString());
 		NeurowaveThread nt=new NeurowaveThread();
 		nt.setDaemon(true);
 		nt.start();
@@ -142,6 +143,21 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 	 */
 	private String executeNeurowaveCommand(String alarisCommand, int idx) throws IOException {
 		alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| From EasyTiva: |"+alarisCommand);
+		
+		ArrayList<String> alarms = neurowaveDevice.getAlarmCodes();
+//		ArrayList<AP4000Alarm> alarms=neurowaveDevice.alarmList;
+		System.err.println("Alarm Size == " + alarms.size());
+		if (alarms.size() > 0) {
+			System.err.println(alarms.get(0));
+			System.err.println(alarms);
+			System.err.println(alarms.toArray());
+		}
+		else {
+			System.err.println("No alarms to get rn");
+		}
+		
+		System.err.println(neurowaveDevice.getFlowRate(1));
+		
 		if(alarisCommand.startsWith("!INST_SERIALNO|")) {
 			if(idx==0) {
 				String finalResponse="!INST_SERIALNO^8002-51733|ACFF\r";
@@ -217,10 +233,18 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 			sb.append("^-^SET^");	//This is the infusion mode
 			//Now, we want the actual infusion rate value.
 			if(idx==0) {
-				sb.append(neurowaveDevice.getFlowRate(1));
+				if(neurowaveDevice.getFlowRate(1) == 0.0){
+					sb.append("0.1");
+					}else {
+						sb.append(neurowaveDevice.getFlowRate(1));
+					}
 			}
 			if(idx==1) {
-				sb.append(neurowaveDevice.getFlowRate(2));
+				if(neurowaveDevice.getFlowRate(2) == 0.0){
+				sb.append("0.1");
+				}else {
+					sb.append(neurowaveDevice.getFlowRate(2));
+				}
 			}
 			//Don't think units are available via the Neurowave
 			sb.append("^ml/h");
@@ -304,23 +328,26 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 		if(alarisCommand.startsWith("!ALARM|")) {
 			String finalResponse="";
 			String noAlarmsActive="ALARM^AL_NOALM^ ^";
-			ArrayList<AP4000Alarm> alarms=neurowaveDevice.alarmList;
+//			alarms=neurowaveDevice.alarmList;
+			System.err.println("Alarm Size == " + alarms.size());
 			if(alarms.size()==0) {
 				finalResponse=Asena.crc(noAlarmsActive);
-			} else {
-				//We can't handle more than one alarm, so we really need to sort the highest priority ones anyway...
-				AP4000Alarm ap4000Alarm=alarms.get(0);
-				String alarisAlarm=AP4000AlarmMap.get(ap4000Alarm.code);
-				if(alarisAlarm==null) {
-					log.warn("Unmapped AP4000 alarm "+ap4000Alarm.code);
-
-					alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| Unmapped AP4000 alarm |"+ap4000Alarm.code);
-
-					//TODO: Return AL_NOALM or AL_OCCLU?
-					finalResponse=Asena.crc(noAlarmsActive);
-				} else {
-					finalResponse=Asena.crc("ALARM^"+alarisAlarm+"^ ^");
-				}
+//			} else {
+//				//We can't handle more than one alarm, so we really need to sort the highest priority ones anyway...
+//				AP4000Alarm ap4000Alarm=alarms.get(0);
+//				String alarisAlarm=AP4000AlarmMap.get(ap4000Alarm.code);
+//				if(alarisAlarm==null) {
+//					log.warn("Unmapped AP4000 alarm "+ap4000Alarm.code);
+//
+//					alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| Unmapped AP4000 alarm |"+ap4000Alarm.code);
+//
+//					//TODO: Return AL_NOALM or AL_OCCLU?
+//					finalResponse=Asena.crc(noAlarmsActive);
+//				} else {
+//					finalResponse=Asena.crc("ALARM^"+alarisAlarm+"^ ^");
+//				}
+			}else {
+				finalResponse=Asena.crc(noAlarmsActive);
 			}
 			System.err.println("returning "+finalResponse+" for !ALARM query");
 			alarisNeurowaveLog.trace(getPortIdentifier(idx) + "|"+ System.currentTimeMillis()  + "| To EasyTiva: |"+finalResponse);
@@ -405,7 +432,7 @@ public class AlarisToNeurowave extends AbstractSerialDevice {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				neurowaveDevice.connect("COM10");
+				neurowaveDevice.connect("COM14");
 			}
 		}.start();
 		

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.geometry.Insets?>
+ 
+ <GridPane xmlns:fx="http://javafx.com/fxml/1" style="-fx-border-style: solid" fx:controller="org.mdpnp.apps.testapp.easytiva.GenericTranslatorApplication" hgap="5" vgap="5">
+  <children>
+    <Label GridPane.columnIndex="0" GridPane.rowIndex="0">Drug</Label>
+    <Label GridPane.columnIndex="0" GridPane.rowIndex="1">Propofol</Label>
+  	<Label GridPane.columnIndex="0" GridPane.rowIndex="2">Remifentanil</Label>
+  	<Label GridPane.columnIndex="1" GridPane.rowIndex="0">IV Pump Type</Label>
+  	<ComboBox fx:id="propCombo" GridPane.columnIndex="1" GridPane.rowIndex="1"></ComboBox>
+  	<ComboBox fx:id="remiCombo" GridPane.columnIndex="1" GridPane.rowIndex="2"></ComboBox>
+  	<Label GridPane.columnIndex="2" GridPane.rowIndex="0">Infusion Channel</Label>
+  	<TextField fx:id="propChannel" visible="false" GridPane.columnIndex="2" GridPane.rowIndex="1"></TextField>
+  	<TextField fx:id="remiChannel" visible="false" GridPane.columnIndex="2" GridPane.rowIndex="2"></TextField>
+  	<Label GridPane.columnIndex="3" GridPane.rowIndex="0">Comm Port</Label>
+  	<ComboBox fx:id="propPortCombo" GridPane.columnIndex="3" GridPane.rowIndex="1"></ComboBox>
+  	<ComboBox fx:id="remiPortCombo" GridPane.columnIndex="3" GridPane.rowIndex="2"></ComboBox>
+  	<Separator GridPane.columnIndex="0" GridPane.rowIndex="3" GridPane.columnSpan="4"></Separator>
+  	<Label GridPane.columnIndex="0" GridPane.rowIndex="4">EasyTiva Port</Label>
+  	<ComboBox fx:id="easyPortCombo" GridPane.columnIndex="1" GridPane.rowIndex="4"></ComboBox>
+  	<Separator GridPane.columnIndex="0" GridPane.rowIndex="5" GridPane.columnSpan="4"></Separator>
+  	<Button GridPane.columnIndex="0" GridPane.rowIndex="6" fx:id="startButton" onAction="#startProcess" text="Start"/>
+  	<Button GridPane.columnIndex="3" GridPane.rowIndex="6" fx:id="stopButton" onAction="#stopProcess" text="Stop"/>
+  	<Separator GridPane.columnIndex="0" GridPane.rowIndex="7" GridPane.columnSpan="4"></Separator>
+  	<TextArea fx:id="logArea" GridPane.columnIndex="0" GridPane.rowIndex="8" GridPane.columnSpan="4"></TextArea>
+  	<Label fx:id="remiRateLabel" GridPane.columnIndex="0" GridPane.rowIndex="9">Remifentanyl rate</Label>
+  	<Label fx:id="propRateLabel" GridPane.columnIndex="2" GridPane.rowIndex="9">Propofol rate</Label>
+  </children>
+</GridPane>

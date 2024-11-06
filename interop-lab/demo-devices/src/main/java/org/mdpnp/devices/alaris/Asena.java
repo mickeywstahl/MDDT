@@ -89,6 +89,8 @@ private boolean initDone;
 	float setVTBIvol;
 	float setBolusSpeed;
 	float setBolusVol;
+	String currentAlarm = null;
+	
 	int masterValue = (int)1;
 	
 	private final InstanceHolder<Numeric> flowRateHolderHead, volumeInfused, vtbiRemaining;
@@ -117,6 +119,7 @@ private boolean initDone;
 	
 	private static final String INFSTART = "!INF_START|38F3\r";
 	private static final String INFSTOP = "!INF_STOP|CD57\r";
+	private static final String CLEARVI = "!INF_VI_CLEAR|A706\r";
 	
 	private static final int MAX_RESPONSE_LEN = 15000;
 	
@@ -374,6 +377,25 @@ private boolean initDone;
 		System.err.println("INF STOP command response is " + response);
 	}
 	
+	private synchronized void clearVI() throws IOException {
+		
+		byte[] initBytes = CLEARVI.getBytes();
+		toDevice.write(initBytes);
+		toDevice.flush();
+		System.err.println("Attempting to clear Volume Infused");
+		
+		String response = fromDevice.readLine();
+//		byte[] responseBytes = new byte[MAX_RESPONSE_LEN];
+//		System.err.println("Reading for response");
+//		int bytesRead = 0;
+//		
+//		while(bytesRead <15 || responseBytes[bytesRead-6] !='|') {
+//			bytesRead += fromDevice.read(responseBytes, bytesRead, responseBytes.length - bytesRead);			
+//		}		
+//		String response = new String (responseBytes,0,bytesRead);
+		System.err.println("INF CLEAR VI command response is " + response);
+	}
+	
 	private synchronized void instituteSerialNumber() throws IOException {
 		
 		byte[] initBytes = INSTSERIAL.getBytes();
@@ -613,6 +635,14 @@ private boolean initDone;
 		String lastvals [] = LogEntryID.split("|");
 		LogEntryID = lastvals[0];
 		
+		if (! AlarmNotification.equals("-")) {
+			queryAlarm();
+		}
+		
+		if ( currentAlarm != null && AlarmNotification.equals("-") ) {
+			writeTechnicalAlert(currentAlarm, null);
+		}
+		
 	}
 	
 	private void queryVTBI() throws IOException{
@@ -646,6 +676,35 @@ private boolean initDone;
 		}
 		
 		currentVTBI = vtbi;
+	}
+	
+	private void queryAlarm() throws IOException{
+		String ALARM = crc("ALARM");
+		byte[] initBytes = ALARM.getBytes();
+		toDevice.write(initBytes);
+		toDevice.flush();
+		System.err.println("Attempting to query Alarm status");
+		
+		String response = fromDevice.readLine();
+
+		System.err.println("ALARM command response is " + response);
+		String parts[] = response.split("\\^");
+		String currentAlarmCode = parts[1];
+		
+		if(currentAlarmCode.equals("AL_SYRCO")) {
+			currentAlarm = "CLAMP_OPEN";
+		}else if (currentAlarmCode.equals("AL_DRDIS")) {
+			currentAlarm = "PLUNGER_OPEN";
+		}else if (currentAlarmCode.equals("AL_OCCLU")) {
+			currentAlarm = "OCCLUSION";
+		}else if (currentAlarmCode.equals("AL_EOIST") || currentAlarmCode.equals("AL_EOIKV")) {
+			currentAlarm = "END_OF_INFUSION";
+		}else if (currentAlarmCode.equals("AL_EOIST") || currentAlarmCode.equals("AL_EOIKV")) {
+			currentAlarm = "END_OF_INFUSION";
+		}else {
+			currentAlarm = "DEVICE_NOT_READY";
+		}
+		writeTechnicalAlert(currentAlarm, currentAlarm);
 	}
 	
 	private void setVTBI(float VTBIvol) throws IOException {
@@ -1009,12 +1068,12 @@ private boolean initDone;
 	
 	
 	private synchronized void programPump(InfusionProgram program) throws IOException {
+		System.err.println("Asena programPump infusion rate is "+program.infusionRate);
 		
-		if(program.infusionRate > 0) {
-			setPumpSpeed = program.infusionRate;
-			setVTBIvol = program.VTBI;
-			pendingWriteSpeed = true;
-		}
+		
+		setPumpSpeed = program.infusionRate;
+		setVTBIvol = program.VTBI;
+		pendingWriteSpeed = true;
 		
 		if( program.bolusRate > 0 ) {
 			setBolusSpeed = program.bolusRate;
