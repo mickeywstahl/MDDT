@@ -45,7 +45,6 @@ typedef INTU16 BITS16;
 typedef INTU32 BITS32;
 typedef INTU64 BITS64;
 
-typedef long TIME_T;
 typedef boolean BOOL;
 
 /**
