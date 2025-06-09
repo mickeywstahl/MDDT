@@ -439,26 +439,39 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 			public void onChanged(Change<? extends NumericFx> change) {
 				while(change.next()) {
 					change.getAddedSubList().forEach( n -> {
+						// dont publish same metric again
+						ArrayList seenMetrics = new ArrayList();
+						System.err.println("new metric "+n.getMetric_id()+" from device "+n.getUnique_device_identifier());
+						
 						if(n.getMetric_id().equals(FLOW_RATE)) {
 							PumpDevice pumpDevice=new PumpDevice(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
 							//Any pump publishing this flow rate metric should only have one head...
 							pumpDevice.setHead(1);
 							pumpDevice.setMetric(n.getMetric_id());
-							pumps.getItems().add(pumpDevice);
+							if(!seenMetrics.contains(n.getMetric_id())) {
+								pumps.getItems().add(pumpDevice);
+								seenMetrics.add(n.getMetric_id());
+							}
 						}
 						if(n.getMetric_id().equals("MDC_FLOW_FLUID_PUMP_1")) {
 							PumpDevice pumpDevice=new PumpDevice(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
 							//Any pump publishing this flow rate metric should only have one head...
 							pumpDevice.setHead(1);
 							pumpDevice.setMetric(n.getMetric_id());
-							pumps.getItems().add(pumpDevice);
+							if(!seenMetrics.contains(n.getMetric_id())) {
+								pumps.getItems().add(pumpDevice);
+								seenMetrics.add(n.getMetric_id());
+							}
 						}
 						if(n.getMetric_id().equals("MDC_FLOW_FLUID_PUMP_2")) {
 							PumpDevice pumpDevice=new PumpDevice(dlm.getByUniqueDeviceIdentifier(n.getUnique_device_identifier()));
 							//Any pump publishing this flow rate metric should only have one head...
 							pumpDevice.setHead(2);
 							pumpDevice.setMetric(n.getMetric_id());
-							pumps.getItems().add(pumpDevice);
+							if(!seenMetrics.contains(n.getMetric_id())) {
+								pumps.getItems().add(pumpDevice);
+								seenMetrics.add(n.getMetric_id());
+							}
 						}
 
 					});
@@ -474,8 +487,15 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 					change.getRemoved().forEach( d-> {
 						bpsources.getItems().remove(d);
 						
-						PumpDevice pd=new PumpDevice(d);
-						pumps.getItems().remove(new PumpDevice(d));
+						pumps.getItems().forEach(p->{
+							if(p.getDevice().getUDI().equals(d.getUDI())) {
+								boolean rem1=pumps.getItems().remove(new PumpDevice(d));
+								System.err.println("rem1 is "+rem1);
+								boolean rem2=pumps.getItems().remove(new PumpDevice(d));
+								System.err.println("rem2 is "+rem2);
+							}
+						});
+//						pumps.getItems().remove(new PumpDevice(d));
 					});
 				}
 			}
@@ -717,7 +737,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 	/**
 	 * Are we recording samples for entry into the export table of the database?
 	 */
-	private boolean recording=false;
+	private boolean recording=true;
 	
 	/**
 	 * How many samples have we recorded?

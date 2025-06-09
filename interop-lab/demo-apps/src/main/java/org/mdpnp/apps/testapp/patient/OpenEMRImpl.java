@@ -14,13 +14,6 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonReader;
-import javax.json.JsonValue.ValueType;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -33,6 +26,13 @@ import org.mdpnp.apps.testapp.Main;
 import org.mdpnp.apps.testapp.patient.PatientInfo.Gender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonReader;
+import jakarta.json.JsonValue.ValueType;
 
 public class OpenEMRImpl extends EMRFacade {
 	
