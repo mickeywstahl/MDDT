@@ -56,17 +56,17 @@ public class SimControllablePumpController extends AbstractControllablePump {
 	@FXML
 	Label channelLabel;
 	@FXML
-	Spinner<Integer> targetInfusionRate;
+	Spinner<Double> targetInfusionRate;
 	@FXML
-	Spinner<Integer>	targetVTBI;
+	Spinner<Double>	targetVTBI;
 	@FXML
 	Button pauseResumeInfusion;
 	@FXML
 	Button programInfusion;
 	@FXML
-	Spinner<Integer> bolusDose;
+	Spinner<Double> bolusDose;
 	@FXML
-	Spinner<Integer> bolusRate;
+	Spinner<Double> bolusRate;
 	@FXML
 	Button startBolus;
 	
@@ -97,7 +97,8 @@ public class SimControllablePumpController extends AbstractControllablePump {
 		this.alertList=alertList;
 	}
 	
-	private String myFlowRate;
+	//SK - add a default here.  Nothing is calling the setter - what was the idea here?
+	private String myFlowRate=rosetta.MDC_FLOW_FLUID_PUMP.VALUE;
 	
 	public void setMyFlowRate(String myFlowRate) {
 		this.myFlowRate=myFlowRate;
@@ -360,8 +361,8 @@ public class SimControllablePumpController extends AbstractControllablePump {
 		try {
 			InfusionProgram program=new InfusionProgram();
 			program.head=myChannel;	//TODO: variable here
-			program.bolusRate=bolusRate.getValue();
-			program.bolusVolume=bolusDose.getValue();
+			program.bolusRate=bolusRate.getValue().floatValue();
+			program.bolusVolume=bolusDose.getValue().floatValue();
 			program.infusionRate=-1;	//Ignore
 			program.VTBI=-1;	//Ignore
 			program.unique_device_identifier=device.getUDI();

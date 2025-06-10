@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Objects;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.mdpnp.devices.DeviceClock;
@@ -60,9 +59,9 @@ import ice.Numeric;
  * @author MDPNP
  *
  */
-public class AP4000 extends AbstractSerialDevice {
+public class AP4000vINT extends AbstractSerialDevice {
 	
-	private static final Logger log = LoggerFactory.getLogger(AP4000.class);
+	private static final Logger log = LoggerFactory.getLogger(AP4000vINT.class);
 	
 	private Logger externalLog;
 	
@@ -181,15 +180,15 @@ public class AP4000 extends AbstractSerialDevice {
 	 */
 	private static final String V_0_2="v0.2";
 
-	public AP4000(Subscriber subscriber, Publisher publisher, EventLoop eventLoop) {
+	public AP4000vINT(Subscriber subscriber, Publisher publisher, EventLoop eventLoop) {
 		this(subscriber, publisher, eventLoop,1);
 	}
 
-	public AP4000(Subscriber subscriber, Publisher publisher, EventLoop eventLoop, int countSerialPorts) {
+	public AP4000vINT(Subscriber subscriber, Publisher publisher, EventLoop eventLoop, int countSerialPorts) {
 		super(subscriber, publisher, eventLoop, countSerialPorts);
-		Thread.dumpStack();
+//		Thread.dumpStack();
 		deviceIdentity.manufacturer="Neurowave";
-		deviceIdentity.model="AP-4000";
+		deviceIdentity.model="AP-4000-ver-INT";
 		AbstractSimulatedDevice.randomUDI(deviceIdentity);
 		super.writeDeviceIdentity();
 		flowRateHolderHeadOne=createNumericInstance("MDC_FLOW_FLUID_PUMP_1", "DEV_STATUS_INFRATE_ACTUAL1");
@@ -495,8 +494,6 @@ public class AP4000 extends AbstractSerialDevice {
 	
 	private float flowRate1, flowRate2, volumeInfused1, volumeInfused2, time1, time2;
 	
-	private ArrayList<String> alarmCodes = new ArrayList<String>();
-	
 	/**
 	 * Performs a status request of the pump, and 
 	 * @throws IOException
@@ -521,7 +518,7 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		
 		String response=new String(responseBytes,0,bytesRead);
-		System.err.println("STATREQ response is "+response);
+		//System.err.println("STATREQ response is "+response);
 		response=response.replace("\r\n","");
 		String parts[]=response.split("\\^");
 		if(recentStats.size()<5) {
@@ -571,7 +568,9 @@ public class AP4000 extends AbstractSerialDevice {
 			millis=splitTime[3];
 		}
 		
+//		System.err.println("millis from reading is "+millis);
 		long msForReading=deviceTimeCalendar.getTimeInMillis()+Integer.parseInt(millis);	//Add on the extra milliseconds
+//		System.err.println("msForReading "+msForReading);
 		
 		String sysOper=parts[5];
 		sessionCaseId=parts[6];
@@ -583,7 +582,8 @@ public class AP4000 extends AbstractSerialDevice {
 		devIdSn2=parts[67];
 		String programmedVTBI1=parts[42];
 		String programmedVTBI2=parts[75];
-
+//		System.err.println("FlowRate1 is "+flowRate1);
+//		System.err.println("FlowRate2 is "+flowRate2);
 		String channelOneDrugName=parts[37];
 		String channelOneDrugConc=parts[38];
 		if(channelOneDrugConc.equals("0")) {
@@ -658,7 +658,12 @@ public class AP4000 extends AbstractSerialDevice {
 		writeTechnicalAlert("UDI", deviceIdentity.unique_device_identifier);
 		//writeTechnicalAlert("Current_Alarm", "No alarms currently active");
 		//Test alarm you can publish for an app...
-		//publishAlarm("PA.02", "PUMP1", "HIGH", "HP_PUMP"); 
+		//publishAlarm("PA.02", "PUMP1", "HIGH", "HP_PUMP");
+		
+		writeTechnicalAlert("Neurowave_PT_WEIGHT", weight);
+		writeTechnicalAlert("Neurowave_PT_HEIGHT", height);
+		writeTechnicalAlert("Neurowave_PT_AGE", age);
+		writeTechnicalAlert("Neurowave_PT_STATUS", anState);
 		
 		writePatientAlert("PT_WEIGHT",weight);
 		writePatientAlert("PT_HEIGHT",height);
@@ -697,34 +702,6 @@ public class AP4000 extends AbstractSerialDevice {
 			this.priority = priority;
 			this.sound = sound;
 		}
-
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + getEnclosingInstance().hashCode();
-			result = prime * result + Objects.hash(code, device, prio, priority, sound);
-			return result;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			AP4000Alarm other = (AP4000Alarm) obj;
-			if (!getEnclosingInstance().equals(other.getEnclosingInstance()))
-				return false;
-			return Objects.equals(code, other.code) && Objects.equals(device, other.device) && prio == other.prio
-					&& Objects.equals(priority, other.priority) && Objects.equals(sound, other.sound);
-		}
-
-		private AP4000 getEnclosingInstance() {
-			return AP4000.this;
-		}
 	}
 	
 	ArrayList<AP4000Alarm> alarmList=new ArrayList<>();
@@ -752,14 +729,7 @@ public class AP4000 extends AbstractSerialDevice {
 			String alarmPriority=parts[nextIndex++];
 			String alarmSound=parts[nextIndex++];
 			AP4000Alarm alarm=new AP4000Alarm(alarmCode, alarmDevice, alarmPriority, alarmSound);
-			if (!alarmList.contains(alarm)) {
-				System.err.println("Adding to alarmList with " + alarm.code);
-				alarmList.add(alarm);
-				alarmCodes.add(alarm.code);
-				System.err.println("Double Checking here - " + alarmCodes.get(0));
-			}else {
-				System.err.println("Alarm already exists in alarmList for " + alarm.code);
-			}
+			alarmList.add(alarm);
 			publishAlarm(alarm);
 		}
 	}
@@ -774,10 +744,6 @@ public class AP4000 extends AbstractSerialDevice {
 	 */
 	private void publishAlarm(AP4000Alarm alarm) {
 		writeTechnicalAlert(alarm.code, alarm.device+"!"+alarm.priority+"!"+alarm.sound);
-	}
-	
-	ArrayList<String> getAlarmCodes() {
-		return alarmCodes;
 	}
 	
 	private void dumpRecentStats() {
@@ -887,7 +853,7 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		String response=new String(responseBytes,0,bytesRead);
 		otherLog("From AP4000: "+response);
-		System.err.println("INFPAUS response is "+response);
+//		System.err.println("INFPAUS response is "+response);
 		log.info("INFPAUS response is "+response);
 		
 	}
@@ -922,7 +888,7 @@ public class AP4000 extends AbstractSerialDevice {
 //		System.err.println("INFRESM response is "+response);
 		otherLog("From AP4000: "+response);
 		log.info("INFRESM response is "+response);
-		System.err.println("INFRESM response is "+response);
+		
 	}
 	
 	synchronized String programPump(InfusionProgram program) throws IOException {
@@ -949,7 +915,7 @@ public class AP4000 extends AbstractSerialDevice {
 			
 			
 			cmd="INFPROG^"+currentAuthKey+
-						"^"+devIdSn1+"^"+(float)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
+						"^"+devIdSn1+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
 						"^"+devIdSn2+"^-1^-1^-1^-1";
 		
 //			cmd="INFPROG^"+currentAuthKey+
@@ -962,7 +928,7 @@ public class AP4000 extends AbstractSerialDevice {
 			//Must be 2 because we throw IOException for not 1 or 2...
 			cmd="INFPROG^"+currentAuthKey+
 					"^"+devIdSn1+"^-1^-1^-1^-1"+
-					"^"+devIdSn2+"^"+(float)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate;
+					"^"+devIdSn2+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate;
 		}
 		programBytes=createCommand(cmd);
 		toDevice.write(programBytes);
@@ -980,7 +946,6 @@ public class AP4000 extends AbstractSerialDevice {
 //		System.err.println("INFPROG response is "+response);
 		log.info("INFPROG response is "+response);
 		otherLog("From AP4000: "+response);
-		System.err.println("INFPROG response is "+response);
 		return response;
 	}
 	

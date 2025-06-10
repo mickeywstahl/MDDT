@@ -185,6 +185,15 @@
         <property name="qosProfile"><value>waveform_data</value></property>
     </bean>    
     
+    <bean id="docboxNumericList" class="org.mdpnp.apps.fxbeans.NumericObservedValueFxListFactory" lazy-init="false">
+        <property name="topicName"><value>ice--NumericMeasObservedValue</value></property>
+        <property name="subscriber" ref="subscriber"/>
+        <property name="eventLoop" ref="eventLoop"/>
+        <property name="qosLibrary"><value>dices_dim_library</value></property>
+        <property name="qosProfile"><value>dices_dim_durable_profile</value></property>
+    </bean>    
+
+    
     <bean id="infusionStatusList" class="org.mdpnp.apps.fxbeans.InfusionStatusFxListFactory" lazy-init="false">
         <property name="topicName"><util:constant static-field="ice.InfusionStatusTopic.VALUE"/></property>
         <property name="subscriber" ref="subscriber"/>

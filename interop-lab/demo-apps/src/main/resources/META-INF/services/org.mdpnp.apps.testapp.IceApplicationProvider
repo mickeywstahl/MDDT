@@ -23,7 +23,9 @@ org.mdpnp.apps.testapp.openemr.OpenEMRTestApplicationFactory
 org.mdpnp.apps.testapp.mindware.BioLabAppFactory
 org.mdpnp.apps.testapp.vents.VentilatorsApplicationFactory
 org.mdpnp.apps.testapp.vents.control.VentControlApplicationFactory
+org.mdpnp.apps.docbox.DocBoxApplicationFactory
 org.mdpnp.apps.testapp.bis.BisSimulatorApplicationFactory
 org.mdpnp.apps.testapp.alaris.AlarisSimulatorApplicationFactory
 org.mdpnp.apps.testapp.easytiva.EasyTivaSimulatorApplicationFactory
+org.mdpnp.apps.testapp.easytiva.GenericTranslatorApplicationFactory
 org.mdpnp.apps.testapp.docbox.DocBoxApplicationFactory

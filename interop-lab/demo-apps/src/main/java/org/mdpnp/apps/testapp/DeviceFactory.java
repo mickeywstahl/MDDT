@@ -17,6 +17,7 @@ import org.mdpnp.devices.DeviceDriverProvider;
 import org.mdpnp.devices.DeviceDriverProvider.SpringLoadedDriver;
 import org.mdpnp.devices.coleparmer.TB800Balance;
 import org.mdpnp.devices.alaris.Asena;
+import org.mdpnp.devices.baxter.AS50;
 import org.mdpnp.devices.alaris.AlarisMITM;
 import org.mdpnp.devices.cpc.bernoulli.DemoBernoulli;
 import org.mdpnp.devices.denver.mseries.MSeriesScale;
@@ -31,7 +32,9 @@ import org.mdpnp.devices.medsteer.bis.BisMonitor;
 import org.mdpnp.devices.medsteer.bis.BisSimulator;
 import org.mdpnp.devices.nellcor.pulseox.DemoN595;
 import org.mdpnp.devices.neurowave.AP4000;
+import org.mdpnp.devices.neurowave.AP4000vINT;
 import org.mdpnp.devices.neurowave.AlarisToNeurowave;
+import  org.mdpnp.devices.medsteer.gpTranslator;
 import org.mdpnp.devices.nihon.koden.NKV550;
 import org.mdpnp.devices.nonin.pulseox.DemoNoninPulseOx;
 import org.mdpnp.devices.oridion.capnostream.DemoCapnostream20;
@@ -814,6 +817,23 @@ public class DeviceFactory {
     	
     }
     
+    public static class AP4000vINTProvider extends SpringLoadedDriver {
+
+		@Override
+		public DeviceType getDeviceType() {
+			return new DeviceType(ice.ConnectionType.Serial,"Neurowave", "AP-4000-ver-INT", "AP4000vINT", 1);
+		}
+
+		@Override
+		public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+			EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+            Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+            Publisher publisher = context.getBean("publisher", Publisher.class);
+            return new AP4000(subscriber, publisher, eventLoop);
+		}
+    	
+    }
+    
     public static class EasyTivaNeurowaveProvider extends SpringLoadedDriver {
 
 		@Override
@@ -827,6 +847,40 @@ public class DeviceFactory {
             Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
             Publisher publisher = context.getBean("publisher", Publisher.class);
             return new AlarisToNeurowave(subscriber, publisher, eventLoop);
+		}
+    	
+    }
+    
+    public static class GCPTranslatorProvider extends SpringLoadedDriver {
+
+		@Override
+		public DeviceType getDeviceType() {
+			return new DeviceType(ice.ConnectionType.Serial,"Medsteer", "GCP Translator", "Medsteer GCP Translator", 1);
+		}
+
+		@Override
+		public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+			EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+            Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+            Publisher publisher = context.getBean("publisher", Publisher.class);
+            return new gpTranslator(subscriber, publisher, eventLoop);
+		}
+    	
+    }
+    
+    public static class AS50Provider extends SpringLoadedDriver {
+
+		@Override
+		public DeviceType getDeviceType() {
+			return new DeviceType(ice.ConnectionType.Serial,"Baxter", "AS50", "AS50", 1);
+		}
+
+		@Override
+		public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+			EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+            Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+            Publisher publisher = context.getBean("publisher", Publisher.class);
+            return new AS50(subscriber, publisher, eventLoop);
 		}
     	
     }

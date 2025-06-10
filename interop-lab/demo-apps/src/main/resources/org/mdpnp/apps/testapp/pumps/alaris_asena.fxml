@@ -118,7 +118,7 @@
                   <Label prefHeight="17.0" prefWidth="125.0" text="Infusion Rate (ml/h) " />
                   <Spinner fx:id="targetInfusionRate" editable="true" prefHeight="26.0" prefWidth="65.0">
                   <valueFactory>
-       			   <SpinnerValueFactory.IntegerSpinnerValueFactory max="1200" min="0" />	<!--We could set min and max here if we knew what they were-->
+       			   <SpinnerValueFactory.DoubleSpinnerValueFactory max="1200" min="0" amountToStepBy="0.1"/>	<!--We could set min and max here if we knew what they were-->
                   </valueFactory>
                   </Spinner>
                </children>
@@ -148,7 +148,7 @@
                   <Label prefHeight="17.0" prefWidth="125.0" text="VTBI(ml)" />
                   <Spinner fx:id="targetVTBI" editable="true" prefWidth="65.0">
                   <valueFactory>
-       			   <SpinnerValueFactory.IntegerSpinnerValueFactory max="50" min="0" />	<!--We could set min and max here if we knew what they were-->
+       			   <SpinnerValueFactory.DoubleSpinnerValueFactory max="1000" min="0" amountToStepBy="0.1"/>	<!--We could set min and max here if we knew what they were-->
                  </valueFactory>
                   </Spinner>
                </children>

@@ -260,6 +260,11 @@ run {
     if(localOsName.contains("windows")) {
       environment 'PATH', currentPath + ';native/libs/windows'
       environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
+      environment 'DOCBOX_RTPS_HOST_ID', '2829720935'
+      environment 'DOCBOX_RTPS_APP_ID', '2543000423'
+      environment 'COORDINATOR_DOMAIN_ID', '3'
+      environment 'DICES_DIM_DURABLE_QOS_PROFILE_BASE_NAME', 'DICES::Manager'
+      environment 'TRANSFER_DOMAIN_ID', '4'
       environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
     }
     if(localOsName.contains("mac")) {

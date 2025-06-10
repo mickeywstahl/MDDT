@@ -7,10 +7,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Objects;
+import java.util.HashMap;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.mdpnp.devices.AbstractDevice;
 import org.mdpnp.devices.DeviceClock;
+import org.mdpnp.devices.AbstractDevice.InstanceHolder;
+import org.mdpnp.devices.DeviceClock.CombinedReading;
+import org.mdpnp.devices.DeviceClock.ReadingImpl;
 import org.mdpnp.devices.connected.AbstractConnectedDevice;
 import org.mdpnp.devices.serial.AbstractSerialDevice;
 import org.mdpnp.devices.serial.SerialProvider;
@@ -60,11 +64,9 @@ import ice.Numeric;
  * @author MDPNP
  *
  */
-public class AP4000 extends AbstractSerialDevice {
+public class AP4000TranslationApp extends AbstractSerialDevice {
 	
-	private static final Logger log = LoggerFactory.getLogger(AP4000.class);
-	
-	private Logger externalLog;
+	private static final Logger log = LoggerFactory.getLogger(AbstractConnectedDevice.class);
 	
 	private boolean initDone;
 	
@@ -74,7 +76,7 @@ public class AP4000 extends AbstractSerialDevice {
 	/**
 	 * The connection request command is always the same.
 	 */
-	static final String CONNREQ="!CONNREQ|02B3\r\n";
+	private static final String CONNREQ="!CONNREQ|02B3\r\n";
 	
 	/**
 	 * The communication protocol version reported by the pump
@@ -146,6 +148,28 @@ public class AP4000 extends AbstractSerialDevice {
 	 */
 	private static final int MAX_RESPONSE_LEN=15000;
 	
+	private static final String INFSTATUS = "!INF|4961\r";
+	private static final String COMMSPROTOCOL = "!COMMS_PROTOCOL|E8DA\r";
+	private static final String INSTSERIAL = "!INST_SERIALNO|457D\r";
+	private static final String REMOTEENABLE = "!REMOTE_CTRL^ENABLED^9535|FB2F\r";
+
+	private static final String BOLUSENABLE = "!INF_BOLUS^ENABLED|E288\r";
+	private static final String VTBI = "!INF_VTBI|8456\r";
+	private static final String VTBISET = "!INF_VTBI^ACTIV^11.000^ml^STOP|4433\r";
+	private static final String VTBIDEACTIVATE = "!INF_VTBI^DEACT|D8C5\r";
+	
+	private static final String REMQUERYDEACTIVATE = "!REMQUERY^DEACT|F295\r";
+	private static final String REMOTEDISABLE = "!REMOTE_CTRL^DISABLED|EF95\r";
+	
+	private static final String INFSTART = "!INF_START|38F3\r";
+	private static final String INFSTOP = "!INF_STOP|CD57\r";
+	
+	HashMap<String,String> alarisCommands = new HashMap<>();
+	
+//	alarisCommands.put("INST_SERIALNO", "!INST_SERIALNO^8002-51733|ACFF\r");
+//	alarisCommands.put("COMMS_PROTOCOL","!COMMS_PROTOCOL^Asena Rev 2.1.5|661A\r" );
+//	alarisCommands.put("REMOTE_CTRL^ENABLED^9535", "!REMOTE_CTRL^ENABLED^****^PERMIT^0^ms|7BB0\r");
+	
 	/**
 	 * An instance holder for pump flow rate.  In time, we will need two of these.
 	 */
@@ -181,13 +205,12 @@ public class AP4000 extends AbstractSerialDevice {
 	 */
 	private static final String V_0_2="v0.2";
 
-	public AP4000(Subscriber subscriber, Publisher publisher, EventLoop eventLoop) {
+	public AP4000TranslationApp(Subscriber subscriber, Publisher publisher, EventLoop eventLoop) {
 		this(subscriber, publisher, eventLoop,1);
 	}
 
-	public AP4000(Subscriber subscriber, Publisher publisher, EventLoop eventLoop, int countSerialPorts) {
+	public AP4000TranslationApp(Subscriber subscriber, Publisher publisher, EventLoop eventLoop, int countSerialPorts) {
 		super(subscriber, publisher, eventLoop, countSerialPorts);
-		Thread.dumpStack();
 		deviceIdentity.manufacturer="Neurowave";
 		deviceIdentity.model="AP-4000";
 		AbstractSimulatedDevice.randomUDI(deviceIdentity);
@@ -205,16 +228,6 @@ public class AP4000 extends AbstractSerialDevice {
 		cumulativeBolusHeadOne=createNumericInstance("ICE_BOLUS_SESSION_TOTAL_1", "DEV_STATUS_ACC_BOL_VOL1");
 		cumulativeBolusHeadTwo=createNumericInstance("ICE_BOLUS_SESSION_TOTAL_2", "DEV_STATUS_ACC_BOL_VOL2");
 		addObjectiveListeners();
-	}
-	
-	void setExternalLog(Logger external) {
-		this.externalLog=external;
-	}
-	
-	void otherLog(String msg) {
-		if(externalLog!=null) {
-			externalLog.trace(msg);
-		}
 	}
 	
 	private final void addObjectiveListeners() {
@@ -368,7 +381,6 @@ public class AP4000 extends AbstractSerialDevice {
 
 	@Override
 	protected void doInitCommands(int idx) throws IOException {
-//		Thread.dumpStack();
 		initDone=false;	//In case we are coming back here after a comms interruption.
 		byte[] initBytes=CONNREQ.getBytes();
 		toDevice.write(initBytes);
@@ -401,13 +413,13 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		System.err.println(ArrayUtils.toString(responseBytes));
 		
-//		System.err.println("bytesRead in response is "+bytesRead);
+		System.err.println("bytesRead in response is "+bytesRead);
 		String response=new String(responseBytes,0,bytesRead);
-//		System.err.println("bytesRead 0 is "+responseBytes[0]);
-//		System.err.println("doInitCommands response is "+response);
+		System.err.println("bytesRead 0 is "+responseBytes[0]);
+		System.err.println("doInitCommands response is "+response);
 		String parts[]=response.split("\\^");
 		if(!parts[0].equals("!CONNREQ")) {
-//			System.err.println("Bad response to !CONNREQ command - parts[0] is "+parts[0]);
+			System.err.println("Bad response to !CONNREQ command - parts[0] is "+parts[0]);
 			log.error("Bad response to !CONNREQ command - parts[0] is "+parts[0]);
 			return;
 		}
@@ -436,66 +448,24 @@ public class AP4000 extends AbstractSerialDevice {
 		initDone=true;
 	}
 	
-	protected boolean keepGoing=true;
-	
 	@Override
 	protected void process(int idx, InputStream inputStream, OutputStream outputStream) throws IOException {
-		Thread.dumpStack();
 		this.fromDevice=new BufferedInputStream(inputStream);
 		this.toDevice=new BufferedOutputStream(outputStream);
 		try {
 			while( ! initDone) {
 				Thread.sleep(1000L);
 			}
-			while(keepGoing) {
+			while(true) {
 				doStatReq();
 				Thread.sleep(3000);
 			}
-			System.err.println("process stopped on keepGoing=false");
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 	}
-	
-	/**
-	 * Gets the current flow rate for the given head.  Mainly to use for the integration
-	 * with translation devices.  Most cases should just subscribe to the DDS values that
-	 * are published.
-	 * 
-	 * @param head Which head to return the flow rate for.
-	 * @return
-	 */
-	float getFlowRate(int head) {
-		if(head==1) {
-			return flowRate1;
-		}
-		return flowRate2;	//Assuming they don't ask for head 3 or something...
-	}
-	
-	float getVolumeInfused(int head) {
-		if(head==1) {
-			return volumeInfused1;
-		}
-		return volumeInfused2;
-	}
-	
-	/**
-	 * It's not clear yet if this is the time remaining or something completely different.
-	 * @param head
-	 * @return
-	 */
-	float getTimeRemaining(int head) {
-		if(head==1) {
-			return time1;
-		}
-		return time2;
-	}
-	
-	private float flowRate1, flowRate2, volumeInfused1, volumeInfused2, time1, time2;
-	
-	private ArrayList<String> alarmCodes = new ArrayList<String>();
 	
 	/**
 	 * Performs a status request of the pump, and 
@@ -532,10 +502,10 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		
 		
-		//dumpRecentStats();
+		dumpRecentStats();
 		String sysDate=parts[3];
 		String sysTime=parts[4];
-		//System.err.println("sysDate and time are "+sysDate+" "+sysTime);
+		System.err.println("sysDate and time are "+sysDate+" "+sysTime);
 		/*
 		 * We can create a date using the constructor that has the all the fields from years to seconds.
 		 * We lose the milliseconds that were available from the time though.
@@ -571,19 +541,20 @@ public class AP4000 extends AbstractSerialDevice {
 			millis=splitTime[3];
 		}
 		
+		System.err.println("millis from reading is "+millis);
 		long msForReading=deviceTimeCalendar.getTimeInMillis()+Integer.parseInt(millis);	//Add on the extra milliseconds
+		System.err.println("msForReading "+msForReading);
 		
 		String sysOper=parts[5];
 		sessionCaseId=parts[6];
 		String flowRate1=parts[61];
-		this.flowRate1=Float.parseFloat(flowRate1);
 		String flowRate2=parts[94];
-		this.flowRate2=Float.parseFloat(flowRate2);
 		devIdSn1=parts[34];
 		devIdSn2=parts[67];
 		String programmedVTBI1=parts[42];
 		String programmedVTBI2=parts[75];
-
+//		System.err.println("FlowRate1 is "+flowRate1);
+//		System.err.println("FlowRate2 is "+flowRate2);
 		String channelOneDrugName=parts[37];
 		String channelOneDrugConc=parts[38];
 		if(channelOneDrugConc.equals("0")) {
@@ -604,18 +575,8 @@ public class AP4000 extends AbstractSerialDevice {
 //			System.err.println(i+" "+parts[i]);
 //		}
 		
-		String strTime1=parts[54];	//Is this time remaining?
-//		this.time1=Float.parseFloat(strTime1);
-		this.time1= -1;
-		
-		String strTime2=parts[87];	//Is this time remaining?
-//		this.time2=Float.parseFloat(strTime2);
-		this.time2= -1;
-		
 		String strTotalVolumeInfused1=parts[56];
-		volumeInfused1=Float.parseFloat(strTotalVolumeInfused1);
 		String strTotalVolumeInfused2=parts[89];
-		volumeInfused2=Float.parseFloat(strTotalVolumeInfused2);
 		
 		String strVolumeRemaining1=parts[58];
 		String strVolumeRemaining2=parts[91];
@@ -657,8 +618,12 @@ public class AP4000 extends AbstractSerialDevice {
 		writeTechnicalAlert("Model", "AP4000");
 		writeTechnicalAlert("UDI", deviceIdentity.unique_device_identifier);
 		//writeTechnicalAlert("Current_Alarm", "No alarms currently active");
-		//Test alarm you can publish for an app...
-		//publishAlarm("PA.02", "PUMP1", "HIGH", "HP_PUMP"); 
+		publishAlarm("PA.02", "PUMP1", "HIGH", "HP_PUMP");
+		
+		writeTechnicalAlert("Neurowave_PT_WEIGHT", weight);
+		writeTechnicalAlert("Neurowave_PT_HEIGHT", height);
+		writeTechnicalAlert("Neurowave_PT_AGE", age);
+		writeTechnicalAlert("Neurowave_PT_STATUS", anState);
 		
 		writePatientAlert("PT_WEIGHT",weight);
 		writePatientAlert("PT_HEIGHT",height);
@@ -676,65 +641,11 @@ public class AP4000 extends AbstractSerialDevice {
 		//System.err.println(ArrayUtils.toString(parts));
 	}
 	
-	enum ALARM_PRIORITY {
-		NONE,
-		LOW,
-		MEDIUM,
-		HIGH
-	}
-	
-	class AP4000Alarm {
-		String code;
-		String device;
-		String priority;
-		String sound;
-		int prio;
-		
-		public AP4000Alarm(String code, String device, String priority, String sound) {
-			super();
-			this.code = code;
-			this.device = device;
-			this.priority = priority;
-			this.sound = sound;
-		}
-
-		@Override
-		public int hashCode() {
-			final int prime = 31;
-			int result = 1;
-			result = prime * result + getEnclosingInstance().hashCode();
-			result = prime * result + Objects.hash(code, device, prio, priority, sound);
-			return result;
-		}
-
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			AP4000Alarm other = (AP4000Alarm) obj;
-			if (!getEnclosingInstance().equals(other.getEnclosingInstance()))
-				return false;
-			return Objects.equals(code, other.code) && Objects.equals(device, other.device) && prio == other.prio
-					&& Objects.equals(priority, other.priority) && Objects.equals(sound, other.sound);
-		}
-
-		private AP4000 getEnclosingInstance() {
-			return AP4000.this;
-		}
-	}
-	
-	ArrayList<AP4000Alarm> alarmList=new ArrayList<>();
-	
 	private void processAlarms(String[] parts) {
 		String alarmCount=parts[12];
 		int alarm_n=Integer.parseInt(alarmCount);
 		if(alarm_n==-1) {
 			//No alarms.
-			alarmList.clear();
 			return;
 		}
 		String alarmAudio=parts[13];	//Not sure what/if we need this for?
@@ -751,16 +662,7 @@ public class AP4000 extends AbstractSerialDevice {
 			String alarmDevice=parts[nextIndex++];
 			String alarmPriority=parts[nextIndex++];
 			String alarmSound=parts[nextIndex++];
-			AP4000Alarm alarm=new AP4000Alarm(alarmCode, alarmDevice, alarmPriority, alarmSound);
-			if (!alarmList.contains(alarm)) {
-				System.err.println("Adding to alarmList with " + alarm.code);
-				alarmList.add(alarm);
-				alarmCodes.add(alarm.code);
-				System.err.println("Double Checking here - " + alarmCodes.get(0));
-			}else {
-				System.err.println("Alarm already exists in alarmList for " + alarm.code);
-			}
-			publishAlarm(alarm);
+			publishAlarm(alarmCode,alarmDevice,alarmPriority,alarmSound);
 		}
 	}
 	
@@ -772,12 +674,8 @@ public class AP4000 extends AbstractSerialDevice {
 	 * @param priority
 	 * @param sound
 	 */
-	private void publishAlarm(AP4000Alarm alarm) {
-		writeTechnicalAlert(alarm.code, alarm.device+"!"+alarm.priority+"!"+alarm.sound);
-	}
-	
-	ArrayList<String> getAlarmCodes() {
-		return alarmCodes;
+	private void publishAlarm(String code,String device, String priority, String sound) {
+		writeTechnicalAlert(code, device+"!"+priority+"!"+sound);
 	}
 	
 	private void dumpRecentStats() {
@@ -807,17 +705,9 @@ public class AP4000 extends AbstractSerialDevice {
 			log.error("Attempt to request control with null or empty required parameters");
 		}
 		byte[] controlBytes=createCommand("CNTLREQ^"+sysId+"^"+sessionCaseId+"^"+devIdSn1+"^"+devIdSn2);
-		
-		String parts[] = new String[1];
-		parts[0]= "";
-		int i =0;
-//		while(parts[0]!="!CNTLREQ" || i++<5) {	
-//		}
-		
 		toDevice.write(controlBytes);
 		toDevice.flush();
 		log.info("Request control with "+new String(controlBytes));
-		otherLog("Request control with "+new String(controlBytes));
 		byte responseBytes[]=new byte[MAX_RESPONSE_LEN];
 		int bytesRead=0;
 		while(bytesRead<9 || responseBytes[bytesRead-7] != '|') {
@@ -826,30 +716,11 @@ public class AP4000 extends AbstractSerialDevice {
 			//System.err.println("response is now "+new String(responseBytes,0,bytesRead));
 		}
 		String response=new String(responseBytes,0,bytesRead);
-//		System.err.println("CNTLREQ response is "+response);
+		System.err.println("CNTLREQ response is "+response);
 		log.info("CNTLREQ response is "+response);
-		otherLog("CNTLREQ response is "+response);
-		parts=response.split("\\^");
-		System.err.println(parts[0]);
-		if(!parts[0].equals("!CNTLREQ")) {
-			toDevice.write(controlBytes);
-			toDevice.flush();
-			otherLog("Attempted rewrite of CNTLREQ");
-			log.info("Attempted rewrite of CNTLREQ");
-			while(bytesRead<9 || responseBytes[bytesRead-7] != '|') {
-				bytesRead+=fromDevice.read(responseBytes,bytesRead,responseBytes.length-bytesRead);
-			}
-			response=new String(responseBytes,0,bytesRead);
-			otherLog("CNTLREQ rewrite response is "+response);
-			parts=response.split("\\^");
-		}
-		else {
-			otherLog("CNTLREQ came out fine");
-		}
-		
+		String parts[]=response.split("\\^");
 		String authKey=parts[3];
 		log.info("Obtained "+authKey+" from control request");
-		otherLog("Obtained "+authKey+" from control request");
 		currentAuthKey=authKey;
 		if(renewer==null) {
 			renewer=new AuthKeyRenewer();
@@ -857,7 +728,7 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 	}
 	
-	synchronized void pauseInfusion(int head) throws IOException {
+	private synchronized void pauseInfusion(int head) throws IOException {
 		if(currentAuthKey==null) {
 			requestControl();
 		}
@@ -875,7 +746,7 @@ public class AP4000 extends AbstractSerialDevice {
 			pauseBytes=createCommand("INFPAUS^"+currentAuthKey+"^"+devIdSn1+"^-1^"+devIdSn2+"^1");
 		}
 		log.info("Calling pause infusion for head "+head+" with "+new String(pauseBytes));
-		otherLog("To AP4000: "+new String(pauseBytes));
+		
 		toDevice.write(pauseBytes);
 		toDevice.flush();
 		byte responseBytes[]=new byte[MAX_RESPONSE_LEN];
@@ -886,13 +757,12 @@ public class AP4000 extends AbstractSerialDevice {
 			//System.err.println("response is now "+new String(responseBytes,0,bytesRead));
 		}
 		String response=new String(responseBytes,0,bytesRead);
-		otherLog("From AP4000: "+response);
 		System.err.println("INFPAUS response is "+response);
 		log.info("INFPAUS response is "+response);
 		
 	}
 	
-	synchronized void resumeInfusion(int head) throws IOException {
+	private synchronized void resumeInfusion(int head) throws IOException {
 		if(currentAuthKey==null) {
 			requestControl();
 		}
@@ -908,7 +778,7 @@ public class AP4000 extends AbstractSerialDevice {
 			resumeBytes=createCommand("INFRESM^"+currentAuthKey+"^"+devIdSn1+"^-1^"+devIdSn2+"^1");
 		}
 		log.info("Calling resume infusion for head "+head+" with "+new String(resumeBytes));
-		otherLog("To AP4000: "+new String(resumeBytes));
+		
 		toDevice.write(resumeBytes);
 		toDevice.flush();
 		byte responseBytes[]=new byte[MAX_RESPONSE_LEN];
@@ -919,13 +789,12 @@ public class AP4000 extends AbstractSerialDevice {
 			//System.err.println("response is now "+new String(responseBytes,0,bytesRead));
 		}
 		String response=new String(responseBytes,0,bytesRead);
-//		System.err.println("INFRESM response is "+response);
-		otherLog("From AP4000: "+response);
-		log.info("INFRESM response is "+response);
 		System.err.println("INFRESM response is "+response);
+		log.info("INFRESM response is "+response);
+		
 	}
 	
-	synchronized String programPump(InfusionProgram program) throws IOException {
+	private synchronized void programPump(InfusionProgram program) throws IOException {
 		if(currentAuthKey==null) {
 			requestControl();
 		}
@@ -948,27 +817,23 @@ public class AP4000 extends AbstractSerialDevice {
 			 */
 			
 			
-			cmd="INFPROG^"+currentAuthKey+
-						"^"+devIdSn1+"^"+(float)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
-						"^"+devIdSn2+"^-1^-1^-1^-1";
-		
 //			cmd="INFPROG^"+currentAuthKey+
-//				"^"+devIdSn1+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
-//					"^"+devIdSn2+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate;
-
-
+//						"^"+devIdSn1+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
+//						"^"+devIdSn2+"^-1^-1^-1^-1";
+			cmd="INFPROG^"+currentAuthKey+
+					"^"+devIdSn1+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate+
+					"^"+devIdSn2+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate;
 			//ACTUALLY THE INFPROG COMMAND DOES NOT CHANGE BETWEEN V_0_1 AND V_0_2 SO THE ELSE BLOCK IN HEAD 1 DOESN'T MATTER
 		} else {
 			//Must be 2 because we throw IOException for not 1 or 2...
 			cmd="INFPROG^"+currentAuthKey+
 					"^"+devIdSn1+"^-1^-1^-1^-1"+
-					"^"+devIdSn2+"^"+(float)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate;
+					"^"+devIdSn2+"^"+(int)program.infusionRate+"^"+(int)program.VTBI+"^"+(int)program.bolusVolume+"^"+(int)program.bolusRate;
 		}
 		programBytes=createCommand(cmd);
 		toDevice.write(programBytes);
 		toDevice.flush();
 		log.info("Sent infusion program "+new String(programBytes));
-		otherLog("To AP4000: " +new String(programBytes));
 		byte responseBytes[]=new byte[MAX_RESPONSE_LEN];
 		int bytesRead=0;
 		while(bytesRead<9 || responseBytes[bytesRead-7] != '|') {
@@ -977,11 +842,8 @@ public class AP4000 extends AbstractSerialDevice {
 			//System.err.println("response is now "+new String(responseBytes,0,bytesRead));
 		}
 		String response=new String(responseBytes,0,bytesRead);
-//		System.err.println("INFPROG response is "+response);
-		log.info("INFPROG response is "+response);
-		otherLog("From AP4000: "+response);
 		System.err.println("INFPROG response is "+response);
-		return response;
+		log.info("INFPROG response is "+response);
 	}
 	
 	/**
@@ -1005,13 +867,13 @@ public class AP4000 extends AbstractSerialDevice {
 	 * @param command
 	 * @return
 	 */
-	public static byte[] createCommand(String command) {
+	private byte[] createCommand(String command) {
 		String checksumThis="!" + command + "|";
 		String crc=crc(checksumThis);
 		String fullCommand= checksumThis + crc + "\r\n";
-//		if(command.indexOf("STATREQ")==-1) {
-//			System.err.println("fullCommand is "+fullCommand);
-//		}
+		if(command.indexOf("STATREQ")==-1) {
+			System.err.println("fullCommand is "+fullCommand);
+		}
 		return fullCommand.getBytes();
 	}
 
@@ -1034,7 +896,7 @@ public class AP4000 extends AbstractSerialDevice {
 		return "ap4000.png";
 	}
 
-	static String crc(String input) {
+	String crc(String input) {
 		char[] chars=input.toCharArray();
 		int sum=0;
 		for(int i=0;i<chars.length;i++) {
@@ -1085,17 +947,7 @@ public class AP4000 extends AbstractSerialDevice {
 		}
 		
 	}
-
-	@Override
-	public void disconnect() {
-		// TODO Auto-generated method stub
-		super.disconnect();
-	}
-
-	@Override
-	public void shutdown() {
-		// TODO Auto-generated method stub
-		super.shutdown();
-	}
+	
+	
 
 }
