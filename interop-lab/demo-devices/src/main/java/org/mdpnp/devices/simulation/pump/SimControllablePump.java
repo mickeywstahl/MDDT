@@ -56,10 +56,7 @@ public class SimControllablePump extends AbstractSimulatedConnectedDevice {
 	private float currentFlowRate=1.0f;
 	
 	private InfusionProgramDataReader infusionProgramReader;
-	private Topic infusionProgramTopic;
-	private QueryCondition infusionProgramQueryCondition;
 	private FlowRateObjectiveDataReader flowRateReader;
-	private InfusionProgramDataReader infusionProgramReader;
 	private Topic flowRateTopic, infusionProgramTopic;
 	private QueryCondition flowRateQueryCondition, infusionProgramQueryCondition;
 	

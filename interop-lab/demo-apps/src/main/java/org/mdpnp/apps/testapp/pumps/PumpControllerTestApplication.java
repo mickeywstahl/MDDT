@@ -36,6 +36,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.VBox;
@@ -142,6 +143,7 @@ public class PumpControllerTestApplication {
 		listenerPresent=true;
 		
 		
+		/*
 		pumpCombo.setCellFactory(new Callback<ListView<Device>,ListCell<Device>>() {
 
 			@Override
@@ -178,6 +180,7 @@ public class PumpControllerTestApplication {
 				
 			}
 		});
+		*/
 		
 		
 		mdsHandler.addPatientListener(new PatientListener() {

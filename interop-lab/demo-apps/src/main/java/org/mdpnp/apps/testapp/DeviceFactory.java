@@ -722,22 +722,6 @@ public class DeviceFactory {
         }
     }
     
-    public static class AlarisSerialProvider extends SpringLoadedDriver {
-
-    	@Override
-        public DeviceType getDeviceType() {
-                return new DeviceType(ice.ConnectionType.Serial,"Alaris", "Asena", "AlarisPump", 1);
-        }
-
-        @Override
-        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
-                EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
-                Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
-                Publisher publisher = context.getBean("publisher", Publisher.class);
-                return new Asena(subscriber, publisher, eventLoop);
-        }
-    }
-    
     public static class AS50SerialProvider extends SpringLoadedDriver {
 
     	@Override
