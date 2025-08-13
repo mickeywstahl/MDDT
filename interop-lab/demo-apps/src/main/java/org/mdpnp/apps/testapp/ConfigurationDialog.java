@@ -145,7 +145,7 @@ public class ConfigurationDialog {
         });
         d.set(configuration, d.currentStage, application);
 
-        d.currentStage.setTitle("MD PnP OpenICE");
+        d.currentStage.setTitle("PARADIGM-ICE OPEN SOURCE");
         d.currentStage.setScene(new Scene(ui));
         d.currentStage.sizeToScene();
         d.currentStage.centerOnScreen();

@@ -343,7 +343,7 @@ public class IceAppsContainer extends IceApplication {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        primaryStage.setTitle("OpenICE");
+        primaryStage.setTitle("PARADIGM-ICE OPEN SOURCE");
         this.parentStage=primaryStage;
         
         int visibleWidth  = Screen.getMainScreen().getVisibleWidth();
