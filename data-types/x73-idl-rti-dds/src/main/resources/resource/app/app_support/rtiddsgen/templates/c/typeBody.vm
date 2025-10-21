@@ -238,7 +238,7 @@ RTIBool ${node.nativeFQNameInModule}_construct_w_params(
 #*------*##if($node.hasSeq)
     void* buffer = NULL;
 
-    if (buffer) {return RTI_FALSE;} /* To avoid warnings */
+    RTIOsapiUtility_unusedParameter(buffer);
 #*------*##end
     RTIOsapiUtility_unusedParameter(sample);
 
@@ -360,7 +360,7 @@ ${node.nativeFQNameInModule}::${node.nativeFQNameInModule}() {
 #*----*##if($member.resolvedTypeOptional ||
             ($member.resolvedTypePointer && !$member.seqSize && !$member.isSeqAlias) || 
             ($member.strSize && !$envMap.stringIsObject && !$member.seqSize))
-#*------*##if($member.dimensionList)
+#*------*##if($member.dimensionList && !$member.isOptionalArray)
     for (int i = 0; i < (int) ($member.arrayTotalSize); ++i){
         this->${member.printName}[i] = NULL;
     }

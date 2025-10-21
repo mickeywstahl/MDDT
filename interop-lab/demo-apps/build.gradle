@@ -31,6 +31,7 @@ buildscript {
 
 plugins {
   id 'org.openjfx.javafxplugin' version '0.1.0'
+  id 'org.javamodularity.moduleplugin' version '1.8.12'
 }
 
 repositories {
@@ -49,8 +50,12 @@ dependencies {
 
 defaultTasks 'build'
 
+java {
+  modularity.inferModulePath.set(false)
+}
+
 javafx {
-  version = "17"
+  version = "17.0.11"
   modules = [ 'javafx.base', 'javafx.controls' , 'javafx.fxml' , 'javafx.swing' , 'javafx.web' ]
 }
 
@@ -184,6 +189,7 @@ ext {
     buildTime = new java.text.SimpleDateFormat('hh:mm aa').format(buildTimeAndDate)
     specificationVersion = project.version.substring(0, project.version.lastIndexOf('.')) 
     localOsName = System.properties['os.name'].toLowerCase();
+    localOsArch = System.properties['os.arch'].toLowerCase();
     currentPath = System.getenv('PATH');
 }
 
@@ -250,11 +256,36 @@ dependencies {
 test {
 	useJUnitPlatform()
 	systemProperty 'user.timezone' , 'EST'
+	if(localOsName.contains("linux")) {
+		if(localOsArch.contains("aarch")) {
+			environment 'LD_LIBRARY_PATH', 'native/libs/aarch'
+		} else {
+			environment 'LD_LIBRARY_PATH', 'native/libs/linux'
+		}
+		environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
+		environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
+	}
+	if(localOsName.contains("windows")) {
+		environment 'PATH', currentPath + ';native/libs/windows'
+		environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
+		environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
+	}
+	if(localOsName.contains("mac")) {
+		environment 'DYLD_LIBRARY_PATH', 'native/libs/macosx'
+		environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
+		environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
+	}
+
 }
 
 run {
+    mainClass='org.mdpnp.apps.testapp.Main'
     if(localOsName.contains("linux")) {
-      environment 'LD_LIBRARY_PATH', 'native/libs/linux'
+      if(localOsArch.contains("aarch")) {
+        environment 'LD_LIBRARY_PATH', 'native/libs/aarch'
+      } else {
+        environment 'LD_LIBRARY_PATH', 'native/libs/linux'
+      }
       environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
       environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
     }
@@ -283,6 +314,73 @@ run {
 
 }
 
+task 'runDevice'(type: JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    classpath=sourceSets.main.runtimeClasspath
+    mainClass='org.mdpnp.apps.testapp.Main'
+    if(localOsName.contains("linux")) {
+      if(localOsArch.contains("aarch")) {
+        environment 'LD_LIBRARY_PATH', 'native/libs/aarch'
+      } else {
+        environment 'LD_LIBRARY_PATH', 'native/libs/linux'
+      }
+      environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
+      environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
+    }
+    if(localOsName.contains("windows")) {
+      environment 'PATH', currentPath + ';native/libs/windows'
+      environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
+      environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
+    }
+    if(localOsName.contains("mac")) {
+      environment 'DYLD_LIBRARY_PATH', 'native/libs/macosx'
+      environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
+      environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
+
+    }
+    jvmArgs = ['--add-exports=javafx.graphics/com.sun.javafx.iio=ALL-UNNAMED',
+               '--add-exports=javafx.graphics/com.sun.javafx.iio.common=ALL-UNNAMED',
+               '--add-exports=javafx.graphics/com.sun.javafx.scene=ALL-UNNAMED',
+               '--add-exports=javafx.graphics/com.sun.glass.ui=ALL-UNNAMED',
+               '--add-exports=javafx.controls/com.sun.javafx.charts=ALL-UNNAMED',
+    ]
+
+}
+
+task 'generateDeviceList' (type: JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    classpath=sourceSets.main.runtimeClasspath
+    mainClass='org.mdpnp.apps.testapp.DeviceListCreator'
+    description='Create a list of the supported devices'
+}
+
+task 'makeFlatRuntime'(type: Copy) {
+    from configurations.runtimeClasspath
+    into 'flat'
+}
+
+task 'copyThisJar'(type: Copy) {
+  from layout.buildDirectory.dir('libs')
+  include "*.jar"
+  into 'flat'
+}
+
+task 'copyNativeLibs'(type: Copy) {
+  from 'native/libs/linux'
+  include '*.so'
+  into 'flat'
+}
+
+task 'copyLicenseFile'(type: Copy) {
+  from layout.buildDirectory.dir('resources/main')
+  include 'OpenICE_license.dat'
+  into 'flat'
+}
+
+copyThisJar.configure { dependsOn(jar) }
+copyLicenseFile.configure { dependsOn(processResources) }
+makeFlatRuntime.configure { dependsOn(copyThisJar,copyNativeLibs,copyLicenseFile) }
+
 jar {
     manifest {
         attributes("Main-Class": 'org.mdpnp.apps.testapp.Main', 
@@ -296,7 +394,8 @@ jar {
         "Specification-Version": specificationVersion, 
         "Implementation-Vendor": project.group,
         "Specification-Vendor": project.group, 
-        "Build-Number": project.version)
+        "Build-Number": project.version,
+        "Class-Path" : configurations.runtimeClasspath.files.collect {it.getName()}.join(' '))
     }
     //Ensure that jfxNative gets run immediately after jar, and so before distZip and distTar
 /*

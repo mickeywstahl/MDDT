@@ -36,13 +36,14 @@ org.mdpnp.apps.testapp.DeviceFactory$MSeriesScaleProvider
 org.mdpnp.apps.testapp.DeviceFactory$ControllablePump_SimulatorProvider
 org.mdpnp.apps.testapp.DeviceFactory$ControllableBPMonitor_SimulatorProvider
 org.mdpnp.apps.testapp.DeviceFactory$NKV550Provider
+org.mdpnp.apps.testapp.DeviceFactory$TB800Provider
 org.mdpnp.apps.testapp.DeviceFactory$BisMonitorProvider
 org.mdpnp.apps.testapp.DeviceFactory$SimulatedBisMonitorProvider
 org.mdpnp.apps.testapp.DeviceFactory$MITMBisMonitorProvider
 org.mdpnp.apps.testapp.DeviceFactory$SapphirePumpProvider
 org.mdpnp.apps.testapp.DeviceFactory$AP4000Provider
 org.mdpnp.apps.testapp.DeviceFactory$EasyTivaNeurowaveProvider
-org.mdpnp.apps.testapp.DeviceFactory$TB800Provider
 org.mdpnp.apps.testapp.DeviceFactory$AS50Provider
 org.mdpnp.apps.testapp.DeviceFactory$AP4000vINTProvider
 org.mdpnp.apps.testapp.DeviceFactory$GCPTranslatorProvider
+org.mdpnp.apps.testapp.DeviceFactory$AS50SerialProvider

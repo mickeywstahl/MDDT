@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--  <Configuration status="trace" dest="/tmp/log4j2.debug">-->
 <Configuration>
 	<Appenders>
 		<Console name="Console" target="SYSTEM_OUT">
@@ -12,14 +11,14 @@
 			<PatternLayout>
 				<pattern>%d | %-5p | %c{1} | %t | %m%n</pattern>
 			</PatternLayout>
-			<SizeBasedTriggeringPolicy size="500MB"/>
+			<SizeBasedTriggeringPolicy size="1024KB"/>
 		</RollingFile>
-		<RollingFile name="easy-tiva-log" fileName="${sys:user.home}/from_full_private/easy-tiva.log"
+		<RollingFile name="easy-tiva-log" fileName="${sys:user.home}/easy-tiva.log"
 			filePattern="${sys:user.home}/easy-tiva.log-%i.log">
 			<PatternLayout>
 				<pattern>%d | %-5p | %c{1} | %t | %m%n</pattern>
 			</PatternLayout>
-			<SizeBasedTriggeringPolicy size="500MB"/>
+			<SizeBasedTriggeringPolicy size="1024KB"/>
 		</RollingFile>
 	</Appenders>
 	<Loggers>

@@ -336,7 +336,7 @@
         </xs:annotation>
         <xs:restriction base="xs:string">
             <xs:whiteSpace value="collapse"/>
-            <xs:pattern value="([a-zA-Z0-9/\-*_.:\]\[\s])+"/>
+            <xs:pattern value="([a-zA-Z0-9/\-*_.:\]\[@\s])+"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -613,7 +613,7 @@
         <xs:annotation>
             <xs:documentation>
                 <![CDATA[
-                Supported values:
+                Supported values (case-insensitive):
                 - ZLIB
                 - BZIP2
                 - LZ4
@@ -791,6 +791,19 @@
         </xs:restriction>
     </xs:simpleType>
 
+    <xs:simpleType name="nonNegativeIntegerUpTo256Unlimited">
+        <xs:union>
+            <xs:simpleType>
+                <xs:restriction base="nonNegativeIntegerUpTo256"/>
+            </xs:simpleType>
+            <xs:simpleType>
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="LENGTH_UNLIMITED"/>
+                </xs:restriction>
+            </xs:simpleType>
+        </xs:union>
+    </xs:simpleType>
+
     <xs:simpleType name="nonNegativeIntegerUpTo65535">
         <xs:restriction base="xs:nonNegativeInteger">
             <xs:maxInclusive value="65535"/>
@@ -859,7 +872,7 @@
         <xs:annotation>
             <xs:documentation>
                 <![CDATA[
-                Supported values:
+                Supported values (case-insensitive):
                     - MASK_DEFAULT
                     - MASK_NONE
                     - MASK_ALL
@@ -875,7 +888,9 @@
         <xs:restriction base="xs:string">
             <xs:whiteSpace value="collapse"/>
             <xs:pattern value="(MASK_DEFAULT|MASK_NONE|MASK_ALL)"/>
+            <xs:pattern value="(mask_default|mask_none|mask_all)"/>
             <xs:pattern value="(UDPv4|UDPv4_WAN|UDPv6|SHMEM|INTRA)(\s*\|\s*(UDPv4|UDPv4_WAN|UDPv6|SHMEM|INTRA))*"/>
+            <xs:pattern value="(udpv4|udpv4_wan|udpv6|shmem|intra)(\s*\|\s*(udpv4|udpv4_wan|udpv6|shmem|intra))*"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -895,7 +910,7 @@
         <xs:annotation>
             <xs:documentation>
                 <![CDATA[
-                Supported values:
+                Supported values (case-insensitive):
                     - MASK_DEFAULT
                     - MASK_NONE
                     - MASK_ALL
@@ -973,7 +988,7 @@
         <xs:annotation>
             <xs:documentation>
                 <![CDATA[
-                Supported values:
+                Supported values (case-insensitive):
                     - MASK_DEFAULT
                     - MASK_NONE
                     - SPDP
@@ -2888,6 +2903,17 @@
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
+            <xs:element name="port_offset"
+                        type="xs:nonNegativeInteger"
+                        minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        <![CDATA[
+                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
+                        ]]>
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
         </xs:all>
     </xs:complexType>
 
@@ -3085,6 +3111,9 @@
                         minOccurs="0"/>
             <xs:element name="join_multicast_group_timeout"
                         type="joinMulticastGroupTimeout"
+                        minOccurs="0"/>
+            <xs:element name="port_offset"
+                        type="xs:nonNegativeInteger"
                         minOccurs="0"/>
         </xs:all>
     </xs:complexType>
@@ -3509,6 +3538,18 @@
         </xs:choice>
     </xs:complexType>
 
+    <xs:simpleType name="positiveInteger_UNLIMITED">
+        <xs:annotation>
+            <xs:documentation>
+                &lt;LENGTH_UNLIMITED|xs:positiveInteger&gt;
+            </xs:documentation>
+        </xs:annotation>
+        <xs:restriction base="xs:string">
+            <xs:whiteSpace value="collapse"/>
+            <xs:pattern value="(LENGTH_UNLIMITED|[1-9]([0-9])*)?"/>
+        </xs:restriction>
+    </xs:simpleType>
+
     <!-- RTI extension -->
     <xs:complexType name="endpointGroup">
         <xs:annotation>
@@ -3524,7 +3565,7 @@
                         type="xs:string"
                         minOccurs="0"/>
             <xs:element name="quorum_count"
-                        type="xs:positiveInteger"
+                        type="positiveInteger_UNLIMITED"
                         minOccurs="0"/>
         </xs:all>
     </xs:complexType>
@@ -3559,8 +3600,12 @@
             </xs:documentation>
         </xs:annotation>
         <xs:all>
-            <xs:element name="enable" type="xs:boolean"/>
-            <xs:element name="domain_id" type="xs:nonNegativeInteger"/>
+            <xs:element name="enable"
+                        type="xs:boolean"
+                        minOccurs="0"/>
+            <xs:element name="domain_id"
+                        type="xs:nonNegativeInteger"
+                        minOccurs="0"/>
             <xs:element name="participant_qos_profile_name"
                         type="xs:string"
                         minOccurs="0"/>
@@ -3743,7 +3788,6 @@
             <xs:documentation>
                 <![CDATA[
                 A set of resource selections and enabled and disabled metrics.
-                This feature is not supported in this release.
                 ]]>
             </xs:documentation>
         </xs:annotation>
@@ -3768,7 +3812,7 @@
             <xs:element name="middleware_forwarding_level"
                         type="sysLogVerbosityKind"
                         minOccurs="0"/>
-            <xs:element name="security_forwarding_level"
+            <xs:element name="security_event_forwarding_level"
                         type="sysLogVerbosityKind"
                         minOccurs="0"/>
             <xs:element name="service_forwarding_level"
@@ -3854,10 +3898,12 @@
                         type="xs:boolean"
                         minOccurs="0"/>
             <xs:element name="file_name"
-                        type="xs:string"/>
+                        type="xs:string"
+                        nillable="true"/>
             <xs:element name="trace_file_name"
                         type="xs:string"
-                        minOccurs="0"/>
+                        minOccurs="0"
+                        nillable="true"/>
             <xs:element name="journal_kind"
                         type="durabilityJournalKind"
                         minOccurs="0"/>
@@ -5061,7 +5107,7 @@
                 </xs:annotation>
             </xs:element>
             <xs:element name="autopurge_remote_not_alive_writer_delay"
-                        type="duration"
+                        type="durationAuto"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
@@ -6562,89 +6608,97 @@
             </xs:element>
             <xs:element name="participant_user_data_max_length"
                         type="xs:nonNegativeInteger"
+                        minOccurs="0"/>
+            <xs:element name="participant_user_data_max_count"
+                        type="nonNegativeIntegerDerived"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
+                        <![CDATA[Supported only in RTI Connext DDS Micro.]]>
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element name="topic_data_max_length"
                         type="xs:nonNegativeInteger"
+                        minOccurs="0"/>
+            <xs:element name="topic_data_max_count"
+                        type="nonNegativeIntegerDerived"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
+                        <![CDATA[Supported only in RTI Connext DDS Micro.]]>
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element name="publisher_group_data_max_length"
                         type="xs:nonNegativeInteger"
+                        minOccurs="0"/>
+            <xs:element name="publisher_group_data_max_count"
+                        type="nonNegativeIntegerDerived"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
+                        <![CDATA[Supported only in RTI Connext DDS Micro.]]>
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element name="subscriber_group_data_max_length"
                         type="xs:nonNegativeInteger"
+                        minOccurs="0"/>
+            <xs:element name="subscriber_group_data_max_count"
+                        type="nonNegativeIntegerDerived"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
+                        <![CDATA[Supported only in RTI Connext DDS Micro.]]>
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element name="writer_user_data_max_length"
                         type="xs:nonNegativeInteger"
+                        minOccurs="0"/>
+            <xs:element name="writer_user_data_max_count"
+                        type="nonNegativeIntegerDerived"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
+                        <![CDATA[Supported only in RTI Connext DDS Micro.]]>
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element name="reader_user_data_max_length"
                         type="xs:nonNegativeInteger"
+                        minOccurs="0"/>
+            <xs:element name="reader_user_data_max_count"
+                        type="nonNegativeIntegerDerived"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
+                        <![CDATA[Supported only in RTI Connext DDS Micro.]]>
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
             <xs:element name="max_partitions"
                         type="nonNegativeIntegerUpTo64"
+                        minOccurs="0"/>
+            <xs:element name="max_partition_cumulative_characters"
+                        type="nonNegativeIntegerUpTo256"
+                        minOccurs="0"/>
+            <xs:element name="max_partition_string_size"
+                        type="nonNegativeIntegerUpTo256Unlimited"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
+                        <![CDATA[Supported only in RTI Connext DDS Micro.]]>
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
-            <xs:element name="max_partition_cumulative_characters"
-                        type="nonNegativeIntegerUpTo256"
+            <xs:element name="max_partition_string_allocation"
+                        type="nonNegativeIntegerUpTo256Unlimited"
                         minOccurs="0">
                 <xs:annotation>
                     <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
+                        <![CDATA[Supported only in RTI Connext DDS Micro.]]>
                     </xs:documentation>
                 </xs:annotation>
             </xs:element>
@@ -8171,15 +8225,7 @@
             </xs:element>
             <xs:element name="partition"
                         type="partitionQosPolicy"
-                        minOccurs="0">
-                <xs:annotation>
-                    <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
-                    </xs:documentation>
-                </xs:annotation>
-            </xs:element>
+                        minOccurs="0"/>
             <xs:element name="group_data"
                         type="groupDataQosPolicy"
                         minOccurs="0">
@@ -8271,15 +8317,7 @@
             </xs:element>
             <xs:element name="partition"
                         type="partitionQosPolicy"
-                        minOccurs="0">
-                <xs:annotation>
-                    <xs:documentation>
-                        <![CDATA[
-                        Supported only in RTI Connext DDS Professional and RTI Connext DDS Secure.
-                        ]]>
-                    </xs:documentation>
-                </xs:annotation>
-            </xs:element>
+                        minOccurs="0"/>
             <xs:element name="group_data"
                         type="groupDataQosPolicy"
                         minOccurs="0">

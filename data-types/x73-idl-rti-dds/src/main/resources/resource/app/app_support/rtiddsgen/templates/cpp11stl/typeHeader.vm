@@ -138,11 +138,20 @@ class NDDSUSERDllExport $node.name;
 #*--*##elseif($node.constructKind.equals("const"))
 #*----*##assignMemberVariables($node)
 #*----*##assignCppMemberVariables($node)
-#*----*##if($node.specTypeName.equals("std::wstring"))
+#*----*##if($envMap.legacyMapping)
+#*------*##if($node.specTypeName.equals("std::wstring"))
+static const wchar_t ${node.nativeFQNameInModule}_VALUE_[] = ${node.value};
+static const $node.specConstantTypeName ${node.nativeFQNameInModule}(${node.nativeFQNameInModule}_VALUE_);
+#*------*##else
+static const $node.specConstantTypeName ${node.nativeFQNameInModule} = ${node.value};
+#*------*##end
+#*----*##else
+#*------*##if($node.specTypeName.equals("std::wstring"))
 RTI_CONSTEXPR_OR_CONST_STRING wchar_t ${node.nativeFQNameInModule}_VALUE_[] = ${node.value};
 RTI_CONSTEXPR_OR_CONST_STRING $node.specConstantTypeName ${node.nativeFQNameInModule}(${node.nativeFQNameInModule}_VALUE_);
-#*----*##else
+#*------*##else
 RTI_CONSTEXPR_OR_CONST_STRING $node.specConstantTypeName ${node.nativeFQNameInModule} = ${node.value};
+#*------*##end
 #*----*##end
 #*--*##elseif($node.constructKind.equals("alias"))
 #*----*##assignTypeVariables($node)

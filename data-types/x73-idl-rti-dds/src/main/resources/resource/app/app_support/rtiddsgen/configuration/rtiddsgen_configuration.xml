@@ -745,6 +745,22 @@ xsi:noNamespaceSchemaLocation="../schema/rtiddsgen_configuration.xsd">
         <hidden>false</hidden>
     </command_line_option>
     <command_line_option>
+        <name>noTypeFilesGeneration</name>
+        <help_msg>
+        Rtiddsgen will not generate non essential type files for FACE TSS. 
+        </help_msg>
+        <supported>true</supported>
+        <hidden>false</hidden>
+    </command_line_option>
+    <command_line_option>
+        <name>noTypePluginFilesGeneration</name>
+        <help_msg>
+        Rtiddsgen will not generate type files plugin for FACE TSS. 
+        </help_msg>
+        <supported>true</supported>
+        <hidden>false</hidden>
+    </command_line_option>
+    <command_line_option>
         <name>standard</name>
         <param>&lt;DDS_PSM_Cxx, IDL4_CPP&gt;</param>
         <help_msg>
@@ -1291,6 +1307,10 @@ change without further notice.
     </annotation>
     <annotation>
         <name>metric_name</name>
+        <status>Supported</status>
+    </annotation>
+    <annotation>
+        <name>metric</name>
         <status>Supported</status>
     </annotation>
 </annotations>

@@ -46,6 +46,16 @@ NDDSUSERDllExport const struct RTI_Monitoring_MetricInfo *
         ${node__.nativeFQNameInModule}_get_metric_info(void);
 #end
 
+#macro (getMetricDistributionKind $metric__)
+#*--*##if ($metric__.distributionKind.equals("UNSPECIFIED"))
+    DDS_OBSERVABLE_UNSPECIFIED_DISTRIBUTION_KIND
+#*--*##elseif ($metric__.distributionKind.equals("PERIODIC"))
+    DDS_OBSERVABLE_PERIODIC_DISTRIBUTION_KIND
+#*--*##else
+    DDS_OBSERVABLE_ON_CHANGE_DISTRIBUTION_KIND
+#*--*##end
+#end
+
 #macro(defineGetMetricInfo $node__)
 const struct RTI_Monitoring_MetricInfo * 
         ${node__.nativeFQNameInModule}_get_metric_info(void)
@@ -58,9 +68,10 @@ const struct RTI_Monitoring_MetricInfo *
     {
 #*----*##foreach ($metric in $node__.metricMapList)
         {
-            (char *) "${metric.name}",
+            (char *) ${metric.otelNameNativeFQName},
             ${metric.idNativeFQName},
-            ${metric.groupIndexNativeFQName}
+            ${metric.groupIndexNativeFQName},
+            #getMetricDistributionKind($metric)
         }#*
 --------*##if ($foreach.hasNext),
 #*------*##else

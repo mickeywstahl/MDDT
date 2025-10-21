@@ -57,6 +57,8 @@ import org.mdpnp.devices.simulation.clcbp.SimControllableBPMonitor;
 import org.mdpnp.devices.simulation.pump.SimInfusionPump;
 import org.mdpnp.devices.simulation.temp.SimThermometer;
 import org.mdpnp.devices.zephyr.biopatch.DemoBioPatch;
+import org.mdpnp.devices.baxter.AS50;
+import org.mdpnp.devices.alaris.Asena;
 import org.mdpnp.rtiapi.data.EventLoop;
 import org.springframework.context.support.AbstractApplicationContext;
 
@@ -719,6 +721,23 @@ public class DeviceFactory {
                 return new TB800Balance(subscriber, publisher, eventLoop);
         }
     }
+    
+    public static class AS50SerialProvider extends SpringLoadedDriver {
+
+    	@Override
+        public DeviceType getDeviceType() {
+                return new DeviceType(ice.ConnectionType.Serial,"Baxter", "AS50", "AS50", 1);
+        }
+
+        @Override
+        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+                EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+                Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+                Publisher publisher = context.getBean("publisher", Publisher.class);
+                return new AS50(subscriber, publisher, eventLoop);
+        }
+    }
+
     public static class BisMonitorProvider extends SpringLoadedDriver {
 
     	@Override

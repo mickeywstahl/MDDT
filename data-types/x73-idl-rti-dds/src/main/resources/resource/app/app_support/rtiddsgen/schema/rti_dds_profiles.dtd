@@ -14,7 +14,7 @@ DDS QoS Profiles DTD
 <!ELEMENT dds (configuration_variables|qos_library|types|type_library|domain_library|participant_library|domain_participant_library|application|transformation_library|adapter_library|plugin_library|routing_service)+>
 <!ATTLIST dds xmlns:xsi CDATA #IMPLIED>
 <!ATTLIST dds xsi:noNamespaceSchemaLocation CDATA #IMPLIED>
-<!ATTLIST dds version CDATA "7.2.0">
+<!ATTLIST dds version CDATA "7.3.0">
 
 <!-- domain_library -->
 <!ELEMENT domain_library (domain)+>
@@ -944,13 +944,21 @@ DDS QoS Profiles DTD
         flow_controller_hash_buckets|
         max_gather_destinations|
         participant_user_data_max_length|
+        participant_user_data_max_count|
         topic_data_max_length|
+        topic_data_max_count|
         publisher_group_data_max_length|
+        publisher_group_data_max_count|
         subscriber_group_data_max_length|
+        subscriber_group_data_max_count|
         writer_user_data_max_length|
+        writer_user_data_max_count|
         reader_user_data_max_length|
+        reader_user_data_max_count|
         max_partitions|
         max_partition_cumulative_characters|
+        max_partition_string_size|
+        max_partition_string_allocation|
         max_endpoint_groups|
         type_code_max_serialized_length|
         type_object_max_serialized_length|
@@ -1412,7 +1420,8 @@ DDS QoS Profiles DTD
         send_ping|
         thread_name_prefix|
         force_interface_poll_detection|
-        join_multicast_group_timeout)>
+        join_multicast_group_timeout|
+        port_offset)>
 
 <!-- UDPV4 WAN -->
 <!ELEMENT udpv4_wan (message_size_max|
@@ -1476,7 +1485,8 @@ DDS QoS Profiles DTD
         ignore_nonrunning_interfaces|
         thread_name_prefix|
         force_interface_poll_detection|
-        join_multicast_group_timeout)>
+        join_multicast_group_timeout|
+        port_offset)>
 
 <!-- !!!!!Qos Policies Values!!!!! -->
 
@@ -1674,19 +1684,35 @@ DDS QoS Profiles DTD
 
 <!ELEMENT participant_user_data_max_length (#PCDATA)>
 
+<!ELEMENT participant_user_data_max_count (#PCDATA)>
+
 <!ELEMENT topic_data_max_length (#PCDATA)>
 
+<!ELEMENT topic_data_max_count (#PCDATA)>
+
 <!ELEMENT publisher_group_data_max_length (#PCDATA)>
+
+<!ELEMENT publisher_group_data_max_count (#PCDATA)>
+
+<!ELEMENT subscriber_group_data_max_count (#PCDATA)>
 
 <!ELEMENT subscriber_group_data_max_length (#PCDATA)>
 
 <!ELEMENT writer_user_data_max_length (#PCDATA)>
 
+<!ELEMENT writer_user_data_max_count (#PCDATA)>
+
 <!ELEMENT reader_user_data_max_length (#PCDATA)>
+
+<!ELEMENT reader_user_data_max_count (#PCDATA)>
 
 <!ELEMENT max_partitions (#PCDATA)>
 
 <!ELEMENT max_partition_cumulative_characters (#PCDATA)>
+
+<!ELEMENT max_partition_string_size (#PCDATA)>
+
+<!ELEMENT max_partition_string_allocation (#PCDATA)>
 
 <!ELEMENT type_code_max_serialized_length (#PCDATA)>
 
@@ -2534,13 +2560,13 @@ DDS QoS Profiles DTD
 <!ELEMENT disabled_metrics_selection (element)*>
 
 <!ELEMENT logs (middleware_forwarding_level|
-                security_forwarding_level|
+                security_event_forwarding_level|
                 service_forwarding_level|
                 user_forwarding_level)*>
 
 <!ELEMENT middleware_forwarding_level (#PCDATA)>
 
-<!ELEMENT security_forwarding_level (#PCDATA)>
+<!ELEMENT security_event_forwarding_level (#PCDATA)>
 
 <!ELEMENT service_forwarding_level (#PCDATA)>
 

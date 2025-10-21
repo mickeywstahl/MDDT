@@ -311,6 +311,8 @@ struct default_primitive_value< ${node.nativeFQName} > {
         return default_enumerator;
     }
 };
+
+RTI_FLAT_DATA_DEFINE_ENUM_TRAITS(${node.nativeFQName})
 } // namespace detail
 #*--*##end
 
@@ -1043,7 +1045,7 @@ ${node.nativeFQNameInModule}Plugin_return_sample_flat_data(
 
 ## FooPlugin_serialize
 #macro (flatPluginSerializeBody $node $standAlone)
-    RTIXCdrStream *xcdrStream = RTICdrStream_asXCdrStream(stream);
+    RTIXCdrStream *xcdrStream = RTICdrStream_asXCdrStream(cdrStream);
     RTIXCdrUnsignedLong sampleSize = 0;
 
 #*--*##if($standAlone)
@@ -1077,7 +1079,7 @@ ${node.nativeFQNameInModule}Plugin_return_sample_flat_data(
     }
 #*--*##if($standAlone)    
     if (serialize_encapsulation) {
-        RTICdrStream_restoreAlignment(stream, rti_position);
+        RTICdrStream_restoreAlignment(cdrStream, rti_position);
     }
     return RTI_TRUE;
 #*--*##end
@@ -1086,7 +1088,7 @@ ${node.nativeFQNameInModule}Plugin_return_sample_flat_data(
 
 ## FooPlugin_deserialize
 #macro (flatPluginDeserializeBody $node)
-    RTIXCdrStream *xcdrStream = RTICdrStream_asXCdrStream(stream);
+    RTIXCdrStream *xcdrStream = RTICdrStream_asXCdrStream(cdrStream);
     RTIXCdrUnsignedLong sampleSize = 0;
     
     RTIOsapiUtility_unusedParameter(endpoint_plugin_qos);
@@ -1267,7 +1269,7 @@ ${node.nativeFQNameInModule}Plugin_return_sample_flat_data(
         result = PRESTypePlugin_interpretedSerializeKey(
                 endpoint_data,
                 plainSample,
-                stream,
+                cdrStream,
                 serialize_encapsulation,
                 encapsulation_id,
                 serialize_key,
@@ -1314,7 +1316,7 @@ ${node.nativeFQNameInModule}Plugin_return_sample_flat_data(
         result = PRESTypePlugin_interpretedSerializeKeyForKeyhash(
                 endpoint_data,
                 plainSample,
-                stream,
+                cdrStream,
                 encapsulation_id,
                 endpoint_plugin_qos);
     }
@@ -1334,7 +1336,7 @@ ${node.nativeFQNameInModule}Plugin_return_sample_flat_data(
     if (!PRESTypePlugin_interpretedDeserializeKey(
                 endpoint_data,
                 plainSample,
-                stream,
+                cdrStream,
                 deserialize_encapsulation,
                 deserialize_key,
                 endpoint_plugin_qos)) {

@@ -177,7 +177,7 @@ public class DemoPanel {
                 
                 if (null != c) {
                     if(c.getDeviceFactory().getDeviceType().getConnectionType()==ConnectionType.Serial && SerialProviderFactory.getDefaultProvider() instanceof TCPSerialProvider) {
-						//Adding serial device after network device.  Reset default provider
+			//Adding serial device after network device.  Reset default provider
                         SerialProviderFactory.setDefaultProvider(new PureJavaCommSerialProvider());
                     }
                     SubscriberQos qos = new SubscriberQos();

@@ -756,7 +756,11 @@ sample._d() = ${node.nativeFQName}::default_discriminator();
             && !${member.resolvedTypeOptional}
             && !${member.resolvedTypePointer})
 #*--------*##if(${member.tcKind} == "RTI_XCDR_TK_ENUM")
+#*------------*##if($envMap.legacyMapping || $node.constructKind.equals("union"))
                 sample.${member.name}($member.defaultEnumMemberName);
+#*------------*##else
+                sample.${member.name} = $member.defaultEnumMemberName;
+#*------------*##end
 #*--------*##else
 #*----------*##if($node.constructKind.equals("union")
                         && $member.labelList[0].equals("default")

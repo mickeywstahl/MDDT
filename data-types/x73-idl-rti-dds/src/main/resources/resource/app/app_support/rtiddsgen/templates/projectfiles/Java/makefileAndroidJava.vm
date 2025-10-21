@@ -72,8 +72,17 @@ JAVA8_FLAGS = -source 1.8 -target 1.8
 
 #[[#]]# replace TARGET_ID with the android platfrom that you want to use
 #[[#]]# use "android list targets" to see the list of available targets
+#if(${archMap.TARGET_ID}=="android-28")
+## Android 9
 TARGET_ID = ${archMap.TARGET_ID}
-
+#elseif(${archMap.ANDROID_SDK_VERSION}=="31")
+## Android 12
+ifdef ANDROID_API
+	TARGET_ID = android-#[[$]]#(ANDROID_API)
+else
+	TARGET_ID = android-${archMap.ANDROID_SDK_VERSION}
+endif
+#end
 JAVA_SOURCES =#foreach($source in ${sourceFileList}) $source#end
 
 CLASS_FILES  = #[[$]]#(JAVA_SOURCES:%.java=%.class)
@@ -112,10 +121,6 @@ SUB_PATH = objs/#[[$]]#(TARGET_ARCH)/subscriber
 ANDROID_PACKAGE_PREFIX = ${typePackage}
 
 ANDROID_PUSH_DEST = /data/data/${typePackage}
-
-#[[#]]# replace TARGET_ID with the android platfrom that you want to use
-#[[#]]# use "android list targets" to see the list of available targets
-TARGET_ID = ${archMap.TARGET_ID}
 
 #[[#]]# if you have more than 1 device connected, you may need to define this
 #[[#]]# use "adb devices" to check which devices are connected
@@ -170,6 +175,7 @@ ${exampleType}.pushdex :
 #[[#]]#
 
 #if(${archMap.TARGET_ID}=="android-28")
+## Android 9
 ${exampleType}.projects : ${exampleType}Publisher/publisher \
 		  	   ${exampleType}Subscriber/subscriber \
 			   ${exampleType}Project.publisherlib \
@@ -204,7 +210,7 @@ ${exampleType}.installapks :
 	adb #[[$]]#(DEVICE) install objs/#[[$]]#(TARGET_ARCH)/subscriber/bin/${exampleType}Subscriber-debug.apk
 
 #else
-
+## Android 12
 ${exampleType}.apks : ${exampleType}Project.publisherlib \
 			   		      ${exampleType}Project.subscriberlib \
 							  ${exampleType}Project.publisherjar \
