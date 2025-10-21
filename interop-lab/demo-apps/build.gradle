@@ -30,13 +30,8 @@ buildscript {
 }
 
 plugins {
-  id 'org.openjfx.javafxplugin' version '0.0.13'
+  id 'org.openjfx.javafxplugin' version '0.1.0'
 }
-
-dependencies {
-	implementation group: 'org.openjdk.nashorn', name: 'nashorn-core', version: '15.4'
-}
-
 
 repositories {
   mavenLocal()
@@ -47,6 +42,10 @@ apply plugin: 'java'
 apply plugin: 'application'
 //apply plugin: "me.champeau.jbake"
 //apply plugin: 'javafx-gradle-plugin'
+
+dependencies {
+	implementation group: 'org.openjdk.nashorn', name: 'nashorn-core', version: '15.7'
+}
 
 defaultTasks 'build'
 
@@ -71,7 +70,7 @@ distTar {
 }
 */
 
-applicationName = 'OpenICE'
+//applicationName = 'OpenICE'
 
 //jfx {
 //    verbose=true
@@ -172,10 +171,12 @@ jbake {
 */
 
 
-sourceCompatibility = JAVA_VERSION_SOURCE
-targetCompatibility = JAVA_VERSION_CLASSES
+java {
+	sourceCompatibility = JAVA_VERSION_SOURCE
+	targetCompatibility = JAVA_VERSION_CLASSES
+}
 
-mainClassName = 'org.mdpnp.apps.testapp.Main'
+//mainClassName = 'org.mdpnp.apps.testapp.Main'
 
 Date buildTimeAndDate = new Date()
 ext {
@@ -186,7 +187,7 @@ ext {
     currentPath = System.getenv('PATH');
 }
 
-manifest { attributes "Main-Class" : mainClassName }
+//manifest { attributes "Main-Class" : mainClassName }
 
 dependencies {
     implementation project(':devices:common')
