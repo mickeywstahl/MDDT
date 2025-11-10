@@ -1,27 +1,31 @@
 package org.mdpnp.apps.testapp.patient;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.text.DateFormat;
+import java.io.FileOutputStream;
+import java.net.Socket;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
+
 import org.mdpnp.apps.testapp.Main;
 import org.mdpnp.apps.testapp.patient.PatientInfo.Gender;
 import org.slf4j.Logger;
@@ -30,10 +34,15 @@ import org.slf4j.LoggerFactory;
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue.ValueType;
 
+/**
+ * This version of OpenEMRImpl works with &qout;modern&qout; versions of OpenEMR (7.2 at
+ * the time of writing) and rather than the previous version, which used a username and
+ * password to login, this variant uses standardised APIs including using an "application"
+ * ID, secret and access/refresh tokens to get access to the data in OpenEMR.
+ */
 public class OpenEMRImpl extends EMRFacade {
 	
 	private static final Logger log = LoggerFactory.getLogger(Main.class);
@@ -41,10 +50,18 @@ public class OpenEMRImpl extends EMRFacade {
 	private String openEMRURL;
 	private String accessToken;
 	long expiryTime;
-	//Next three fields are set by reading properties file
-	private String username;
-	private String password;
+	//Next four fields are set by reading properties file
+	private String refreshToken;
+	private String clientId;
+	private String clientSecret;
 	private String scope;
+	
+	/**
+	 * This properties needs to be class wide because the refresh token gets refreshed (confusing!)
+	 * when the refresh token is used to get an access token.  So we always need to save the updated
+	 * one
+	 */
+	private Properties p;
 
 	public OpenEMRImpl(Executor executor) {
 		super(executor);
@@ -63,7 +80,7 @@ public class OpenEMRImpl extends EMRFacade {
 	}
 
 	private void loadProps() {
-		Properties p=new Properties();
+		p=new Properties();
 		String userHome=System.getProperty("user.home");
 		File f=new File(userHome,"iceopenemr.properties");
 		if( ! f.exists() || ! f.canRead() ) {
@@ -72,8 +89,9 @@ public class OpenEMRImpl extends EMRFacade {
 		}
 		try {
 			p.load(new FileInputStream(f));
-			this.username=p.getProperty("username");
-			this.password=p.getProperty("password");
+			this.clientId=p.getProperty("clientid");
+			this.refreshToken=p.getProperty("refreshtoken");
+			this.clientSecret=p.getProperty("clientsecret");
 			this.scope=p.getProperty("scope");
 		} catch (Exception e) {
 			log.error("Could not read iceopenemr.properties in user home directory",e);
@@ -93,7 +111,7 @@ public class OpenEMRImpl extends EMRFacade {
 		List<PatientInfo> returnList=new ArrayList<>();
 		if(accessToken==null || expired()) {
 			try {
-				login();
+				getAccessToken();
 			} catch (Exception ex) {
 				log.error("Could not log in to OpenEMR", ex);
 				return returnList;
@@ -107,79 +125,168 @@ public class OpenEMRImpl extends EMRFacade {
 		return returnList;
 	}
 	
-	private void addOpenEMRPatients(List returnList) throws Exception {
-		HttpGet patientGet=new HttpGet("http://"+openEMRURL+"/apis/api/patient");
-		patientGet.setHeader("Authorization", "Bearer "+accessToken);
-        CloseableHttpClient client=HttpClients.createDefault();
-        CloseableHttpResponse response=client.execute(patientGet);
-        response.getStatusLine();
-        HttpEntity responseEntity=response.getEntity();
-        InputStream is=responseEntity.getContent();
-        
-        JsonReader reader=Json.createReader(new InputStreamReader(is));
-        JsonArray patientArray=reader.readArray();
+	private void addOpenEMRPatients(List<PatientInfo> returnList) throws Exception {
+		HttpClient httpClient=getHttpClient();
+		//It's just a get with no body...
+		HttpRequest patientRequest=HttpRequest.newBuilder().uri(
+			new URI("https://"+openEMRURL+"/apis/"+scope+"/api/patient")
+		).header("Authorization", "Bearer "+accessToken)
+		.build();
+		HttpResponse<byte[]> responseBytes=httpClient.send(patientRequest, BodyHandlers.ofByteArray());
+		ByteArrayInputStream bais=new ByteArrayInputStream(responseBytes.body());
+		System.err.println("patient query response body is "+new String(responseBytes.body()));
+		JsonReader patientReader=Json.createReader(bais);
+		//patientReader now starts with an Object.
+		JsonObject resultsRoot=patientReader.readObject();
+		JsonArray patientArray=(JsonArray)resultsRoot.get("data");
+		SimpleDateFormat df=new SimpleDateFormat("yyyy-MM-dd");
+		patientArray.forEach( v -> {
+			if(v.getValueType().equals(ValueType.OBJECT)) {
+                JsonObject jo=(JsonObject)v;
+                Gender gender;
+                //TODO: Check these "sex" values from OpenEMR.
+                if(jo.getString("sex").equals("Male")) {
+                	gender=Gender.M;
+                } else {
+                	gender=Gender.F;
+                }
+                Date d=null;
+                try {
+                	d=df.parse(jo.getString("DOB"));
+                } catch (ParseException pe) {
+                	log.error("Could not parse date "+jo.getString("DOB"), pe);
+                	d=new Date(0);
+                }
+                OpenEMRPatientInfo pi=new OpenEMRPatientInfo(
+            		String.valueOf(jo.getInt("id")),
+            		jo.getString("fname"),
+            		jo.getString("lname"),
+            		gender,
+            		d,
+            		jo.getString("uuid")
+        		);
+                returnList.add(pi);
+            }
+			
+		});
+		
         log.info("OpenEMRImpl has "+patientArray.size()+" patients");
         
-        SimpleDateFormat df=new SimpleDateFormat("yyyy-MM-dd");
-        patientArray.forEach( v -> {
-                if(v.getValueType().equals(ValueType.OBJECT)) {
-                    JsonObject jo=(JsonObject)v;
-                    Gender gender;
-                    //TODO: Check these "sex" values from OpenEMR.
-                    if(jo.getString("sex").equals("Male")) {
-                    	gender=Gender.M;
-                    } else {
-                    	gender=Gender.F;
-                    }
-                    Date d=null;
-                    try {
-                    	d=df.parse(jo.getString("DOB"));
-                    } catch (ParseException pe) {
-                    	log.error("Could not parse date "+jo.getString("DOB"), pe);
-                    	d=new Date(0);
-                    }
-                    PatientInfo pi=new PatientInfo(
-                		jo.getString("id"),
-                		jo.getString("fname"),
-                		jo.getString("lname"),
-                		gender,
-                		d
-            		);
-                    returnList.add(pi);
-                }
-        });
 	}
 	
 	/**
-	 * Perform a login to OpenEMR using the URL and credentials in the fields.
-	 * Sets the access token.
+	 * A trust manager that ignores certificate errors.
 	 */
-	private void login() throws Exception {
-		HttpPost loginPost=new HttpPost("http://"+openEMRURL+"/apis/api/auth");
-        JsonObjectBuilder builder=Json.createObjectBuilder();
-        builder.add("grant_type","password");
-        builder.add("username", username);
-        builder.add("password", password);
-        builder.add("scope", scope);
-        JsonObject jsonObj=builder.build();
-        loginPost.setEntity(new StringEntity(jsonObj.toString()));
-        CloseableHttpClient client=HttpClients.createDefault();
-        CloseableHttpResponse response=client.execute(loginPost);
-        response.getStatusLine();
-        HttpEntity responseEntity=response.getEntity();
-        InputStream is=responseEntity.getContent();
+	private static final TrustManager MOCK_TRUST_MANAGER = new X509ExtendedTrustManager() {
+		   @Override
+		   public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+		       return new java.security.cert.X509Certificate[0];
+		   }
 
-        JsonReader reader=Json.createReader(new InputStreamReader(is));
-        JsonObject loginObject=reader.readObject();
-        String accessToken=loginObject.getString("access_token");
+		   @Override
+		   public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {
+		       // empty method
+		   }
+		   // ... Other void methods
+
+		   @Override
+		public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		   @Override
+		public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket)
+				throws CertificateException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		   @Override
+		public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket)
+				throws CertificateException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		   @Override
+		public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+				throws CertificateException {
+			// TODO Auto-generated method stub
+			
+		}
+
+		   @Override
+		public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine)
+				throws CertificateException {
+			// TODO Auto-generated method stub
+			
+		}
+	};
+	
+	/**
+	 * Get a HTTP client.  We do this because we need it in multiple places, but we also need
+	 * to configure it to ignore SSL errors.
+	 * 
+	 * @return HttpClient that ignores SSL errors and can be used with HttpRequest
+	 * @throws Exception
+	 */
+	private HttpClient getHttpClient() throws Exception {
+		SSLContext sslContext=SSLContext.getInstance("SSL");
+		sslContext.init(null, new TrustManager[] {MOCK_TRUST_MANAGER}, new SecureRandom());
+		HttpClient httpClient=HttpClient.newBuilder().sslContext(sslContext).build();
+		return httpClient;
+	}
+	
+	/**
+	 * Gets an access token for OpenEMR using the URL and parameters in the fields.
+	 * 
+	 * This uses a refresh token, client id and client secret to get an up-to-date
+	 * access token.  This new access token is then stored in the accessToken field,
+	 * and the new expiryTime is set.
+	 * 
+	 */
+	private void getAccessToken() throws Exception {
+		HttpClient httpClient=getHttpClient();
+		
+		StringBuilder bodyBuilder=new StringBuilder("grant_type=refresh_token&");
+		bodyBuilder.append("refresh_token=").append(refreshToken)
+		.append("&client_id=").append(clientId)
+		.append("&client_secret=").append(clientSecret);
+		//Now we have a client, build a request for it.
+		HttpRequest tokenRequest=HttpRequest.newBuilder().uri(
+			new URI("https://"+openEMRURL+"/oauth2/default/token")
+		).header("Content-Type","application/x-www-form-urlencoded")
+		.POST(
+			HttpRequest.BodyPublishers.ofString(bodyBuilder.toString())
+		)
+		.build();
+		
+		HttpResponse<byte[]> refreshResponse=httpClient.send(tokenRequest, BodyHandlers.ofByteArray());
+		byte[] responseBytes=refreshResponse.body();
+		System.err.println("request body is "+bodyBuilder.toString());
+		System.err.println("responseBytes length is "+responseBytes.length);
+		System.err.println("response is "+new String(responseBytes));
+		JsonReader reader=Json.createReader(new ByteArrayInputStream(responseBytes));
+		JsonObject tokenObject=reader.readObject();
+		
+		String accessToken=tokenObject.getString("access_token");
         this.accessToken=accessToken;
-        //loginTime=System.currentTimeMillis();
-        String expiresIn=loginObject.getString("expires_in");
-        long duration=Long.parseLong(expiresIn);
+        long duration=tokenObject.getInt("expires_in");
         expiryTime=System.currentTimeMillis()+(duration*1000);
         
-        EntityUtils.consume(responseEntity);
-
+        System.err.println("OpenEMR new access token is "+accessToken.substring(0, 20)+"... expiring in "+duration);
+        /*
+         * It seems that this tokenObject from response includes a NEW refreshToken.
+         * So we store that in the properties.  Have tested this by storing on a Friday,
+         * and on Monday morning everything still worked.
+         */
+        this.refreshToken=tokenObject.getString("refresh_token");
+        p.setProperty("refreshtoken", this.refreshToken);
+        String userHome=System.getProperty("user.home");
+		File f=new File(userHome,"iceopenemr.properties");
+        p.store(new FileOutputStream(f), "ICE OpenEMR Properties, refreshed at "+new Date().toString());
+        //TODO: How to get a new refresh token from scratch - maybe just another perms request with offline_access in it?
 	}
 	
 	/**
