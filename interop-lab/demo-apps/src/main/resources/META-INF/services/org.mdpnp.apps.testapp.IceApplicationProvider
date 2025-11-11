@@ -19,7 +19,6 @@ org.mdpnp.apps.testapp.pumps.timing.PumpTimingTestApplicationFactory
 org.mdpnp.apps.testapp.closedloopcontrol.ClosedLoopControlTestApplicationFactory
 org.mdpnp.apps.testapp.bpcontrol.BPControllerApplicationFactory
 org.mdpnp.apps.testapp.bpcontrol.timing.BPTimingTestApplicationFactory
-org.mdpnp.apps.testapp.openemr.OpenEMRTestApplicationFactory
 org.mdpnp.apps.testapp.mindware.BioLabAppFactory
 org.mdpnp.apps.testapp.vents.VentilatorsApplicationFactory
 org.mdpnp.apps.testapp.vents.control.VentControlApplicationFactory
@@ -29,3 +28,4 @@ org.mdpnp.apps.testapp.alaris.AlarisSimulatorApplicationFactory
 org.mdpnp.apps.testapp.easytiva.EasyTivaSimulatorApplicationFactory
 org.mdpnp.apps.testapp.easytiva.GenericTranslatorApplicationFactory
 org.mdpnp.apps.testapp.docbox.DocBoxApplicationFactory
+org.mdpnp.apps.testapp.openemr7.OpenEMRDataTransferApplicationFactory

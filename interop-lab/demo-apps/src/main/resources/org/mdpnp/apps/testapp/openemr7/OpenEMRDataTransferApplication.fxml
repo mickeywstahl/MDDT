@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.control.cell.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane fx:id="main" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mdpnp.apps.testapp.openemr7.OpenEMRDataTransferApplication">
+<center>
+  <VBox fx:id="mainContents">
+  
+    <Label fx:id="patientNameLabel">Patient Name:</Label>
+  
+    <Label>Patient Encounters</Label>
+    <HBox>
+      <ComboBox fx:id="patientEncounters" promptText="Select existing"/>
+      <Button fx:id="newEncounterButton" onAction="#newEncounter">New</Button>
+    </HBox>
+    <VBox fx:id="newEncounterDetails">
+    	<HBox>
+    	  <Label>Encounter Date</Label>
+    	  <TextField fx:id="newEncounterDate"/>
+    	</HBox>
+    	<HBox>
+    	  <Label>Encounter Reason</Label>
+    	  <TextField fx:id="newEncounterReason"/>
+    	</HBox>
+    	<Button fx:id="saveEncounterButton" onAction="#saveNewEncounter">Save</Button>
+    </VBox>
+    <VBox fx:id="newVitalDetails">
+		<HBox>
+			<Label>Metric</Label>
+			<ComboBox fx:id="openEMRMetrics" promptText="Select a metric"/>
+		</HBox>
+		<HBox>
+			<Label>Value</Label>
+			<TextField fx:id="metricValue"/>		
+			<Button fx:id="saveVitalsButton" onAction="#saveNewVital">Save</Button>
+		</HBox>    
+    </VBox>
+  </VBox>
+  <!--
+  <Label>Server Name</Label>
+  <TextField fx:id="servername"></TextField>	
+  <Label>Username</Label>
+  <TextField fx:id="username">admin</TextField>
+  <Label>Password</Label>
+  <TextField fx:id="password">i-03a09585277e0bb64</TextField>
+  <Label>Scope</Label>
+  <TextField fx:id="scope">default</TextField>
+  <Label>Access Token</Label>
+  <TextField fx:id="accessToken" editable="false"/>
+  <Button fx:id="refresh" onAction="#refresh">Refresh</Button>
+  <Label>Sessions</Label>
+  <ComboBox fx:id="sessionList" promptText="Select a session"/>
+  <Button fx:id="transmit" onAction="#sendData">To OpenEMR</Button>
+  
+  </VBox>
+  -->
+  
+</center>
+</BorderPane>

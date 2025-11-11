@@ -8,7 +8,9 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
@@ -17,6 +19,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -33,7 +36,9 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.json.Json;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonBuilderFactory;
 import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import jakarta.json.JsonReader;
 import jakarta.json.JsonValue.ValueType;
 
@@ -314,5 +319,148 @@ public class OpenEMRImpl extends EMRFacade {
 		//This does nothing for now...
 		return assoc;
 	}
+	
+	/*
+	 * Following methods are ones that logically belong here as although they are not part of EMRFacade,
+	 * we want to be able to use the same connectivity methods that we already have here, without "giving
+	 * out" that connection info.  So any interaction with OpenEMR ultimately occurs here.
+	 */
+	
+	public ArrayList<PatientEncounter> getEncountersForPatient(OpenEMRPatientInfo pi) throws Exception {
+		HttpClient httpClient=getHttpClient();
+		String uuid=pi.getUUID();
+		HttpRequest request=HttpRequest.newBuilder().uri(
+				new URI("https://"+openEMRURL+"/apis/"+scope+"/api/patient/"+uuid+"/encounter")
+			).header("Authorization", "Bearer "+accessToken)
+			.build();
+		//TODO: More abstraction - this client, request, response combination is common.
+		HttpResponse<byte[]> responseBytes=httpClient.send(request, BodyHandlers.ofByteArray());
+		ByteArrayInputStream bais=new ByteArrayInputStream(responseBytes.body());
+		System.err.println("patient query response body is "+new String(responseBytes.body()));
+		JsonReader reader=Json.createReader(bais);
+		JsonObject resultsRoot=reader.readObject();
+		JsonArray resultsArray=(JsonArray)resultsRoot.get("data");
+		ArrayList<PatientEncounter> returnList=new ArrayList<>(); 
+		resultsArray.forEach( v -> {
+			if(v.getValueType().equals(ValueType.OBJECT)) {
+                JsonObject jo=(JsonObject)v;
+                PatientEncounter encounter=new PatientEncounter();
+                encounter.date=jo.getString("date");
+                encounter.reason=jo.getString("reason");
+                encounter.eid=jo.getInt("eid");
+                encounter.euuid=jo.getString("euuid");
+                //encounter.facility=jo.getString("facility");
+                returnList.add(encounter);
+			}
+		});	//End of forEach across results
+		return returnList;
+	}
+	
+	public static class PatientEncounter {
+		public String date;
+		public String reason;
+		public String facility;
+		/**
+		 * ID for the encounter
+		 */
+		public int eid;
+		/**
+		 * Unique ID for the encounter, required later to add e.g. a patient measurement
+		 */
+		public String euuid;
+		
+		@Override
+		public String toString() {
+			StringBuilder sb=new StringBuilder(date).append(" ");
+			if(reason.length()>10) {
+				sb.append(reason.substring(0,10));
+			} else {
+				sb.append(reason);
+			}
+			return sb.toString();
+		}
+	}
+
+	public PatientEncounter addNewEncounter(String uuid, String date, String reason) throws Exception {
+		HttpClient httpClient=getHttpClient();
+		JsonObjectBuilder objectBuilder=Json.createObjectBuilder();
+		JsonObject json=objectBuilder.add("date", date)
+		.add("reason", reason)
+		.add("pc_catid","9")	//Hard coded value from OpenEMR gui - established patient
+		.add("class_code", "FLD")	//Hard coded value from OpenEMR gui - "Out In Field"
+		.build();
+		System.err.println("new encounter body is "+json.toString());
+		HttpRequest request=HttpRequest.newBuilder().uri(
+			new URI("https://"+openEMRURL+"/apis/"+scope+"/api/patient/"+uuid+"/encounter")
+		).header("Authorization", "Bearer "+accessToken)
+		.header("Content-Type","application/json")
+		.POST(BodyPublishers.ofString( json.toString() ))
+		.build();
+		HttpResponse<byte[]> handler=httpClient.send(request, BodyHandlers.ofByteArray());
+		System.err.println("new encounter status code is "+handler.statusCode());
+		if(handler.statusCode()>201) {
+			System.err.println("Failed to post new encounter request");
+			System.err.println("response body is "+new String(handler.body()));
+			throw new Exception("Failed to post new encounter request");
+		}
+		ByteArrayInputStream bais=new ByteArrayInputStream(handler.body());
+		JsonReader reader=Json.createReader(bais);
+		JsonObject resultsRoot=reader.readObject();
+		JsonObject newEncounterData=(JsonObject)resultsRoot.get("data");
+		System.err.println("newEncounterData is "+newEncounterData.toString());
+		PatientEncounter newEncounter=new PatientEncounter();
+		newEncounter.date=date;
+		newEncounter.reason=reason;
+		try {
+			//Don't know why it's called encounter in the return here, but eid in the GET.
+			newEncounter.eid=newEncounterData.getInt("encounter"); 
+		} catch (NullPointerException npe) {
+			System.err.println("No encounter info in response to new encounter - setting to -1");
+			newEncounter.eid=-1;
+		}
+		//Ditto, this is euuid when doing a GET, but uuid here...
+		newEncounter.euuid=newEncounterData.getString("uuid");
+		return newEncounter;
+	}
+	
+	/**
+	 * Add a new vital sign to a patient in OpenEMR.
+	 * 
+	 * Vitals are e.g. bps for systolic BP, bpd for diastolic BP, oxygen_saturation for SpO2.
+	 * See the OpenEMR docs for the full list
+	 *  
+	 * @param patientId The Patient ID (NOT the UUID)
+	 * @param encounterId The encounter ID (NOT the EUUID)
+	 * @param values a Map of key/value pairs, such as oxygen_saturation, 98
+	 * @throws Exception 
+	 */
+	public void addVitalSign(String patientId, String encounterId, HashMap<String,String> values) throws Exception {
+		HttpClient httpClient=getHttpClient();
+		JsonObjectBuilder objectBuilder=Json.createObjectBuilder();
+		values.forEach( (param,value) -> {
+			objectBuilder.add(param, value);
+		});
+		JsonObject json=objectBuilder.build();
+		System.err.println("json for new metric object is "+json.toString());
+		HttpRequest request=HttpRequest.newBuilder().uri(
+				new URI("https://"+openEMRURL+"/apis/"+scope+"/api/patient/"+patientId+"/encounter/"+encounterId+"/vital")
+			).header("Authorization", "Bearer "+accessToken)
+			.header("Content-Type","application/json")
+			.POST(BodyPublishers.ofString( json.toString() ))
+			.build();
+		HttpResponse<byte[]> handler=httpClient.send(request, BodyHandlers.ofByteArray());
+		if(handler.statusCode()>201) {
+			System.err.println("Failed to post new vital request");
+			System.err.println("response body is "+new String(handler.body()));
+			throw new Exception("Failed to post new vital request");
+		}
+		ByteArrayInputStream bais=new ByteArrayInputStream(handler.body());
+		JsonReader reader=Json.createReader(bais);
+		JsonObject resultsRoot=reader.readObject();
+		//JsonObject newVitalData=(JsonObject)resultsRoot.get("data");
+		System.err.println("newVitalData is "+resultsRoot.toString());
+		
+	}
+	
 
 }
