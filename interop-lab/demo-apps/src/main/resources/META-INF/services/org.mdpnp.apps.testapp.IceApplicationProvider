@@ -29,3 +29,4 @@ org.mdpnp.apps.testapp.easytiva.EasyTivaSimulatorApplicationFactory
 org.mdpnp.apps.testapp.easytiva.GenericTranslatorApplicationFactory
 org.mdpnp.apps.testapp.docbox.DocBoxApplicationFactory
 org.mdpnp.apps.testapp.openemr7.OpenEMRDataTransferApplicationFactory
+org.mdpnp.apps.testapp.poclab.PiccoloXpressSimulatorFactory
