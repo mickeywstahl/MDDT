@@ -194,7 +194,11 @@ public class HL7Emitter implements MDSListener, Runnable {
         }
         ssListeners.fire(stopped);
         if (hl7Connection != null) {
-            hl7Connection.close();
+            try {
+				hl7Connection.close();
+			} catch (IOException e) {
+				log.error("Exception closing HL7 connection", e);
+			}
             hl7Connection = null;
         }
         if (fhirClient != null) {

@@ -1,7 +1,9 @@
 package org.mdpnp.apps.testapp.openemr7;
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.function.Predicate;
 
 import org.mdpnp.apps.testapp.patient.EMRFacade;
@@ -18,6 +20,7 @@ import org.mdpnp.devices.MDSHandler.Patient.PatientListener;
 
 import ice.MDSConnectivity;
 import ice.Patient;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -26,7 +29,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.VBox;
+import javafx.scene.layout.GridPane;
 import javafx.scene.text.Font;
 
 public class OpenEMRDataTransferApplication {
@@ -49,7 +52,7 @@ public class OpenEMRDataTransferApplication {
 	@FXML
 	private Label patientNameLabel;
 	@FXML
-	private VBox newEncounterDetails, newVitalDetails;
+	private GridPane newEncounterDetails, newVitalDetails;
 	@FXML
 	private TextField newEncounterDate,newEncounterReason,metricValue;
 	
@@ -117,8 +120,7 @@ public class OpenEMRDataTransferApplication {
                         setPatientNameLabel();
                         //Get encounters for the selected patient
                         try {
-                			ArrayList<PatientEncounter> encounters=openEMR.getEncountersForPatient( getCurrentPatientInfo() );
-                			patientEncounters.getItems().addAll(encounters);
+                        	refreshEncounterList();
                 		} catch (Exception e) {
                 			e.printStackTrace();
                 		}
@@ -156,22 +158,26 @@ public class OpenEMRDataTransferApplication {
 		
 	}
 	
+	private Hashtable<String,String> readableMetrics=new Hashtable<>();
+	
+	private void addMetric(String key, String val) {
+		readableMetrics.put(key, val);
+		openEMRMetrics.getItems().add(key);
+	}
+	
 	private void populateVitalChoices() {
-		//TODO: Make this a key value pair with a more human readable description
-		openEMRMetrics.getItems().addAll(
-			"bps",
-			"bpd",
-			"weight",
-			"height",
-			"temperature",
-			"temp_method",
-		    "pulse",
-			"respiration",
-			"note",
-			"waist_circ",
-			"head_circ",
-			"oxygen_saturation"
-		);
+		addMetric("Systolic BP","bps");
+		addMetric("Diastolic BP", "bpd");
+		addMetric("Weight", "weight");
+		addMetric("Height", "height");
+		addMetric("Temperature", "temperature");
+		addMetric("Temperature method", "temp_method");
+		addMetric("Pulse", "pulse");
+		addMetric("Respiration", "respiration");
+		addMetric("Note", "note");
+		addMetric("Waist circumference", "waist_circ");
+		addMetric("Head circumference", "head_circ");
+		addMetric("SpO\u2082", "oxygen_saturation");
 	}
 	
 	private OpenEMRPatientInfo getCurrentPatientInfo() {
@@ -188,14 +194,21 @@ public class OpenEMRDataTransferApplication {
 
         });
         PatientInfo pi=onlyPatient.get(0);
+        System.err.println("OpenEMRDataTransfer current patient is "+pi.toString());
         return (OpenEMRPatientInfo)pi;
 	}
 	
 	private void setPatientNameLabel() {
 		try {
             PatientInfo pi=getCurrentPatientInfo();
-            patientNameLabel.setText("Current Patient: "+pi.getFirstName()+" "+pi.getLastName());
-            patientNameLabel.setFont(Font.font(24));
+            //This has to be on the UI thread so needs Platform.runLater
+            Platform.runLater( new Runnable() {
+            	public void run() {
+	            	patientNameLabel.setText("Current Patient: "+pi.getFirstName()+" "+pi.getLastName());
+	                patientNameLabel.setFont(Font.font(24));
+            	}
+            });
+            
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -226,10 +239,13 @@ public class OpenEMRDataTransferApplication {
 		String patientId=getCurrentPatientInfo().getMrn();
 		String encounterId=String.valueOf(patientEncounters.getSelectionModel().getSelectedItem().eid);
 		HashMap<String,String> vitalsMap=new HashMap<>();
-		String selectedMetric=openEMRMetrics.getSelectionModel().getSelectedItem();
+		String selectedMetric=readableMetrics.get(openEMRMetrics.getSelectionModel().getSelectedItem());
 		String metricVal=metricValue.getText();
 		vitalsMap.put(selectedMetric, metricVal);
 		//TODO: Make multiple options in one request.  Needs the rows to be cloneable
+		/*
+		 * Actually, that would be really easy - just put them in HashMap in real time via an add button
+		 */
 		try {
 			openEMR.addVitalSign(patientId,encounterId,vitalsMap);
 		} catch (Exception e) {

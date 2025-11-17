@@ -5,41 +5,34 @@
 <?import javafx.scene.control.cell.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.geometry.Insets?>
 
 <BorderPane fx:id="main" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mdpnp.apps.testapp.openemr7.OpenEMRDataTransferApplication">
 <center>
-  <VBox fx:id="mainContents">
+  <VBox fx:id="mainContents" spacing="5">
   
     <Label fx:id="patientNameLabel">Patient Name:</Label>
   
     <Label>Patient Encounters</Label>
-    <HBox>
+    <HBox spacing="5">
       <ComboBox fx:id="patientEncounters" promptText="Select existing"/>
       <Button fx:id="newEncounterButton" onAction="#newEncounter">New</Button>
     </HBox>
-    <VBox fx:id="newEncounterDetails">
-    	<HBox>
-    	  <Label>Encounter Date</Label>
-    	  <TextField fx:id="newEncounterDate"/>
-    	</HBox>
-    	<HBox>
-    	  <Label>Encounter Reason</Label>
-    	  <TextField fx:id="newEncounterReason"/>
-    	</HBox>
-    	<Button fx:id="saveEncounterButton" onAction="#saveNewEncounter">Save</Button>
-    </VBox>
-    <VBox fx:id="newVitalDetails">
-		<HBox>
-			<Label>Metric</Label>
-			<ComboBox fx:id="openEMRMetrics" promptText="Select a metric"/>
-		</HBox>
-		<HBox>
-			<Label>Value</Label>
-			<TextField fx:id="metricValue"/>		
-			<Button fx:id="saveVitalsButton" onAction="#saveNewVital">Save</Button>
-		</HBox>    
-    </VBox>
+    <GridPane fx:id="newEncounterDetails">
+		<Label GridPane.rowIndex="0" GridPane.columnIndex="0">Encounter Date</Label>
+		<TextField GridPane.rowIndex="0" GridPane.columnIndex="1" fx:id="newEncounterDate"/>
+		<Label GridPane.rowIndex="1" GridPane.columnIndex="0">Encounter Reason</Label>
+		<TextField GridPane.rowIndex="1" GridPane.columnIndex="1" fx:id="newEncounterReason"/>
+		<Button GridPane.rowIndex="2" GridPane.columnIndex="0" fx:id="saveEncounterButton" onAction="#saveNewEncounter">Save Encounter</Button>
+    </GridPane>
+    <GridPane fx:id="newVitalDetails">
+		<Label GridPane.rowIndex="0" GridPane.columnIndex="0">Metric</Label>
+		<ComboBox GridPane.rowIndex="0" GridPane.columnIndex="1" fx:id="openEMRMetrics" promptText="Select a metric"/>
+		<Label GridPane.rowIndex="1" GridPane.columnIndex="0">Value</Label>
+		<TextField GridPane.rowIndex="1" GridPane.columnIndex="1" fx:id="metricValue"/>
+		<Button GridPane.rowIndex="2" GridPane.columnIndex="0" fx:id="saveVitalsButton" onAction="#saveNewVital">Save Vital</Button>
+    </GridPane>
   </VBox>
   <!--
   <Label>Server Name</Label>

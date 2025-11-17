@@ -219,8 +219,8 @@ dependencies {
     implementation group: 'org.springframework', name: 'spring-jdbc',    version: '6.0.2'
     implementation group: 'com.google.guava',    name: 'guava',          version: '18.0'
 
-    implementation group: 'ca.uhn.hapi', name: 'hapi-base', version: '2.2'
-    implementation group: 'ca.uhn.hapi', name: 'hapi-structures-v26', version: '2.2'
+    implementation group: 'ca.uhn.hapi', name: 'hapi-base', version: '2.5.1'
+    implementation group: 'ca.uhn.hapi', name: 'hapi-structures-v26', version: '2.5.1'
     
     implementation group: 'ca.uhn.hapi.fhir', name: 'hapi-fhir-base', version: '0.9'
     implementation group: 'ca.uhn.hapi.fhir', name: 'hapi-fhir-structures-dstu2', version: '0.9'
