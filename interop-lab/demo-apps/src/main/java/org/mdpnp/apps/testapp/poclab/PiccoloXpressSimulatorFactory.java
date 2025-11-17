@@ -43,6 +43,16 @@ public class PiccoloXpressSimulatorFactory implements IceApplicationProvider {
 		return new IceApplicationProvider.IceApp() {
 
 			@Override
+			public int getPreferredWidth() {
+				return 800;
+			}
+
+			@Override
+			public int getPreferredHeight() {
+				return 600;
+			}
+
+			@Override
 			public AppType getDescriptor() {
 				return type;
 			}
