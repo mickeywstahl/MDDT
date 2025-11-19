@@ -3,6 +3,8 @@ package org.mdpnp.apps.testapp.poclab;
 import java.io.IOException;
 
 import org.mdpnp.apps.testapp.IceApplicationProvider;
+import org.mdpnp.apps.testapp.patient.EMRFacade;
+import org.mdpnp.devices.MDSHandler;
 import org.mdpnp.rtiapi.data.EventLoop;
 import org.springframework.context.ApplicationContext;
 
@@ -23,20 +25,22 @@ public class PiccoloXpressSimulatorFactory implements IceApplicationProvider {
 	@Override
 	public IceApp create(ApplicationContext parentContext) throws IOException {
 		
+		final EMRFacade emr = (EMRFacade) parentContext.getBean("emr");
+		
 		final Subscriber subscriber = (Subscriber) parentContext.getBean("subscriber");
 
         final EventLoop eventLoop = (EventLoop) parentContext.getBean("eventLoop");
         
-        //"flowRateObjectiveWriter" is a new bean in IceAppContainerContext.xml
-       
-		
+        final MDSHandler mdsHandler=(MDSHandler)parentContext.getBean("mdsConnectivity",MDSHandler.class);
+        mdsHandler.start();
+        
 		FXMLLoader loader = new FXMLLoader(PiccoloXpressSimulator.class.getResource("piccolo-xpress-sim.fxml"));
 
         final Parent ui = loader.load();
         
         final PiccoloXpressSimulator controller = ((PiccoloXpressSimulator) loader.getController());
         
-        controller.set();
+        controller.set(emr, mdsHandler);
         
         controller.start(eventLoop, subscriber);
 		

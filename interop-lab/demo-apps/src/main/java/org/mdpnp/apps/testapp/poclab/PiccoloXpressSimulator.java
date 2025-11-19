@@ -1,18 +1,33 @@
 package org.mdpnp.apps.testapp.poclab;
 
+import java.util.ArrayList;
+import java.util.Hashtable;
+
 import org.mdpnp.apps.fxbeans.NumericFxList;
 import org.mdpnp.apps.fxbeans.SampleArrayFxList;
 import org.mdpnp.apps.testapp.DeviceListModel;
+import org.mdpnp.apps.testapp.patient.EMRFacade;
+import org.mdpnp.apps.testapp.patient.OpenEMRImpl;
+import org.mdpnp.devices.MDSHandler;
+import org.mdpnp.devices.PartitionAssignmentController;
+import org.mdpnp.devices.MDSHandler.Connectivity.MDSEvent;
+import org.mdpnp.devices.MDSHandler.Connectivity.MDSListener;
+import org.mdpnp.devices.MDSHandler.Patient.PatientEvent;
+import org.mdpnp.devices.MDSHandler.Patient.PatientListener;
 import org.mdpnp.rtiapi.data.EventLoop;
 
 import com.rti.dds.subscription.Subscriber;
 
 import docbox.MDSDataWriter;
 import docbox.NumericObservedValueDataWriter;
+import ice.MDSConnectivity;
+import ice.Patient;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
 /**
@@ -29,6 +44,19 @@ public class PiccoloXpressSimulator {
 	private MDSDataWriter docBoxMDSWriter;
 	private NumericObservedValueDataWriter docBoxNOVWriter;
 	
+	private EMRFacade emr;
+	private OpenEMRImpl openEMR;
+	
+	/**
+	 * The "current" patient, used to pass back to the EMRFacade to get encounters etc.
+	 */
+	private Patient currentPatient;
+	
+	private MDSHandler mdsHandler; 
+	
+	@FXML
+	private ComboBox<String> openEMROrders;
+	
 	public Button startButton;
 	public TextField mdsIDField;
 	
@@ -37,13 +65,73 @@ public class PiccoloXpressSimulator {
 	@FXML Label sodiumLabel, potassiumLabel, glucoseLabel, albuminLabel, bilirubinLabel, astLabel, altLabel, alpLabel, gfrLabel, bunLabel, calciumLabel, proteinLabel, chlorideLabel, co2Label, creatinineLabel ;
 	
 	@FXML CheckBox notfastedLabel, qcfailurelabel, diabetesLabel, renalfailureLabel;
+	
+	@FXML TextArea orderContents;
 
-	public void set() {
-		
+	public void set(EMRFacade emr, MDSHandler mdsHandler) {
+		this.emr=emr;
+		if( emr instanceof OpenEMRImpl) {
+			openEMR=(OpenEMRImpl)emr;
+		}
+		this.mdsHandler=mdsHandler;
 	}
 
 	public void start(EventLoop eventLoop, Subscriber subscriber) {
-		//Nothing special to do at the moment...
+		mdsHandler.addPatientListener(new PatientListener() {
+
+			@Override
+			public void handlePatientChange(PatientEvent evt) {
+				ice.Patient icePatient=(ice.Patient)evt.getSource();
+				System.err.println("PiccoloXpressSimulator handlePatientChange mrn is "+icePatient.mrn);
+				refreshOrderListAndCache();
+			}
+			
+		});
+		
+		mdsHandler.addConnectivityListener(new MDSListener() {
+
+			@Override
+			public void handleConnectivityChange(MDSEvent evt) {
+		        ice.MDSConnectivity c = (MDSConnectivity) evt.getSource();
+//		        System.err.println("CLC.handleConnectivity Partition is "+c.partition);
+
+		        String mrnPartition = PartitionAssignmentController.findMRNPartition(c.partition);
+
+		        if(mrnPartition != null) {
+		            //log.info("udi " + c.unique_device_identifier + " is MRN=" + mrnPartition);
+
+		            Patient p = new Patient();
+		            p.mrn = PartitionAssignmentController.toMRN(mrnPartition);
+		            
+		            if(currentPatient==null) {
+		            	/*
+		            	 * The patient has definitely changed - even if the selected patient is "Unassigned",
+		            	 * then that "Patient" has an ID
+		            	 */
+		            	currentPatient=p;
+                        
+                        System.err.println("PiccoloXpressSimulator new current patient is is mrn "+p.mrn);
+                        try {
+                        	refreshOrderListAndCache();
+                		} catch (Exception e) {
+                			e.printStackTrace();
+                		}
+		            	return;	//Nothing else to do.
+		            }
+		            if( ! currentPatient.mrn.equals(p.mrn) ) {
+		            	System.err.println("PiccoloXpressSimulator new current patient is mrn "+p.mrn);
+		            	//Patient has changed
+		            	currentPatient=p;
+                        //Get encounters for the selected patient
+                        try {
+                        	refreshOrderListAndCache();
+                		} catch (Exception e) {
+                			e.printStackTrace();
+                		}
+		            }
+		        }
+		    }
+		});
 		
 	}
 	
@@ -205,5 +293,86 @@ public class PiccoloXpressSimulator {
 		
 		return randFloat;
 		
+	}
+	
+	public void checkForOrders() {
+		System.err.println("Need to check for orders...");
+		if(openEMR==null) {
+			return;	//We can't do anything.
+		}
+		try {
+			ArrayList<String> orders=openEMR.getCurrentOrders();
+			orders.forEach( s-> {
+				filterAndAddOrder(s);
+			});
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void refreshOrderListAndCache() {
+		try {
+			//Clear the current list
+			ordersForPatient.clear();
+			ArrayList<String> orders=openEMR.getCurrentOrders();
+			System.err.println("refreshOrderListAndCache has "+orders.size()+" orders");
+			orders.forEach( s -> {
+				filterAndAddOrder(s);
+			});
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	private Hashtable<String,String> ordersForPatient=new Hashtable<>();
+	
+	private void filterAndAddOrder(String filename) {
+		try {
+			String thisOrder=openEMR.getOrderContents(filename);
+			String[] lines=thisOrder.split("[\r\n]");
+			System.err.println("order "+filename+" has "+lines.length+" lines");
+			for(String line : lines) {
+				//Do better parsing later...
+				if(line.startsWith("PID|")) {
+					System.err.println("PID Line is "+line);
+					String[] segments=line.split("\\|");
+					if(currentPatient.mrn.equals(segments[2])) {
+						ordersForPatient.put(filename,thisOrder);
+						openEMROrders.getItems().add(filename);
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		
+	}
+	
+	//Hmm, we can cache the order for the current patient as we are filtering them...
+	
+	/**
+	 * We need this to get the contents, to preview which order is which.
+	 * @return
+	 */
+	public void viewSelectedOrder() {
+		if(openEMR==null) {
+			return;	//We can't do anything.
+		}
+		try {
+			String filename=openEMROrders.getSelectionModel().getSelectedItem();
+			String contents=ordersForPatient.get(filename);
+			System.err.println("Piccolo got order contents as "+contents);
+			String[] lines=contents.split("[\r\n]");
+			StringBuilder sb=new StringBuilder();
+			String newLine=System.getProperty("line.separator");
+			for(String line : lines) {
+				sb.append(line).append(newLine);
+			}
+			orderContents.setText(sb.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }

@@ -462,5 +462,38 @@ public class OpenEMRImpl extends EMRFacade {
 		
 	}
 	
-
+	/**
+	 * Return a list of orders from the OpenEMR server
+	 */
+	public ArrayList<String> getCurrentOrders() throws Exception {
+		HttpClient httpClient=getHttpClient();
+		HttpRequest request=HttpRequest.newBuilder().uri(
+				new URI("https://"+openEMRURL+"/b-labs/results/")
+			).header("Authorization", "Bearer "+accessToken)
+			.GET().build();
+		HttpResponse<String> handler=httpClient.send(request, BodyHandlers.ofString());
+		String fullResponse=handler.body();
+		System.err.println("response is "+fullResponse);
+		String[] lines=fullResponse.split("[\r\n]");	//USe character class to split on either line terminator
+		ArrayList<String> returnList=new ArrayList<>();
+		for(String line : lines) {
+			//This is quite crude but will do for now. Later, take the prefix.
+			if(line.indexOf("MDPNP-") != -1) {
+				String[] parts=line.split("\"");
+				returnList.add(parts[1]);
+			}
+		}
+		return returnList;
+	}
+	
+	public String getOrderContents(String filename) throws Exception {
+		HttpClient httpClient=getHttpClient();
+		HttpRequest request=HttpRequest.newBuilder().uri(
+				new URI("https://"+openEMRURL+"/b-labs/results/"+filename)
+			).header("Authorization", "Bearer "+accessToken)
+			.GET().build();
+		HttpResponse<String> handler=httpClient.send(request, BodyHandlers.ofString());
+		String response=handler.body();
+		return response;
+	}
 }

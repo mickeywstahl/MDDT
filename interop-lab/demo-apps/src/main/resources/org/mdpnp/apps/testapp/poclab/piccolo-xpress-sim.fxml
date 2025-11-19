@@ -2,7 +2,9 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
@@ -69,7 +71,11 @@
             </GridPane>
             <HBox alignment="CENTER" prefHeight="35.0" prefWidth="300.0">
                <children>
-                  <Button fx:id="newSampleLabel" contentDisplay="CENTER" mnemonicParsing="false" onAction="#startProcess" prefHeight="31.0" prefWidth="146.0" text="Collect New Sample" />
+                  <VBox>
+                     <children>
+		                  <Button fx:id="newSampleLabel" contentDisplay="CENTER" mnemonicParsing="false" onAction="#startProcess" prefHeight="31.0" prefWidth="146.0" text="Collect New Sample" />
+		             </children>
+		          </VBox>
                </children>
             </HBox>
          </children>
@@ -98,6 +104,17 @@
                </children>
             </HBox>
          </children>
+      </HBox>
+      <HBox>
+      	<children>
+			<ComboBox fx:id="openEMROrders" promptText="Select an order"/>
+			<Button fx:id="viewSelectedOrder" contentDisplay="CENTER" mnemonicParsing="false" onAction="#viewSelectedOrder" text="View Order"/>
+		</children>
+      </HBox>
+      <HBox>
+      	<children>
+			<TextArea fx:id="orderContents"/>
+      	</children>
       </HBox>
       <HBox prefHeight="20.0" prefWidth="200.0" />
       <HBox prefHeight="320.0" prefWidth="900.0">
