@@ -18,6 +18,18 @@
             <Label fx:id="channelLabel1" text="Abaxis Piccolo Xpress Simulator" />
          </children>
       </HBox>
+      <HBox>
+      	<children>
+      		<Label>Lab Orders</Label>
+			<ComboBox fx:id="openEMROrders" promptText="Select an order"/>
+			<Button fx:id="viewSelectedOrder" contentDisplay="CENTER" mnemonicParsing="false" onAction="#viewSelectedOrder" text="View Order"/>
+		</children>
+      </HBox>
+      <HBox prefWidth="900.0">
+      	<children>
+			<TextArea fx:id="orderContents" prefColumnCount="120" prefRowCount="10"/>
+      	</children>
+      </HBox>
       <HBox alignment="CENTER_LEFT" prefHeight="35.0" prefWidth="900.0">
          <children>
             <HBox alignment="CENTER_LEFT" prefHeight="35.0" prefWidth="300.0">
@@ -104,17 +116,6 @@
                </children>
             </HBox>
          </children>
-      </HBox>
-      <HBox>
-      	<children>
-			<ComboBox fx:id="openEMROrders" promptText="Select an order"/>
-			<Button fx:id="viewSelectedOrder" contentDisplay="CENTER" mnemonicParsing="false" onAction="#viewSelectedOrder" text="View Order"/>
-		</children>
-      </HBox>
-      <HBox>
-      	<children>
-			<TextArea fx:id="orderContents"/>
-      	</children>
       </HBox>
       <HBox prefHeight="20.0" prefWidth="200.0" />
       <HBox prefHeight="320.0" prefWidth="900.0">
