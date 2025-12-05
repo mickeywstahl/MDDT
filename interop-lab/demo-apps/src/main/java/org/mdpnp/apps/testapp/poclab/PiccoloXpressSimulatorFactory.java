@@ -53,7 +53,7 @@ public class PiccoloXpressSimulatorFactory implements IceApplicationProvider {
 
 			@Override
 			public int getPreferredHeight() {
-				return 600;
+				return 800;
 			}
 
 			@Override

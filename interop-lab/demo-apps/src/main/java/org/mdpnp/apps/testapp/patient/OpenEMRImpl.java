@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.Socket;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -12,6 +13,7 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandler;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -22,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 
 import javax.net.ssl.SSLContext;
@@ -43,7 +46,7 @@ import jakarta.json.JsonReader;
 import jakarta.json.JsonValue.ValueType;
 
 /**
- * This version of OpenEMRImpl works with &qout;modern&qout; versions of OpenEMR (7.2 at
+ * This version of OpenEMRImpl works with 'modern' versions of OpenEMR (7.2 at
  * the time of writing) and rather than the previous version, which used a username and
  * password to login, this variant uses standardised APIs including using an "application"
  * ID, secret and access/refresh tokens to get access to the data in OpenEMR.
@@ -468,7 +471,7 @@ public class OpenEMRImpl extends EMRFacade {
 	public ArrayList<String> getCurrentOrders() throws Exception {
 		HttpClient httpClient=getHttpClient();
 		HttpRequest request=HttpRequest.newBuilder().uri(
-				new URI("https://"+openEMRURL+"/b-labs/results/")
+				new URI("https://"+openEMRURL+"/b-labs/orders/")
 			).header("Authorization", "Bearer "+accessToken)
 			.GET().build();
 		HttpResponse<String> handler=httpClient.send(request, BodyHandlers.ofString());
@@ -489,11 +492,71 @@ public class OpenEMRImpl extends EMRFacade {
 	public String getOrderContents(String filename) throws Exception {
 		HttpClient httpClient=getHttpClient();
 		HttpRequest request=HttpRequest.newBuilder().uri(
-				new URI("https://"+openEMRURL+"/b-labs/results/"+filename)
+				new URI("https://"+openEMRURL+"/b-labs/orders/"+filename)
 			).header("Authorization", "Bearer "+accessToken)
 			.GET().build();
 		HttpResponse<String> handler=httpClient.send(request, BodyHandlers.ofString());
 		String response=handler.body();
 		return response;
+	}
+	
+	public void postHL7(String filename, String fileContents) throws Exception {
+		
+		String separator=UUID.randomUUID().toString();
+		//There doesn't seem to be any support in HttpRequest for form data.
+		
+		/*
+		 * Debugging these transactions can be aided by setting
+		 * 
+		 * -Djdk.httpclient.HttpClient.log=all
+		 * 
+		 * As a JVM argument
+		 */
+		
+		HttpClient httpClient=getHttpClient();
+		
+		HttpRequest.BodyPublisher formData=formData(filename,fileContents, separator);
+		System.err.println("formData content length is "+formData.contentLength());
+		
+		HttpRequest request=HttpRequest.newBuilder().uri(
+			new URI("https://"+openEMRURL+"/interface/modules/custom_modules/oe-module-paradigmice/upload_to_labs.php")	
+		)//.header("Authorization", "Bearer "+accessToken)
+		.header("Content-Type", "multipart/form-data;boundary="+separator)
+		
+		.POST( formData ).build();
+		
+		HttpResponse<String> handler=httpClient.send(request, BodyHandlers.ofString());
+		String response=handler.body();
+		System.err.println("postHL7 response was "+response);
+				
+	}
+	
+	public HttpRequest.BodyPublisher formData(String filename, String fileContents, String separator) {
+		
+		ArrayList<byte[]> byteArrays=new ArrayList<>();
+		
+		String lineOne="--"+separator+"\r\nContent-Disposition: form-data; name=";
+		
+		byte[] separatorBytes= lineOne.getBytes(StandardCharsets.UTF_8);
+		
+		//First, append the file metadata;
+		byteArrays.add(separatorBytes);
+		String filenameAndContent="\"filename\";filename=\""+filename+"\"\r\nContent-Type: text/plain\r\n\r\n";
+		byteArrays.add( filenameAndContent.getBytes(StandardCharsets.UTF_8) );
+		
+		//Now, append the file contents
+		byteArrays.add( fileContents.getBytes(StandardCharsets.UTF_8) );
+		//Now append a \r\n pair
+		byteArrays.add( ("\r\n").getBytes(StandardCharsets.UTF_8) );
+		
+		//Now add the closing boundary
+		byteArrays.add( ("--"+separator+"--").getBytes(StandardCharsets.UTF_8) );
+		
+		for(byte[] bytes : byteArrays) {
+			System.out.println(">>>"+new String(bytes));
+		}
+		
+		
+		return HttpRequest.BodyPublishers.ofByteArrays(byteArrays);
 	}
 }
