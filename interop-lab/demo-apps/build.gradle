@@ -55,7 +55,7 @@ java {
 }
 
 javafx {
-  version = "17.0.11"
+  version = "25"
   modules = [ 'javafx.base', 'javafx.controls' , 'javafx.fxml' , 'javafx.swing' , 'javafx.web' ]
 }
 
