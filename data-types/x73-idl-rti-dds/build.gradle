@@ -204,7 +204,7 @@ task copyIceDotPy(dependsOn: iceddsgenPython, type: Copy) {
       include 'ice.py'
     }
   }
-  duplicatesStrategy 'include'
+  duplicatesStrategy = 'include'
 
 
   into ("/src/main/idl/ice/samples") {
@@ -212,14 +212,14 @@ task copyIceDotPy(dependsOn: iceddsgenPython, type: Copy) {
       include 'ice.py'
     }
   }
-  duplicatesStrategy 'include'
+  duplicatesStrategy = 'include'
 
   into ("/src/main/idl/ice/pump_controller") {
     from( idlProjectDir.getPath()+"/src/main/idl/ice" ) {
       include 'ice.py'
     }
   }
-  duplicatesStrategy 'include'
+  duplicatesStrategy = 'include'
 
 }
 
