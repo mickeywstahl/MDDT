@@ -1,6 +1,7 @@
 BSD 2-Clause License
 
-Copyright (c) 2025, mdpnp
+Copyright (c) 2012-2025, Medical Device Plug-and-Play Interoperability Program (MD PnP)
+See the program website at [MD PnP](https://mdpnp.mgh.harvard.edu)
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
