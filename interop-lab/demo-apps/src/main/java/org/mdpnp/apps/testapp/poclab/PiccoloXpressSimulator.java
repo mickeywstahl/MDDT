@@ -545,6 +545,7 @@ public class PiccoloXpressSimulator {
 		//ORDER LINE NEXT - starts with O
 		lines.add(getOrderLineForPiccolo());
 		
+		lines.addAll(getLeadingCommentsForPiccolo(-2, 198, 1));
 		/* 
 		 * In the samples we have seen from the Piccolo, there are a bunch of comment lines denoted by "C".
 		 * They appear to be more or less a constant but one of them differs.  We'll come back to them.
@@ -552,6 +553,8 @@ public class PiccoloXpressSimulator {
 		
 		ArrayList<String> testResults=getResultLinesForPiccolo();
 		lines.addAll(testResults);
+		
+		lines.addAll(getQualityControlReportForPiccolo());
 		
 		try {
 			/*
@@ -705,6 +708,25 @@ public class PiccoloXpressSimulator {
 		return finalOrderLine;
 	}
 	
+	/**
+	 * Each Piccolo results tranmission seems to contain a number of comments just after the order line,
+	 * the purpose of which isn't completely clear to Simon at the moment.  The three variables in the
+	 * method are used because one of the lines does appear to vary, so for now we at least take them
+	 * as values so we can vary them later.
+	 * @return
+	 */
+	private ArrayList<String> getLeadingCommentsForPiccolo(int hem, int lip, int ict) {
+		ArrayList<String> results=new ArrayList<>();
+		
+		results.add("C|1|I|^^INST QC: OK    CHEM QC: OK|G");
+		results.add("C|2|I|^^HEM: "+hem+"  LIP: "+lip+"  ICT: "+ict+"|G");
+		results.add("C|3|I|^^|G");
+		results.add("C|4|I|^^|G");
+		results.add("C|5|I|^^|G");
+		
+		return results;
+	}
+	
 	private ArrayList<String> getResultLinesForPiccolo() {
 		/*
 		 * There seems to be a few odd things about this, but we are aiming to get all the result lines
@@ -720,15 +742,49 @@ public class PiccoloXpressSimulator {
 				noResult.show();
 				return results;
 			}
-			//String.valueOf(octalSeq++ % 8)
 			StringBuilder resultBuilder=new StringBuilder("R|")
 			.append(sequence++)
 			.append("|").append(testResult.toStringPiccolo());
 			results.add(resultBuilder.toString());
 		};
 		
+		return results;
+	}
+	
+	/**
+	 * Quality control report for Piccolo.  At the moment, the contents of this is fixed,
+	 * but it might need to be parameterized in the future.  The date is generated, but this will
+	 * probably execute within a fraction of a second from the rest of the report, so the date might
+	 * well be the same as in the header.  We can parameterize that if required to simulate a "delay"
+	 * @return
+	 */
+	private ArrayList<String> getQualityControlReportForPiccolo() {
+		ArrayList<String> results=new ArrayList<>();
 		
+		Date qcDate=new Date();
+		SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMddHHmmss");
 		
+		results.add("O|2|||^^^* QUALITY CONTROL REPORT *: 5125AA1||"+sdf.format(qcDate)+"|||||||||||||||||||F");
+		results.add("C|1|I|^^CHEMISTRY QC:        102|G");
+		results.add("C|2|I|^^ACCEPTABLE MINIMUM:  50|G");
+		results.add("R|1|^^^LEVEL 1: IQC 1|92||90 to 110|||");
+		results.add("R|2|^^^LEVEL 1: IQC 2|107||90 to 110|||");
+		results.add("R|3|^^^LEVEL 1: IQC 3|91||90 to 110|||");
+		results.add("R|4|^^^LEVEL 1: IQC 4|92||90 to 110|||");
+		results.add("R|5|^^^LEVEL 1: IQC 5|103||90 to 110|||");
+		results.add("R|6|^^^LEVEL 1: IQC 6|90||90 to 110|||");
+		results.add("R|7|^^^LEVEL 1: IQC 7|106||90 to 110|||");
+		results.add("R|8|^^^LEVEL 1: IQC 8|93||90 to 110|||");
+		results.add("R|9|^^^LEVEL 2: PRE|100||95 to 105|||");
+		results.add("R|10|^^^LEVEL 2: 340 nm|100||95 to 105|||");
+		results.add("R|11|^^^LEVEL 2: 405 nm|100||95 to 105|||");
+		results.add("R|12|^^^LEVEL 2: 467 nm|100||95 to 105|||");
+		results.add("R|13|^^^LEVEL 2: 500 nm|100||95 to 105|||");
+		results.add("R|14|^^^LEVEL 2: 515 nm|100||95 to 105|||");
+		results.add("R|15|^^^LEVEL 2: 550 nm|100||95 to 105|||");
+		results.add("R|16|^^^LEVEL 2: 600 nm|100||95 to 105|||");
+		results.add("R|17|^^^LEVEL 2: 630 nm|100||95 to 105|||");
+		results.add("L|1|N");
 		
 		return results;
 	}
