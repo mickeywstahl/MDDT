@@ -1,6 +1,12 @@
 package org.mdpnp.apps.testapp.poclab;
 
+import static org.mdpnp.apps.testapp.poclab.ASTMUtils.ASTMChecksum;
+import static org.mdpnp.apps.testapp.poclab.ASTMUtils.ETX;
+import static org.mdpnp.apps.testapp.poclab.ASTMUtils.STX;
+import static org.mdpnp.apps.testapp.poclab.ASTMUtils.transmit;
+
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -9,9 +15,6 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.function.Predicate;
 
-import org.mdpnp.apps.fxbeans.NumericFxList;
-import org.mdpnp.apps.fxbeans.SampleArrayFxList;
-import org.mdpnp.apps.testapp.DeviceListModel;
 import org.mdpnp.apps.testapp.patient.EMRFacade;
 import org.mdpnp.apps.testapp.patient.OpenEMRImpl;
 import org.mdpnp.apps.testapp.patient.OpenEMRPatientInfo;
@@ -47,13 +50,17 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Callback;
 
@@ -66,10 +73,6 @@ import javafx.util.Callback;
 public class PiccoloXpressSimulator {
 	
 	private static final Logger log = LoggerFactory.getLogger(PiccoloXpressSimulator.class);
-
-	private DeviceListModel deviceListModel;
-	private NumericFxList numericList;
-	private SampleArrayFxList sampleList;
 
 	private EMRFacade emr;
 	private OpenEMRImpl openEMR;
@@ -99,6 +102,10 @@ public class PiccoloXpressSimulator {
 
 	@FXML
 	VBox main;
+	
+	private ToggleGroup exportTargetsGroup;
+	private RadioButton openEMROption;
+	private RadioButton piccoloOption;
 
 	final PiccoloResultModel sodiumModel = new PiccoloResultModel("Sodium", "2951-2", "Sodium SerPl-sCnc", null,
 			"mmol/L", 128, 145, "");
@@ -128,7 +135,7 @@ public class PiccoloXpressSimulator {
 			3.3f, 5.5f, "");
 	final PiccoloResultModel proteinModel = new PiccoloResultModel("Total Protein", "2885-2", "Prot SerPl-mCnc", null,
 			"g/dL", 6.4f, 8.1f, "");
-
+	
 	public void set(EMRFacade emr, MDSHandler mdsHandler) {
 		this.emr = emr;
 		if (emr instanceof OpenEMRImpl) {
@@ -414,7 +421,7 @@ public class PiccoloXpressSimulator {
 		return (OpenEMRPatientInfo) pi;
 	}
 
-	public void createHL7Results() {
+	public void createHL7ResultsForOpenEMR() {
 		
 		//When this has something like MDPNP-0012 for the order number, we need to replace MDPNP- so that the order number is numeric.
 
@@ -521,6 +528,211 @@ public class PiccoloXpressSimulator {
 		}
 	}
 	
+	public void createHL7ResultsForPiccolo() {
+		//List of the lines in the results.
+		ArrayList<String> lines=new ArrayList<>();
+		
+		Date reportDate=new Date();
+		SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMddHHmmss");
+		
+		//HEADER LINE FIRST- starts with H
+		String headerLine="H|\\^&|||ABAXIS, INC.^piccolo xpress^3.1.37^0000P21592|||||||P|E 1394-97|"+sdf.format(reportDate);
+		lines.add(headerLine);
+		
+		//PATIENT LINE NEXT - starts with P
+		lines.add(getPatientIDLineForPiccolo());
+		
+		//ORDER LINE NEXT - starts with O
+		lines.add(getOrderLineForPiccolo());
+		
+		/* 
+		 * In the samples we have seen from the Piccolo, there are a bunch of comment lines denoted by "C".
+		 * They appear to be more or less a constant but one of them differs.  We'll come back to them.
+		 */
+		
+		ArrayList<String> testResults=getResultLinesForPiccolo();
+		lines.addAll(testResults);
+		
+		try {
+			/*
+			 * We now need to produce the final output consisting of lines like this
+			 *  <STX><Frame Data><CR><ETX><2 CHARACTER CHECKSUM><CR><LF>
+			 * 
+			 * 1.  Take each line in lines.
+			 * 2.  Prefix that line with STX
+			 * 3.  Prefix that line with Octal sequence number
+			 * 4.  Add the line content
+			 * 5.  Add a \r
+			 * 6.  Suffix the line with ETX
+			 * 7.  Generate a two byte checksum and add that
+			 * 8.  Add a \r\n
+			 */
+			
+			int octalSeq=0;
+			
+			//List of byte arrays, each single bytes array constitutes a fully formed "line" including start, end, checksum etc.
+			ArrayList<byte[]> byteArrays=new ArrayList<>();
+			
+			for(int i=0;i<lines.size();i++) {
+				String thisLine=lines.get(i);
+				ByteArrayOutputStream baos=new ByteArrayOutputStream();
+				baos.write(STX);
+				baos.write( (""+((octalSeq++) % 8) ).getBytes() );
+				baos.write(thisLine.getBytes());
+				baos.write('\r');
+				baos.write(ETX);
+				String checksum=ASTMChecksum(baos.toByteArray());
+				baos.write(checksum.getBytes());
+				baos.write("\r\n".getBytes());
+				byteArrays.add(baos.toByteArray());	//Store to use for sending.
+			}
+			
+			transmit("localhost", 1182, byteArrays);
+			
+			//baos.write(new byte[] { RER, EOT, RER });	//0x05, 0x04, 0x05
+			
+			//baos.write(finalOutput.getBytes());
+			//Files.write(new File("/tmp/piccolo.bin").toPath(), baos.toByteArray(), new OpenOption[0]);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+	}
+	
+	
+	
+	private String getPatientIDLineForPiccolo() {
+		//PATIENT LINE NEXT - starts with P
+		//This use of a String array here is entirely unnecessary - it just allows us to add comments on the fields.
+		
+		/*
+		 * Unless we are connected to open emr, patient will definitely be null.  Create a dummy patient
+		 */
+		if(currentPatient==null) {
+			currentPatient=new Patient();
+			currentPatient.family_name="Test";
+			currentPatient.given_name="Piccolo";
+			currentPatient.mrn="579404";
+		}
+		
+		
+		String[] patientFields=new String[36];
+		patientFields[0]="";	//We are treating this as a dummy so we can have the remaining index numbers matching the document numbers
+		patientFields[1]="P";	//P to identify patient line
+		patientFields[2]="1";	//1 for first patient
+		patientFields[3]=currentPatient.mrn;	//Unique patient id - here, obtained from the current patient
+		patientFields[4]="";	//Lab assigned patient id
+		patientFields[5]="";	//Optional additional identifier information
+		patientFields[6]=
+				currentPatient.family_name
+				+"^"
+				+currentPatient.given_name
+				+"^"
+				+""	//middle name or inital
+				+"^"
+				+""	//suffix
+				+"^"
+				+""	//title
+				;
+		patientFields[7]="";	//Mother's maiden name
+		patientFields[8]="";	//Birthdate
+		patientFields[9]="F";	//Sex
+		patientFields[10]="W";	//Ethnic origin
+		patientFields[11]="";	//Street address
+		patientFields[12]="";	//Reserved for future expansion
+		patientFields[13]="";	//Telephone number
+		patientFields[14]="";	//Attending physician id.
+		patientFields[15]="^46 Yrs.^";	//Optional text field for vendor use - appears to contain age in our case
+		patientFields[16]="Patient";	//Optional text field for vendor use - appears to contain the word patient in our case
+		/*
+		 * All remaining fields in the samples SK has seen from Piccolo are empty - indeed, it only ever contains 26 fields in the first place,
+		 * rather than the 35 that are defined in the specification.  So maybe we will want to shrink this to a smaller array.
+		 */
+		for(int i=17;i<patientFields.length;i++) {
+			patientFields[i]="";
+		}
+		/*
+		 * Above, we added a dummy field in index 0, with the array being one field longer than actually necessary,
+		 * i.e. 36 when only 35 fields are required.  All that so we can use 1 for the first field, 2 for the second
+		 * etc. to keep the numbers matching the field numbers in the documentation.  Now we shift everything back one
+		 */
+		System.arraycopy(patientFields, 1, patientFields, 0, patientFields.length-1);	//Shift them all back one place
+		String finalPatientLine=String.join("|", patientFields);
+		return finalPatientLine;
+	}
+
+	private String getOrderLineForPiccolo() {
+		//This use of a String array here is entirely unnecessary - it just allows us to add comments on the fields.
+
+		Date requestDate=new Date();
+		SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMddHHmmss");
+
+		String[] orderFields=new String[32];
+		orderFields[0]="";	//We are treating this as a dummy so we can have the remaining index numbers matching the document numbers
+		orderFields[1]="O";	//O is for order...
+		orderFields[2]="1";	//Order sequence number - Piccolo appears to start with 1...
+		orderFields[3]="";	//Specimin ID - Piccolo seems to leave this blank
+		orderFields[4]="";	//Instrument specimin ID - Piccolo seems to leave this blank
+		orderFields[5]=
+			""	//This field currently unused
+			+"^"
+			+""	//Part 2
+			+"^"
+			+""	//Part 3
+			+"^"
+			+"Comprehensive Metabolic: 5125AA1";	//There are many more fields in the standard that the Piccolo appears to ignore.
+		orderFields[6]="";		//Priority - Piccolo seems to leave this blank
+		orderFields[7]=sdf.format(requestDate);	//Requested/Ordered date time - note that we are using "now" here.  We might need a more accurate value.
+		//Piccolo appears to leave fields 8-25 inclusive blank
+		for(int i=8;i<26;i++) {
+			orderFields[i]="";
+		}
+		orderFields[26]="F";	//Report type - F is final results
+		//Piccolo does not appear to even have fields 27-31 in its output, so we may need to trim the initial array.
+		for(int i=27;i<32;i++) {
+			orderFields[i]="";
+		}
+		
+		/*
+		 * Above, we added a dummy field in index 0, with the array being one field longer than actually necessary,
+		 * i.e. 32 when only 31 fields are required.  All that so we can use 1 for the first field, 2 for the second
+		 * etc. to keep the numbers matching the field numbers in the documentation.  Now we shift everything back one
+		 */
+		System.arraycopy(orderFields, 1, orderFields, 0, orderFields.length-1);	//Shift them all back one place
+		String finalOrderLine=String.join("|", orderFields);
+		return finalOrderLine;
+	}
+	
+	private ArrayList<String> getResultLinesForPiccolo() {
+		/*
+		 * There seems to be a few odd things about this, but we are aiming to get all the result lines
+		 * in the format the Piccolo produces.
+		 */
+		ArrayList<String> results=new ArrayList<>();
+		int sequence=1;
+		int octalSeq=1;
+		for(PiccoloResultModel testResult : getAllMeasurements()) {
+			if(testResult.getValue()==-1) {
+				//Result not generated
+				Alert noResult=new Alert(AlertType.ERROR, "Results have not yet been generated (Collect New Sample first!)", new ButtonType[] {ButtonType.OK});
+				noResult.show();
+				return results;
+			}
+			//String.valueOf(octalSeq++ % 8)
+			StringBuilder resultBuilder=new StringBuilder("R|")
+			.append(sequence++)
+			.append("|").append(testResult.toStringPiccolo());
+			results.add(resultBuilder.toString());
+		};
+		
+		
+		
+		
+		return results;
+	}
+	
 	private void postHL7(String result) throws IOException {
 		//We mirror the source file name for the order as the result file name
 		String filename = openEMROrders.getSelectionModel().getSelectedItem();
@@ -535,7 +747,7 @@ public class PiccoloXpressSimulator {
 	 * This class represents the result of a Piccolo blood test for a particular metric such as
 	 * Sodium or Potassium.  It has properties for the value type, which for all known Piccolo
 	 * results is NM for numeric (see the HL7 specs for details, the best reference I found for
-	 * lookup was <a href="https://hl7-definition.caristix.com/v2/HL7v2.5">Caristix</href>),
+	 * lookup was <a href="https://hl7-definition.caristix.com/v2/HL7v2.5">Caristix</a>),
 	 * the LOINC code, the coding system (defaults to LOINC as that seems to be what all Piccolo
 	 * results use), the Piccolo assigned label, the units for the measurement, the lower and upper
 	 * limits for the measurement.
@@ -716,6 +928,27 @@ public class PiccoloXpressSimulator {
 					.append(abnormalProperty().get()).append("||").append(resultStatus);
 			return sb.toString();
 		}
+		
+		public String toStringPiccolo() {
+			StringBuilder sb=new StringBuilder(loinc).append("^^LN^")
+					.append(picLabel).append("|").append(getValue());
+			/*
+			 * The piccolo uses an asterisk to indicate in the value field
+			 * if the value is out of range, in addition to the N (normal) or H (high)
+			 * field that is a later field in the result line.  Here, we check that.
+			 */
+			String abnormalString=abnormalProperty().get();
+			if( ! abnormalString.equals("N")) {
+				//Result is not normal
+				sb.append(" *");
+			}
+			sb.append("|").append(units).append("|").append(getLower()).append(" to ").append(getUpper())
+			//Double pipe on the next line is because there is no "nature of abnormality testing"
+			.append(abnormalString).append("||")
+			.append("R");	//R for "previously transmitted" - should we be able to specify F for final here?
+			
+			return sb.toString();
+		}
 
 	}
 
@@ -825,11 +1058,26 @@ public class PiccoloXpressSimulator {
 		tableView.prefWidth(900);
 
 		main.getChildren().add(tableView);
+		
+		HBox exportBox=new HBox();
 
 		// Add the export results button
 		Button exportButton = new Button("Export results");
 		exportButton.setOnAction(exportResults());
-		main.getChildren().add(exportButton);
+		
+		exportTargetsGroup=new ToggleGroup();
+		
+		openEMROption=new RadioButton("OpenEMR");
+		openEMROption.setTooltip(new Tooltip("Export the results to OpenEMR"));
+		openEMROption.setToggleGroup(exportTargetsGroup);
+		
+		piccoloOption=new RadioButton("Piccolo");
+		openEMROption.setTooltip(new Tooltip("Export the results to a device expecting to receive them from a real Piccolo"));
+		piccoloOption.setToggleGroup(exportTargetsGroup);
+		
+		exportBox.getChildren().addAll(exportButton, openEMROption, piccoloOption);
+		
+		main.getChildren().add(exportBox);
 
 	}
 
@@ -838,8 +1086,18 @@ public class PiccoloXpressSimulator {
 
 			@Override
 			public void handle(ActionEvent event) {
-				//System.err.println("Need to send HL7 results...");
-				createHL7Results();
+				RadioButton selectedToggle=(RadioButton)exportTargetsGroup.getSelectedToggle();
+				if(selectedToggle==null) {
+					Alert noSelection=new Alert(AlertType.ERROR, "Please select an export destination", ButtonType.OK);
+					noSelection.show();
+					return;
+				}
+				if(selectedToggle==openEMROption) {
+					createHL7ResultsForOpenEMR();
+				}
+				if(selectedToggle==piccoloOption) {
+					createHL7ResultsForPiccolo();
+				}
 			}
 
 		};
