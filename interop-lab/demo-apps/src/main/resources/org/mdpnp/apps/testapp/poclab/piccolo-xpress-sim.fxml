@@ -86,6 +86,7 @@
                   <VBox>
                      <children>
 		                  <Button fx:id="newSampleLabel" contentDisplay="CENTER" mnemonicParsing="false" onAction="#startProcess" prefHeight="31.0" prefWidth="146.0" text="Collect New Sample" />
+		                  <Button fx:id="resetButton" contentDisplay="CENTER" mnemonicParsing="false" onAction="#resetScreen" prefHeight="31.0" prefWidth="146.0" text="Reset" />
 		             </children>
 		          </VBox>
                </children>

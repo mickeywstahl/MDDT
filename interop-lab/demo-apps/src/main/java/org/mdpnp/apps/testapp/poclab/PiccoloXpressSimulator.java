@@ -8,6 +8,7 @@ import static org.mdpnp.apps.testapp.poclab.ASTMUtils.transmit;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -34,9 +35,11 @@ import com.rti.dds.subscription.Subscriber;
 import ice.MDSConnectivity;
 import ice.Patient;
 import javafx.beans.property.FloatProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -96,6 +99,32 @@ public class PiccoloXpressSimulator {
 
 	@FXML
 	CheckBox notfastedLabel, qcfailurelabel, diabetesLabel, renalfailureLabel;
+	
+	TextField astmHostInput=new TextField("localhost");	//Default value
+	TextField astmPortInput=new TextField("1182");		//Default value
+	
+	/*
+	 * For all the checkboxes above, we create a separate, accessible property
+	 * that we can then use from the test for this class to manipulate the status,
+	 * without needing the actual controls to exist.  More importantly we can also
+	 * check the property in the code without the label existing.
+	 */
+	final SimpleBooleanProperty noFastedProperty=new SimpleBooleanProperty();
+	final SimpleBooleanProperty qcFailureProperty=new SimpleBooleanProperty();
+	final SimpleBooleanProperty diabetesProperty=new SimpleBooleanProperty();
+	final SimpleBooleanProperty renalFailureProperty=new SimpleBooleanProperty();
+	
+	/*
+	 * For all the labels above, we create a separate, accessible property
+	 * that we can then use from the test for this class to manipulate the text,
+	 * without needing the actual controls to exist.  This allows the test to run
+	 * headless, because the code in this class can set the property, and if the
+	 * label is null, the bind does nothing.
+	 */
+	final SimpleStringProperty instrumentqcLabelText=new SimpleStringProperty();
+	final SimpleStringProperty chemistryqcLabelText=new SimpleStringProperty();
+	final SimpleStringProperty hemolysisLabelText=new SimpleStringProperty();
+	final SimpleStringProperty lipemiaLabelText=new SimpleStringProperty();
 
 	@FXML
 	TextArea orderContents;
@@ -145,6 +174,18 @@ public class PiccoloXpressSimulator {
 	}
 
 	public void start(EventLoop eventLoop, Subscriber subscriber) {
+		
+		
+		qcfailurelabel.selectedProperty().bindBidirectional(qcFailureProperty);
+		notfastedLabel.selectedProperty().bindBidirectional(noFastedProperty);
+		diabetesLabel.selectedProperty().bindBidirectional(diabetesProperty);
+		renalfailureLabel.selectedProperty().bindBidirectional(renalFailureProperty);
+		
+		instrumentqcLabel.textProperty().bindBidirectional(instrumentqcLabelText);
+		chemistryqcLabel.textProperty().bindBidirectional(chemistryqcLabelText);
+		hemolysisLabel.textProperty().bindBidirectional(hemolysisLabelText);
+		lipemiaLabel.textProperty().bindBidirectional(lipemiaLabelText);
+		
 		mdsHandler.addPatientListener(new PatientListener() {
 
 			@Override
@@ -215,36 +256,36 @@ public class PiccoloXpressSimulator {
 	public void startProcess() {
 //		System.err.println("We just created a new sample");
 		// Check for QC Failure
-		if (qcfailurelabel.isSelected()) {
-			instrumentqcLabel.setText("Instrument QC: FAIL");
-			chemistryqcLabel.setText("Chemistry QC: FAIL");
-			hemolysisLabel.setText("");
-			lipemiaLabel.setText("");
+		if (qcFailureProperty.get()) {
+			instrumentqcLabelText.set("Instrument QC: FAIL");
+			chemistryqcLabelText.set("Chemistry QC: FAIL");
+			hemolysisLabelText.set("");
+			lipemiaLabelText.set("");
 			return;
 		} else {
-			instrumentqcLabel.setText("Instrument QC: OK");
-			chemistryqcLabel.setText("Chemistry QC: OK");
+			instrumentqcLabelText.set("Instrument QC: OK");
+			chemistryqcLabelText.set("Chemistry QC: OK");
 		}
 
 		// HEM value
 		float hemoIndex = randomValueGenerator(0f, 20f);
-		hemolysisLabel.setText("Hemolysis Index: " + Float.toString(hemoIndex));
+		hemolysisLabelText.set("Hemolysis Index: " + Float.toString(hemoIndex));
 
 		// Check for patient fasted status
 		float lipemiaIndex = 0f;
-		if (notfastedLabel.isSelected()) {
+		if (noFastedProperty.get()) {
 			lipemiaIndex = randomValueGenerator(35f, 100f);
-			lipemiaLabel.setText("Lipemia Index: " + Float.toString(lipemiaIndex) + " (Moderate - High)");
+			lipemiaLabelText.set("Lipemia Index: " + Float.toString(lipemiaIndex) + " (Moderate - High)");
 		} else {
 			lipemiaIndex = randomValueGenerator(1f, 35f);
-			lipemiaLabel.setText("Lipemia Index: " + Float.toString(lipemiaIndex) + " (Normal)");
+			lipemiaLabelText.set("Lipemia Index: " + Float.toString(lipemiaIndex) + " (Normal)");
 		}
 
 		// Check for renal failure
 		float BUN = 0f;
 		float creatinine = 0f;
 		float potassium = 0f;
-		if (renalfailureLabel.isSelected()) {
+		if (renalFailureProperty.get()) {
 			BUN = randomValueGenerator(22f, 50f);
 			bunModel.setValue(BUN);
 			potassium = randomValueGenerator(5.1f, 12f);
@@ -262,7 +303,7 @@ public class PiccoloXpressSimulator {
 
 		// Check for Diabetes
 		float glucose = 0f;
-		if (diabetesLabel.isSelected()) {
+		if (diabetesProperty.get()) {
 			glucose = randomValueGenerator(120f, 170f);
 			glucoseModel.setValue(glucose);
 		} else {
@@ -314,6 +355,23 @@ public class PiccoloXpressSimulator {
 		 * 
 		 * hemoIndex lipemiaIndex
 		 */
+	}
+	
+	public void resetScreen() {
+		ObservableList<PiccoloResultModel> allMeasurements=getAllMeasurements();
+		allMeasurements.forEach( measurement -> {
+			measurement.abnormalProperty.set("");
+			measurement.valueProperty.set(-1f);
+		});
+		noFastedProperty.set(false);
+		qcFailureProperty.set(false);
+		diabetesProperty.set(false);
+		renalFailureProperty.set(false);
+		
+		instrumentqcLabelText.set("Instrument QC: ");
+		chemistryqcLabelText.set("Chemistry QC: ");
+		hemolysisLabelText.set("Hemolysis Index: ");
+		lipemiaLabelText.set("Lipemia Index: ");
 	}
 
 	public static float randomValueGenerator(float min, float max) {
@@ -528,12 +586,18 @@ public class PiccoloXpressSimulator {
 		}
 	}
 	
-	public void createHL7ResultsForPiccolo() {
+	public ArrayList<byte[]> createHL7ResultsForPiccolo() {
 		//List of the lines in the results.
 		ArrayList<String> lines=new ArrayList<>();
 		
 		Date reportDate=new Date();
 		SimpleDateFormat sdf = new SimpleDateFormat("YYYYMMddHHmmss");
+		
+		//We get the results first, to check if they have been generated.  If not, we don't continue;
+		ArrayList<String> testResults=getResultLinesForPiccolo();
+		if(testResults.size()==0) {
+			return null;
+		}
 		
 		//HEADER LINE FIRST- starts with H
 		String headerLine="H|\\^&|||ABAXIS, INC.^piccolo xpress^3.1.37^0000P21592|||||||P|E 1394-97|"+sdf.format(reportDate);
@@ -546,15 +610,13 @@ public class PiccoloXpressSimulator {
 		lines.add(getOrderLineForPiccolo());
 		
 		lines.addAll(getLeadingCommentsForPiccolo(-2, 198, 1));
-		/* 
-		 * In the samples we have seen from the Piccolo, there are a bunch of comment lines denoted by "C".
-		 * They appear to be more or less a constant but one of them differs.  We'll come back to them.
-		 */
 		
-		ArrayList<String> testResults=getResultLinesForPiccolo();
 		lines.addAll(testResults);
 		
 		lines.addAll(getQualityControlReportForPiccolo());
+		
+		//List of byte arrays, each single bytes array constitutes a fully formed "line" including start, end, checksum etc.
+		ArrayList<byte[]> byteArrays=new ArrayList<>();
 		
 		try {
 			/*
@@ -573,9 +635,6 @@ public class PiccoloXpressSimulator {
 			
 			int octalSeq=0;
 			
-			//List of byte arrays, each single bytes array constitutes a fully formed "line" including start, end, checksum etc.
-			ArrayList<byte[]> byteArrays=new ArrayList<>();
-			
 			for(int i=0;i<lines.size();i++) {
 				String thisLine=lines.get(i);
 				ByteArrayOutputStream baos=new ByteArrayOutputStream();
@@ -590,7 +649,9 @@ public class PiccoloXpressSimulator {
 				byteArrays.add(baos.toByteArray());	//Store to use for sending.
 			}
 			
-			transmit("localhost", 1182, byteArrays);
+//			if(transmit) {
+//				transmit("localhost", 1182, byteArrays);
+//			}
 			
 			//baos.write(new byte[] { RER, EOT, RER });	//0x05, 0x04, 0x05
 			
@@ -600,7 +661,7 @@ public class PiccoloXpressSimulator {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+		return byteArrays;
 		
 	}
 	
@@ -756,7 +817,8 @@ public class PiccoloXpressSimulator {
 	 * but it might need to be parameterized in the future.  The date is generated, but this will
 	 * probably execute within a fraction of a second from the rest of the report, so the date might
 	 * well be the same as in the header.  We can parameterize that if required to simulate a "delay"
-	 * @return
+	 * 
+	 * @return an array of lines comprising the QC report
 	 */
 	private ArrayList<String> getQualityControlReportForPiccolo() {
 		ArrayList<String> results=new ArrayList<>();
@@ -1131,7 +1193,14 @@ public class PiccoloXpressSimulator {
 		openEMROption.setTooltip(new Tooltip("Export the results to a device expecting to receive them from a real Piccolo"));
 		piccoloOption.setToggleGroup(exportTargetsGroup);
 		
-		exportBox.getChildren().addAll(exportButton, openEMROption, piccoloOption);
+		Label astmHostLabel=new Label("ASTM Server");
+		astmHostInput=new TextField();
+		
+		Label astmPortLabel=new Label("ASTM Host");
+		astmPortInput=new TextField();
+				
+		
+		exportBox.getChildren().addAll(exportButton, openEMROption, piccoloOption, astmHostLabel, astmHostInput, astmPortLabel, astmPortInput);
 		
 		main.getChildren().add(exportBox);
 
@@ -1152,7 +1221,24 @@ public class PiccoloXpressSimulator {
 					createHL7ResultsForOpenEMR();
 				}
 				if(selectedToggle==piccoloOption) {
-					createHL7ResultsForPiccolo();
+					ArrayList<byte[]> results=createHL7ResultsForPiccolo();
+					if(results==null) {
+						return;
+					}
+					try {
+						String hostname=astmHostInput.getText();
+						int port=1182;	//Is this some sort of actual default well known number?
+						try {
+							port=Integer.parseInt(astmPortInput.getText());
+						} catch (NumberFormatException nfe) {
+							//just keep 1182.
+						}
+						transmit(hostname, port, results);
+					} catch (Exception e) {
+						Alert failedToTransmit=new Alert(AlertType.ERROR, "Failed to transmit results", ButtonType.OK);
+						failedToTransmit.show();
+						return;
+					}
 				}
 			}
 
