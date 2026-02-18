@@ -125,6 +125,8 @@ public class ASTMUtils {
 			System.err.println("Received ACK from server for line "+linesSent);
 			linesSent++;
 		}
+		socketChannel.write(ByteBuffer.wrap(new byte[] {ASTMUtils.EOT}));
+		socketChannel.close();
 	}
 
 }
