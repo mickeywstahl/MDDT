@@ -147,6 +147,8 @@ public class PiccoloXpressSimulator {
 	final PiccoloResultModel albuminModel=piccoloResults.getAlbuminModel();
 	final PiccoloResultModel proteinModel=piccoloResults.getProteinModel();
 	
+	final ObservableList<PiccoloResultModel> allMeasurements=piccoloResults.getAllMeasurements();
+	
 	private ASTMServer astmServer;
 	
 	public void set(EMRFacade emr, MDSHandler mdsHandler) {
@@ -342,7 +344,6 @@ public class PiccoloXpressSimulator {
 	}
 	
 	public void resetScreen() {
-		ObservableList<PiccoloResultModel> allMeasurements=getAllMeasurements();
 		allMeasurements.forEach( measurement -> {
 			measurement.abnormalProperty().set("");
 			measurement.valueProperty().set(-1f);
@@ -540,7 +541,7 @@ public class PiccoloXpressSimulator {
 			StringBuilder resultsBuilder = new StringBuilder("\n");
 			int count=1;
 			int delta=1;
-			for(PiccoloResultModel testResult : getAllMeasurements()) {
+			for(PiccoloResultModel testResult : allMeasurements) {
 				if(testResult.getValue()==-1) {
 					//Result not generated
 					Alert noResult=new Alert(AlertType.ERROR, "Results have not yet been generated (Collect New Sample first!)", new ButtonType[] {ButtonType.OK});
@@ -780,7 +781,7 @@ public class PiccoloXpressSimulator {
 		ArrayList<String> results=new ArrayList<>();
 		int sequence=1;
 		int octalSeq=1;
-		for(PiccoloResultModel testResult : getAllMeasurements()) {
+		for(PiccoloResultModel testResult : allMeasurements) {
 			if(testResult.getValue()==-1) {
 				//Result not generated
 				Alert noResult=new Alert(AlertType.ERROR, "Results have not yet been generated (Collect New Sample first!)", new ButtonType[] {ButtonType.OK});
@@ -917,20 +918,34 @@ public class PiccoloXpressSimulator {
 		};
 	}
 
-	private ObservableList<PiccoloResultModel> getAllMeasurements() {
-		ObservableList<PiccoloResultModel> returnList = FXCollections.observableArrayList();
-		returnList.addAll(sodiumModel, potassiumModel, co2Model, chlorideModel, glucoseModel, calciumModel, bunModel,
-				creatinineModel, alpModel, altModel, astModel, bilirubinModel, albuminModel, proteinModel);
-		return returnList;
-	}
-	
 	public void startASTMServer() {
 		int port=Integer.parseInt(localServerPortNumber.getText());
 		astmServer=new ASTMServer(port);
 		astmServer.addCallback(new DataCallback() {
 			@Override
-			public void dataReceived(byte[] bytes) {
-				System.err.println("CLIENT CALLBACK "+new String(bytes));
+			public void dataReceived(String line) {
+				
+				//System.err.println("CLIENT CALLBACK "+line);
+				String noOctal=line.substring(1);
+				if(noOctal.startsWith("R")) {
+					//System.err.println("Poss result line");
+					//Result line
+					String[] fields=line.split("\\|");
+					String possResult=fields[2];
+					char testChar=possResult.charAt(0);
+					if(testChar>='0' && testChar<='9') {
+						//This is a result line
+						//System.err.println("Actual results line");
+						String[] subFields=fields[2].split("\\^");
+						System.err.println("Checking for LOINC code "+subFields[0]);
+						for(PiccoloResultModel measurement : allMeasurements) {
+							if(measurement.loinc.equals(subFields[0])) {
+								//This is the measurement for this LOINC
+								measurement.setValue(Float.parseFloat(fields[3]));
+							}
+						}
+					}
+				}
 			}
 		});
 		try {

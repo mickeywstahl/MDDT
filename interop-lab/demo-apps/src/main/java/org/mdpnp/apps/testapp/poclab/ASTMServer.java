@@ -20,7 +20,7 @@ public class ASTMServer {
 		 * Notifies the caller that data has been received by the server.
 		 * @param bytes the bytes that have been received
 		 */
-		void dataReceived(byte[] bytes);
+		void dataReceived(String line);
 	}
 	
 	private ArrayList<DataCallback> callbacks=new ArrayList<>();
@@ -66,10 +66,10 @@ public class ASTMServer {
 						//System.err.println("Start of read...");
 						
 						while( (bytesRead+=acceptingChannel.read(receivingBuffer)) !=-1) {
-							System.err.println("ASTMSERVER Read "+bytesRead+" bytes");
+							//System.err.println("ASTMSERVER Read "+bytesRead+" bytes");
 							if(bytesRead<5) {
 								if(bytes[0]==ASTMUtils.EOT);
-								System.err.println("ASTMSERVER EOT received");
+								//System.err.println("ASTMSERVER EOT received");
 								break;
 							}
 							if(bytes[0]==ASTMUtils.STX && bytes[bytesRead-5]==ASTMUtils.ETX) {
@@ -81,19 +81,20 @@ public class ASTMServer {
 										break;
 									}
 								}
-								for(DataCallback callback : callbacks) {
-									callback.dataReceived(bytes);
-								}
+
 								//TODO: More validation of the \r position
 								String line=new String(bytes,1,slashRPos-2);
-								System.err.println("ASTMSERVER Received line - "+line);
+								for(DataCallback callback : callbacks) {
+									callback.dataReceived(line);
+								}
+								//System.err.println("ASTMSERVER Received line - "+line);
 								
-								System.err.println("ASTMSERVER Writing ACK");
+								//System.err.println("ASTMSERVER Writing ACK");
 								bbACK.rewind();
 								acceptingChannel.write(bbACK);
-								System.err.println("ASTMSERVER Wrote ACK");
+								//System.err.println("ASTMSERVER Wrote ACK");
 								bytesRead=0;
-								System.err.println("ASTMSERVER Read "+(linesRead++)+" lines so far");
+								//System.err.println("ASTMSERVER Read "+(linesRead++)+" lines so far");
 								receivingBuffer.rewind();
 							} else {
 								System.err.println("ASTMSERVER Incomplete record...");

@@ -212,7 +212,7 @@ public class PiccoloResults {
 
 	}
 	
-	private ObservableList<PiccoloResultModel> getAllMeasurements() {
+	public ObservableList<PiccoloResultModel> getAllMeasurements() {
 		ObservableList<PiccoloResultModel> returnList = FXCollections.observableArrayList();
 		returnList.addAll(sodiumModel, potassiumModel, co2Model, chlorideModel, glucoseModel, calciumModel, bunModel,
 				creatinineModel, alpModel, altModel, astModel, bilirubinModel, albuminModel, proteinModel);
