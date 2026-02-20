@@ -19,6 +19,7 @@ import org.mdpnp.apps.testapp.patient.EMRFacade;
 import org.mdpnp.apps.testapp.patient.OpenEMRImpl;
 import org.mdpnp.apps.testapp.patient.OpenEMRPatientInfo;
 import org.mdpnp.apps.testapp.patient.PatientInfo;
+import org.mdpnp.apps.testapp.poclab.ASTMServer.DataCallback;
 import org.mdpnp.devices.MDSHandler;
 import org.mdpnp.devices.MDSHandler.Connectivity.MDSEvent;
 import org.mdpnp.devices.MDSHandler.Connectivity.MDSListener;
@@ -33,12 +34,8 @@ import com.rti.dds.subscription.Subscriber;
 
 import ice.MDSConnectivity;
 import ice.Patient;
-import javafx.beans.property.FloatProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleFloatProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -53,18 +50,13 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.RadioButton;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
-import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.util.Callback;
 
 /**
  * An Abaxis Piccolo Xpress point-of-care lab device simulator...
@@ -101,6 +93,9 @@ public class PiccoloXpressSimulator {
 	
 	TextField astmHostInput=new TextField("localhost");	//Default value
 	TextField astmPortInput=new TextField("1182");		//Default value
+	
+	@FXML
+	TextField localServerPortNumber;
 	
 	/*
 	 * For all the checkboxes above, we create a separate, accessible property
@@ -152,6 +147,7 @@ public class PiccoloXpressSimulator {
 	final PiccoloResultModel albuminModel=piccoloResults.getAlbuminModel();
 	final PiccoloResultModel proteinModel=piccoloResults.getProteinModel();
 	
+	private ASTMServer astmServer;
 	
 	public void set(EMRFacade emr, MDSHandler mdsHandler) {
 		this.emr = emr;
@@ -926,5 +922,26 @@ public class PiccoloXpressSimulator {
 		returnList.addAll(sodiumModel, potassiumModel, co2Model, chlorideModel, glucoseModel, calciumModel, bunModel,
 				creatinineModel, alpModel, altModel, astModel, bilirubinModel, albuminModel, proteinModel);
 		return returnList;
+	}
+	
+	public void startASTMServer() {
+		int port=Integer.parseInt(localServerPortNumber.getText());
+		astmServer=new ASTMServer(port);
+		astmServer.addCallback(new DataCallback() {
+			@Override
+			public void dataReceived(byte[] bytes) {
+				System.err.println("CLIENT CALLBACK "+new String(bytes));
+			}
+		});
+		try {
+			astmServer.startServer();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void stopASTMServer() {
+		astmServer.stopServer();
 	}
 }

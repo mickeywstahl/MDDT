@@ -5,6 +5,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
@@ -94,6 +95,17 @@
          </children>
       </HBox>
       <HBox prefHeight="20.0" prefWidth="898.0" />
+      
+      <!--HBox containing import server options-->
+      <HBox>
+         <children>
+            <Label text="Server port"/>         
+         	<TextField fx:id="localServerPortNumber"/>
+            <Button fx:id="startServer" onAction="#startASTMServer" text="Start Server"/>
+            <Button fx:id="stopServer" onAction="#stopASTMServer" text="Stop Server"/>
+         </children>     
+      </HBox>
+      
       <HBox prefHeight="35.0" prefWidth="200.0">
          <children>
             <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="225.0">
