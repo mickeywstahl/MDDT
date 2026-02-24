@@ -48,12 +48,12 @@ public class PiccoloXpressSimulatorFactory implements IceApplicationProvider {
 
 			@Override
 			public int getPreferredWidth() {
-				return 800;
+				return 875;
 			}
 
 			@Override
 			public int getPreferredHeight() {
-				return 800;
+				return 950;
 			}
 
 			@Override

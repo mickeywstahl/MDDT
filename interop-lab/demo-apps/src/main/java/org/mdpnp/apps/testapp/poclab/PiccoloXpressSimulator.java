@@ -42,6 +42,7 @@ import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
@@ -96,6 +97,12 @@ public class PiccoloXpressSimulator {
 	
 	@FXML
 	TextField localServerPortNumber;
+	
+	@FXML
+	VBox resultsHolderBox;
+	
+	@FXML
+	VBox exportHolderBox;
 	
 	/*
 	 * For all the checkboxes above, we create a separate, accessible property
@@ -848,34 +855,35 @@ public class PiccoloXpressSimulator {
 
 	private void initPiccoloTable() {
 		TableView<PiccoloResultModel> tableView=piccoloResults.getPiccoloResultsTable();
-		main.getChildren().add(tableView);
+		resultsHolderBox.getChildren().add(tableView);
 		
 		HBox exportBox=new HBox();
 
-		// Add the export results button
-		Button exportButton = new Button("Export results");
-		exportButton.setOnAction(exportResults());
-		
 		exportTargetsGroup=new ToggleGroup();
 		
 		openEMROption=new RadioButton("OpenEMR");
 		openEMROption.setTooltip(new Tooltip("Export the results to OpenEMR"));
 		openEMROption.setToggleGroup(exportTargetsGroup);
 		
-		piccoloOption=new RadioButton("Piccolo");
+		piccoloOption=new RadioButton("ASTM");
 		openEMROption.setTooltip(new Tooltip("Export the results to a device expecting to receive them from a real Piccolo"));
 		piccoloOption.setToggleGroup(exportTargetsGroup);
 		
-		Label astmHostLabel=new Label("ASTM Server");
+		Label astmHostLabel=new Label("Target ASTM Server");
+		astmHostLabel.setPadding(new Insets(0,0,0,10));
 		astmHostInput=new TextField();
 		
-		Label astmPortLabel=new Label("ASTM Host");
+		Label astmPortLabel=new Label("Target ASTM Port");
 		astmPortInput=new TextField();
 				
+		// Add the export results button
+		Button exportButton = new Button("Export results");
+		exportButton.setOnAction(exportResults());
+				
+		exportBox.getChildren().addAll(openEMROption, piccoloOption, astmHostLabel, astmHostInput, astmPortLabel, astmPortInput, exportButton);
+		HBox.setMargin(exportButton, new Insets(0,0,0,20));
 		
-		exportBox.getChildren().addAll(exportButton, openEMROption, piccoloOption, astmHostLabel, astmHostInput, astmPortLabel, astmPortInput);
-		
-		main.getChildren().add(exportBox);
+		exportHolderBox.getChildren().add(exportBox);
 
 	}
 
