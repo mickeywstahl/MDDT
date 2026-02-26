@@ -36,7 +36,10 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.SingleSelectionModel;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.VBox;
+import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
@@ -112,6 +115,8 @@ public class IceAppsContainer extends IceApplication {
     private Hashtable<Object, Stage> appStageMap;
     private Hashtable<Stage, double[]> coordinates;
 
+    private String singleApp=System.getProperty("ice.single.app");
+
     public IceAppsContainer() {
 
     }
@@ -170,6 +175,9 @@ public class IceAppsContainer extends IceApplication {
 				});
         	}
         	newStage.show();
+        	if(singleApp!=null && singleApp.length()>0 && app.getDescriptor().getId().startsWith(singleApp)) {
+        		newStage.setAlwaysOnTop(true);
+        	}
         	newStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 
     			@Override
@@ -433,7 +441,8 @@ public class IceAppsContainer extends IceApplication {
             IceApplicationProvider ap = iter.next();
             if (ap.getAppType().isDisabled())
                 continue;
-
+            if( singleApp!=null && singleApp.length()>0 && ! ap.getAppType().getId().startsWith(singleApp))
+            	continue;
             try {
                 IceApplicationProvider.IceApp a = ap.create(context);
                 activeApps.put(ap.getAppType(), a);
@@ -521,6 +530,24 @@ public class IceAppsContainer extends IceApplication {
         // shut it down properly.
         activeApps.put(Device, driverWrapper);
         mainMenuController.setTypes(at).setDevices(nc.getContents());
+        
+        /*
+         * Loop through active apps, and if app matches singleApp property,
+         * make it display.  As things stand, the singleApp property also
+         * causes apps that don't match the property to be omitted from the main
+         * window anyway, so is the property is correctly set, there will only
+         * be one app at this point anyway and so the forEach should be redundant.
+         * However, we may change the purpose of the singleApp feature so that all
+         * others are shown, and only the singleApp is actually shown, in which case
+         * it would be necessary.  Anyway, it's a harmless approach as it stands.
+         */
+        activeApps.forEach( (t,i) -> {
+        	System.err.println("Active app type "+t.getId()+" , "+t.getName());
+        	if(singleApp!=null && singleApp.length()>0 &&
+    			t.getId().startsWith(singleApp) && i.getUI()!=null) {
+        		activateGoBack(i);
+        	}
+        });
 
         Platform.runLater(new Runnable() {
             public void run() {
