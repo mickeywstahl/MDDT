@@ -161,8 +161,12 @@ public class ConfigurationDialog {
             
         });
         
-        
-        d.currentStage.showAndWait();
+        String noSplash=System.getProperty("ice.no.splash");
+        if(noSplash==null) {
+        	d.currentStage.showAndWait();
+        } else {
+        	d.currentStage.hide();
+        }
 
         String s = System.getProperty("mdpnp.ui");
         boolean headless = s != null && Boolean.parseBoolean(s);
