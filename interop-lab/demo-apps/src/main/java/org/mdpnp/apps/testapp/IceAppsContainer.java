@@ -531,24 +531,6 @@ public class IceAppsContainer extends IceApplication {
         activeApps.put(Device, driverWrapper);
         mainMenuController.setTypes(at).setDevices(nc.getContents());
         
-        /*
-         * Loop through active apps, and if app matches singleApp property,
-         * make it display.  As things stand, the singleApp property also
-         * causes apps that don't match the property to be omitted from the main
-         * window anyway, so is the property is correctly set, there will only
-         * be one app at this point anyway and so the forEach should be redundant.
-         * However, we may change the purpose of the singleApp feature so that all
-         * others are shown, and only the singleApp is actually shown, in which case
-         * it would be necessary.  Anyway, it's a harmless approach as it stands.
-         */
-        activeApps.forEach( (t,i) -> {
-        	System.err.println("Active app type "+t.getId()+" , "+t.getName());
-        	if(singleApp!=null && singleApp.length()>0 &&
-    			t.getId().startsWith(singleApp) && i.getUI()!=null) {
-        		activateGoBack(i);
-        	}
-        });
-
         Platform.runLater(new Runnable() {
             public void run() {
                 panelController.getContent().setCenter(mainMenuRoot);
