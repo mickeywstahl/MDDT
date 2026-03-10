@@ -556,7 +556,7 @@ public class IceAppsContainer extends IceApplication {
          * it would be necessary.  Anyway, it's a harmless approach as it stands.
          */
         activeApps.forEach( (t,i) -> {
-			System.err.println("Active app type "+t.getId()+" , "+t.getName());
+			//System.err.println("Active app type "+t.getId()+" , "+t.getName());
 			if(singleApp!=null && singleApp.length()>0 &&
 				t.getId().startsWith(singleApp) && i.getUI()!=null) {
 				activateGoBack(i);
