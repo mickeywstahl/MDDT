@@ -175,9 +175,7 @@ public class IceAppsContainer extends IceApplication {
 				});
         	}
         	newStage.show();
-        	if(singleApp!=null && singleApp.length()>0 && app.getDescriptor().getId().startsWith(singleApp)) {
-        		newStage.setAlwaysOnTop(true);
-        	}
+
         	newStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
 
     			@Override
@@ -203,8 +201,15 @@ public class IceAppsContainer extends IceApplication {
 		                panelController.patientSelector.setVisible(true);
     				}
     				newStage.hide();
-    			}
-        		
+					if( singleApp!=null && singleApp.length()>0 ) {
+						try {
+							parentStage.show(); 	//Parent needs to be visible to accept the close request
+							parentStage.fireEvent(event);	//Pass it on...
+						} catch (Exception e) {
+							//Not really any point doing anything here...
+						}
+					}
+				}
         	});
         	
         	
@@ -398,8 +403,17 @@ public class IceAppsContainer extends IceApplication {
         primaryStage.setWidth(width);
         primaryStage.setHeight(height);
         primaryStage.centerOnScreen();
-        primaryStage.show();
-    }
+        if(singleApp!=null && singleApp.length()>0) {
+		if(parentStage!=null) {
+			parentStage.hide();
+				System.err.println("Hiding parentStage...");
+			} else {
+				System.err.println("Cannot hide parentStage - it's null...");
+			}
+		} else {
+			primaryStage.show();
+		}
+	}
 
     private CountDownLatch stopOk;
     private AbstractApplicationContext context;
@@ -531,6 +545,24 @@ public class IceAppsContainer extends IceApplication {
         activeApps.put(Device, driverWrapper);
         mainMenuController.setTypes(at).setDevices(nc.getContents());
         
+        /*
+         * Loop through active apps, and if app matches singleApp property,
+         * make it display.  As things stand, the singleApp property also
+         * causes apps that don't match the property to be omitted from the main
+         * window anyway, so is the property is correctly set, there will only
+         * be one app at this point anyway and so the forEach should be redundant.
+         * However, we may change the purpose of the singleApp feature so that all
+         * others are shown, and only the singleApp is actually shown, in which case
+         * it would be necessary.  Anyway, it's a harmless approach as it stands.
+         */
+        activeApps.forEach( (t,i) -> {
+			System.err.println("Active app type "+t.getId()+" , "+t.getName());
+			if(singleApp!=null && singleApp.length()>0 &&
+				t.getId().startsWith(singleApp) && i.getUI()!=null) {
+				activateGoBack(i);
+			}
+		});
+
         Platform.runLater(new Runnable() {
             public void run() {
                 panelController.getContent().setCenter(mainMenuRoot);
