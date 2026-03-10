@@ -404,8 +404,8 @@ public class IceAppsContainer extends IceApplication {
         primaryStage.setHeight(height);
         primaryStage.centerOnScreen();
         if(singleApp!=null && singleApp.length()>0) {
-		if(parentStage!=null) {
-			parentStage.hide();
+			if(parentStage!=null) {
+				parentStage.hide();
 				System.err.println("Hiding parentStage...");
 			} else {
 				System.err.println("Cannot hide parentStage - it's null...");
