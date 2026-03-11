@@ -9,8 +9,13 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ASTMServer {
 	
+	private static final Logger log = LoggerFactory.getLogger(ASTMServer.class);
+
 	/**
 	 * Interface to be implemented by clients that wish to be notified that the server
 	 * has received data.
@@ -18,7 +23,7 @@ public class ASTMServer {
 	public interface DataCallback {
 		/**
 		 * Notifies the caller that data has been received by the server.
-		 * @param bytes the bytes that have been received
+		 * @param line the String that has been received
 		 */
 		void dataReceived(String line);
 	}
@@ -33,6 +38,12 @@ public class ASTMServer {
 	
 	private boolean keepRunning=true;
 
+	/**
+	 * Boolean to indicate if the server is running.  Initially false,
+	 * as we aren't running...
+	 */
+	private boolean running=false;
+
 	public ASTMServer() {
 		// TODO Auto-generated constructor stub
 	}
@@ -41,14 +52,29 @@ public class ASTMServer {
 		this.port=port;
 	}
 	
+	/**
+	 * Indicates if the server is running.
+	 *
+	 * @return true if the server is already running.
+	 */
+	public boolean isRunning() {
+		return running;
+	}
+
 	public void startServer() throws IOException {
+		if(running) {
+			//Already running...
+			log.warn("ASTM Server already running");
+			return;
+			//TODO: We need some more checks here on whether the thread is extant, running and so on...
+		}
 		serverThread=new Thread() {
 			public void run() {
 				try {
 					InetSocketAddress sockAddr=new InetSocketAddress(port);
 					//Force IPv4 (for now)
 					ServerSocketChannel serverChannel=ServerSocketChannel.open(StandardProtocolFamily.INET);
-					System.err.println("Server socket using "+sockAddr.getHostString()+" and port "+sockAddr.getPort());
+					log.info("Server socket using "+sockAddr.getHostString()+" and port "+sockAddr.getPort());
 					serverChannel.bind(sockAddr);
 					while(keepRunning) {
 						SocketChannel acceptingChannel=serverChannel.accept();
@@ -64,6 +90,7 @@ public class ASTMServer {
 						int bytesRead=0;
 						int linesRead=0;
 						//System.err.println("Start of read...");
+						running=true;
 						
 						while( (bytesRead+=acceptingChannel.read(receivingBuffer)) !=-1) {
 							//System.err.println("ASTMSERVER Read "+bytesRead+" bytes");
@@ -97,21 +124,24 @@ public class ASTMServer {
 								//System.err.println("ASTMSERVER Read "+(linesRead++)+" lines so far");
 								receivingBuffer.rewind();
 							} else {
-								System.err.println("ASTMSERVER Incomplete record...");
+								log.warn("ASTMSERVER Incomplete record...");
 								String blah=new String(bytes,0,bytesRead);
-								System.err.println(blah);
+								log.warn(blah);
 							}
 						}
 					}
 				} catch (ClosedByInterruptException closed) {
 					//Don't need a dump of this
-					System.err.println("Server closed by interrupt");
+					log.info("ASTM Server closed by interrupt");
+					running=false;
 				} catch (IOException ioe) {
-					ioe.printStackTrace();
+					log.error("IO Exception in ASTM Server", ioe);
+					running=false;
 				} 
 			}
 		};
 		serverThread.start();
+		running=true;
 	}
 	
 	public void stopServer() {
@@ -131,7 +161,25 @@ public class ASTMServer {
 
 	public static void main(String[] args) {
 		try {
-			ASTMServer server=new ASTMServer(1182);
+			if(args.length!=1) {
+				System.err.println("One argument required - a port number (e.g. 1182)");
+				System.exit(1);
+			}
+			int port=-1;
+			try {
+				port=Integer.parseInt(args[0]);
+			} catch (NumberFormatException nfe) {
+				System.err.println("Port value must be numeric - not "+args[0]);
+				System.exit(2);
+			}
+			ASTMServer server=new ASTMServer(port);
+			DataCallback fileCallback=new DataCallback() {
+
+				@Override
+				public void dataReceived(String line) {
+					// TODO Auto-generated method stub
+				}
+			};
 			server.startServer();
 		} catch (Exception e) {
 			e.printStackTrace();

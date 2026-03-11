@@ -83,7 +83,11 @@ public class PiccoloXpressSimulator {
 	@FXML
 	private ComboBox<String> openEMROrders;
 
-	public Button startButton;
+	@FXML
+	public Button startServerButton;
+	@FXML
+	public Button stopServerButton;
+
 	public TextField mdsIDField;
 
 	@FXML
@@ -107,6 +111,9 @@ public class PiccoloXpressSimulator {
 	@FXML
 	VBox labOrdersHolder;
 	
+	@FXML
+	Label serverStatus;
+
 	/*
 	 * For all the checkboxes above, we create a separate, accessible property
 	 * that we can then use from the test for this class to manipulate the status,
@@ -664,7 +671,7 @@ public class PiccoloXpressSimulator {
 			//Files.write(new File("/tmp/piccolo.bin").toPath(), baos.toByteArray(), new OpenOption[0]);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Failed to create HL7 results", e);
 		}
 		return byteArrays;
 		
@@ -934,7 +941,8 @@ public class PiccoloXpressSimulator {
 						}
 						transmit(hostname, port, results);
 					} catch (Exception e) {
-						Alert failedToTransmit=new Alert(AlertType.ERROR, "Failed to transmit results", ButtonType.OK);
+						String msg=e.getMessage();
+						Alert failedToTransmit=new Alert(AlertType.ERROR, "Failed to transmit results\n"+msg, ButtonType.OK);
 						failedToTransmit.show();
 						return;
 					}
@@ -945,6 +953,15 @@ public class PiccoloXpressSimulator {
 	}
 
 	public void startASTMServer() {
+		if(astmServer!=null) {
+			//We already have one
+			if(astmServer.isRunning()) {
+				//And it's running
+				Alert alreadyRunning=new Alert(AlertType.ERROR,"The server is already running");
+				alreadyRunning.showAndWait();
+				return;
+			}
+		}
 		int port=Integer.parseInt(localServerPortNumber.getText());
 		astmServer=new ASTMServer(port);
 		astmServer.addCallback(new DataCallback() {
@@ -983,13 +1000,19 @@ public class PiccoloXpressSimulator {
 		});
 		try {
 			astmServer.startServer();
+			serverStatus.setText("Running");
+			startServerButton.setDisable(true);
+			stopServerButton.setDisable(false);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			log.error("Failed to start server",e);
 		}
 	}
 	
 	public void stopASTMServer() {
 		astmServer.stopServer();
+		serverStatus.setText("Stopped");
+		startServerButton.setDisable(false);
+		stopServerButton.setDisable(true);
 	}
 }

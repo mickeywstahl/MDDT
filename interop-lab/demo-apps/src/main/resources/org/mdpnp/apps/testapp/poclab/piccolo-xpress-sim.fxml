@@ -130,12 +130,14 @@
           <children>
               <Label style="-fx-font-size: 14pt; -fx-font-family: sans-serif;" text="ASTM Server for receiving results"/>
 		      <!--HBox containing import server options-->
-		      <HBox>
+		      <HBox spacing="5">
 		         <children>
 		            <Label text="Server port"/>
                     <TextField fx:id="localServerPortNumber">1182</TextField>
-		            <Button fx:id="startServer" onAction="#startASTMServer" text="Start Server"/>
-		            <Button fx:id="stopServer" onAction="#stopASTMServer" text="Stop Server"/>
+		            <Button fx:id="startServerButton" onAction="#startASTMServer" text="Start Server"/>
+		            <Button fx:id="stopServerButton" onAction="#stopASTMServer" text="Stop Server" disable="true"/>
+		            <Label>Server Status:</Label>
+		            <Label fx:id="serverStatus">Stopped</Label>
 		         </children>
 		      </HBox>
 		  </children>
