@@ -71,6 +71,17 @@ public class OpenEMRImpl extends EMRFacade {
 	 */
 	private Properties p;
 
+	/**
+	 * Boolean to indicate if the connection is valid.  Although a user may specify a URL on the splash
+	 * screen, the connection is only useful once we have successfully obtained a refresh token etc. That
+	 * is done in getAccessToken in this class.
+	 */
+	private boolean valid=false;
+
+	public boolean isValid() {
+		return valid;
+	}
+
 	public OpenEMRImpl(Executor executor) {
 		super(executor);
 		loadProps();
@@ -255,6 +266,7 @@ public class OpenEMRImpl extends EMRFacade {
 	 * 
 	 */
 	private void getAccessToken() throws Exception {
+		valid=false;	//If we need to get a new one, the current one must be invalid.
 		HttpClient httpClient=getHttpClient();
 		
 		StringBuilder bodyBuilder=new StringBuilder("grant_type=refresh_token&");
@@ -277,6 +289,7 @@ public class OpenEMRImpl extends EMRFacade {
 		System.err.println("response is "+new String(responseBytes));
 		JsonReader reader=Json.createReader(new ByteArrayInputStream(responseBytes));
 		JsonObject tokenObject=reader.readObject();
+		//Add a "isValid" property to this class, and if tokenObject doesn't include token, set it to false...
 		
 		String accessToken=tokenObject.getString("access_token");
         this.accessToken=accessToken;
@@ -295,6 +308,7 @@ public class OpenEMRImpl extends EMRFacade {
 		File f=new File(userHome,"iceopenemr.properties");
         p.store(new FileOutputStream(f), "ICE OpenEMR Properties, refreshed at "+new Date().toString());
         //TODO: How to get a new refresh token from scratch - maybe just another perms request with offline_access in it?
+        valid=true;
 	}
 	
 	/**

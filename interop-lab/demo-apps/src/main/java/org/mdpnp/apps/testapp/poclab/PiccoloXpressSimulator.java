@@ -92,8 +92,8 @@ public class PiccoloXpressSimulator {
 	@FXML
 	CheckBox notfastedLabel, qcfailurelabel, diabetesLabel, renalfailureLabel;
 	
-	TextField astmHostInput=new TextField("localhost");	//Default value
-	TextField astmPortInput=new TextField("1182");		//Default value
+	final TextField astmHostInput=new TextField("localhost");	//Default value
+	final TextField astmPortInput=new TextField("1182");		//Default value
 	
 	@FXML
 	TextField localServerPortNumber;
@@ -103,6 +103,9 @@ public class PiccoloXpressSimulator {
 	
 	@FXML
 	VBox exportHolderBox;
+	
+	@FXML
+	VBox labOrdersHolder;
 	
 	/*
 	 * For all the checkboxes above, we create a separate, accessible property
@@ -168,6 +171,10 @@ public class PiccoloXpressSimulator {
 
 	public void start(EventLoop eventLoop, Subscriber subscriber) {
 		
+		/*
+		 * If the openEMR facade is not valid, hide the EMR related controls
+		 */
+		main.getChildren().remove(labOrdersHolder);
 		
 		qcfailurelabel.selectedProperty().bindBidirectional(qcFailureProperty);
 		notfastedLabel.selectedProperty().bindBidirectional(noFastedProperty);
@@ -375,7 +382,7 @@ public class PiccoloXpressSimulator {
 
 	public void checkForOrders() {
 		//System.err.println("Need to check for orders...");
-		if (openEMR == null) {
+		if (openEMR == null || !openEMR.isValid()) {
 			return; // We can't do anything.
 		}
 		try {
@@ -390,6 +397,9 @@ public class PiccoloXpressSimulator {
 	}
 
 	private void refreshOrderListAndCache() {
+		if (openEMR == null || !openEMR.isValid()) {
+			return; // We can't do anything.
+		}
 		try {
 			// Clear the current list
 			ordersForPatient.clear();
@@ -407,6 +417,9 @@ public class PiccoloXpressSimulator {
 
 	private void filterAndAddOrder(String filename) {
 		try {
+			if (openEMR == null || !openEMR.isValid()) {
+				return; // We can't do anything.
+			}
 			String thisOrder = openEMR.getOrderContents(filename);
 			String[] lines = thisOrder.split("[\r\n]");
 			//System.err.println("order " + filename + " has " + lines.length + " lines");
@@ -433,7 +446,7 @@ public class PiccoloXpressSimulator {
 	 * @return
 	 */
 	public void viewSelectedOrder() {
-		if (openEMR == null) {
+		if (openEMR == null || !openEMR.isValid()) {
 			return; // We can't do anything.
 		}
 		String filename = openEMROrders.getSelectionModel().getSelectedItem();
@@ -861,26 +874,31 @@ public class PiccoloXpressSimulator {
 
 		exportTargetsGroup=new ToggleGroup();
 		
-		openEMROption=new RadioButton("OpenEMR");
-		openEMROption.setTooltip(new Tooltip("Export the results to OpenEMR"));
-		openEMROption.setToggleGroup(exportTargetsGroup);
+		if(openEMR != null && openEMR.isValid()) {
+			openEMROption=new RadioButton("OpenEMR");
+			openEMROption.setTooltip(new Tooltip("Export the results to OpenEMR"));
+			openEMROption.setToggleGroup(exportTargetsGroup);
+			openEMROption.setTooltip(new Tooltip("Export the results to a device expecting to receive them from a real Piccolo"));
+		}
 		
 		piccoloOption=new RadioButton("ASTM");
-		openEMROption.setTooltip(new Tooltip("Export the results to a device expecting to receive them from a real Piccolo"));
 		piccoloOption.setToggleGroup(exportTargetsGroup);
 		
 		Label astmHostLabel=new Label("Target ASTM Server");
 		astmHostLabel.setPadding(new Insets(0,0,0,10));
-		astmHostInput=new TextField();
 		
 		Label astmPortLabel=new Label("Target ASTM Port");
-		astmPortInput=new TextField();
 				
 		// Add the export results button
 		Button exportButton = new Button("Export results");
 		exportButton.setOnAction(exportResults());
-				
-		exportBox.getChildren().addAll(openEMROption, piccoloOption, astmHostLabel, astmHostInput, astmPortLabel, astmPortInput, exportButton);
+
+		if(openEMROption!=null) {
+			exportBox.getChildren().addAll(openEMROption, piccoloOption, astmHostLabel, astmHostInput, astmPortLabel, astmPortInput, exportButton);
+		} else {
+			exportBox.getChildren().addAll(piccoloOption, astmHostLabel, astmHostInput, astmPortLabel, astmPortInput, exportButton);
+		}
+		piccoloOption.setSelected(true);
 		HBox.setMargin(exportButton, new Insets(0,0,0,20));
 		
 		exportHolderBox.getChildren().add(exportBox);
@@ -949,6 +967,13 @@ public class PiccoloXpressSimulator {
 						for(PiccoloResultModel measurement : allMeasurements) {
 							if(measurement.loinc.equals(subFields[0])) {
 								//This is the measurement for this LOINC
+								/*
+								 * We need to remove any non-numeric part of this,
+								 * because fields[3] could look like this
+								 * "8.3 *"
+								 * and that won't parse.
+								 */
+								fields[3]=fields[3].replaceAll("[^0-9\\.]","");
 								measurement.setValue(Float.parseFloat(fields[3]));
 							}
 						}

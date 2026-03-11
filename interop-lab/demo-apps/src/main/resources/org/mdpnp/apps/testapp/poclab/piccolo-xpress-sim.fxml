@@ -14,7 +14,7 @@
 
 <VBox fx:id="main" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="582.0" prefWidth="1000.0" style="-fx-border-style: solid" xmlns:fx="http://javafx.com/fxml/1" spacing="5" fx:controller="org.mdpnp.apps.testapp.poclab.PiccoloXpressSimulator">
   <children>
-      <VBox style="-fx-border-style: solid; -fx-padding: 0 0 10 0">
+      <VBox fx:id="labOrdersHolder" style="-fx-border-style: solid; -fx-padding: 0 0 10 0">
           <children>
             <Label style="-fx-font-size: 14pt; -fx-font-family: sans-serif;">Lab Orders</Label>
 		      <HBox>
@@ -133,7 +133,7 @@
 		      <HBox>
 		         <children>
 		            <Label text="Server port"/>
-                    <TextField fx:id="localServerPortNumber"/>
+                    <TextField fx:id="localServerPortNumber">1182</TextField>
 		            <Button fx:id="startServer" onAction="#startASTMServer" text="Start Server"/>
 		            <Button fx:id="stopServer" onAction="#stopASTMServer" text="Stop Server"/>
 		         </children>
