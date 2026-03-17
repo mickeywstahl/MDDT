@@ -96,8 +96,9 @@ public class PiccoloXpressSimulator {
 	@FXML
 	CheckBox notfastedLabel, qcfailurelabel, diabetesLabel, renalfailureLabel;
 	
-	final TextField astmHostInput=new TextField("localhost");	//Default value
-	final TextField astmPortInput=new TextField("1182");		//Default value
+	final TextField astmHostInput=new TextField();	//Default value
+	final TextField astmPortInput=new TextField();		//Default value
+	final TextField mrnInput=new TextField();
 	
 	@FXML
 	TextField localServerPortNumber;
@@ -612,7 +613,7 @@ public class PiccoloXpressSimulator {
 		}
 		
 		//HEADER LINE FIRST- starts with H
-		String headerLine="H|\\^&|||ABAXIS, INC.^piccolo xpress^3.1.37^0000P21592|||||||P|E 1394-97|"+sdf.format(reportDate);
+		String headerLine="H|\\^&|||PARADIGM ICE.^piccolo simulator^3.1.37^0000P21592|||||||P|E 1394-97|"+sdf.format(reportDate);
 		lines.add(headerLine);
 		
 		//PATIENT LINE NEXT - starts with P
@@ -690,7 +691,7 @@ public class PiccoloXpressSimulator {
 			currentPatient=new Patient();
 			currentPatient.family_name="Test";
 			currentPatient.given_name="Piccolo";
-			currentPatient.mrn="579404";
+			currentPatient.mrn=mrnInput.getText();	//This will have been validated before calling.
 		}
 		
 		
@@ -877,7 +878,15 @@ public class PiccoloXpressSimulator {
 		TableView<PiccoloResultModel> tableView=piccoloResults.getPiccoloResultsTable();
 		resultsHolderBox.getChildren().add(tableView);
 		
-		HBox exportBox=new HBox();
+		HBox mrnBox=new HBox(5);
+
+		Label mrnLabel=new Label("Patient MRN");
+		mrnBox.getChildren().add(mrnLabel);
+
+		mrnInput.promptTextProperty().set("44444");
+		mrnBox.getChildren().add(mrnInput);
+
+		HBox exportBox=new HBox(5);
 
 		exportTargetsGroup=new ToggleGroup();
 		
@@ -900,6 +909,9 @@ public class PiccoloXpressSimulator {
 		Button exportButton = new Button("Export results");
 		exportButton.setOnAction(exportResults());
 
+		astmHostInput.promptTextProperty().set("Hostname or IP address");
+		astmPortInput.promptTextProperty().set("Port number");
+
 		if(openEMROption!=null) {
 			exportBox.getChildren().addAll(openEMROption, piccoloOption, astmHostLabel, astmHostInput, astmPortLabel, astmPortInput, exportButton);
 		} else {
@@ -908,7 +920,7 @@ public class PiccoloXpressSimulator {
 		piccoloOption.setSelected(true);
 		HBox.setMargin(exportButton, new Insets(0,0,0,20));
 		
-		exportHolderBox.getChildren().add(exportBox);
+		exportHolderBox.getChildren().addAll(mrnBox, exportBox);
 
 	}
 
@@ -927,6 +939,49 @@ public class PiccoloXpressSimulator {
 					createHL7ResultsForOpenEMR();
 				}
 				if(selectedToggle==piccoloOption) {
+					//Validate required fields
+					if(currentPatient==null || currentPatient.mrn==null || currentPatient.mrn.length()==0) {
+						//Must provide an mrn.
+						if(mrnInput.getText().length()==0) {
+							Alert noMRN=new Alert(
+								AlertType.ERROR,
+								"There is no patient selected, or the patient has an empty MRN. You must provide an MRN in the 'Patient MRN' field",
+								ButtonType.OK);
+							noMRN.show();
+							return;
+						}
+					}
+					if(astmHostInput.getText().length()==0) {
+						Alert noTargetHost=new Alert(
+							AlertType.ERROR,
+							"There is no hostname or ip address in the 'Target ASTM Server' field.  This field is required",
+							ButtonType.OK
+						);
+						noTargetHost.show();
+						return;
+					}
+
+					if(astmPortInput.getText().length()==0) {
+						Alert noTargetPort=new Alert(
+								AlertType.ERROR,
+								"There is no port number in the 'Target ASTM Port' field.  This numeric field is required",
+								ButtonType.OK
+							);
+							noTargetPort.show();
+							return;
+					}
+					try {
+						int port=Integer.parseInt(astmPortInput.getText());
+					} catch (NumberFormatException nfe) {
+						Alert badPort=new Alert(
+								AlertType.ERROR,
+								"The value in the 'Target ASTM Port' field is not numeric.  This field must be numeric",
+								ButtonType.OK
+							);
+							badPort.show();
+							return;
+					}
+
 					ArrayList<byte[]> results=createHL7ResultsForPiccolo();
 					if(results==null) {
 						return;
