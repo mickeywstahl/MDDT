@@ -1,5 +1,8 @@
 package org.mdpnp.apps.testapp.poclab;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardProtocolFamily;
@@ -7,7 +10,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +31,16 @@ public class ASTMServer {
 		 * @param line the String that has been received
 		 */
 		void dataReceived(String line);
+		/**
+		 * Notifies the caller that the server has been stopped.  Note well that if
+		 * the server has been started from the main() method and it gets interrupted
+		 * by Ctrl-C or other SIGINT type thing, there's no guarantee that this happens.
+		 * This requires that the server is signalled to stop from something that isn't
+		 * part of the JVM itself being shutdown.
+		 */
+		default void serverStopped() {
+
+		};
 	}
 	
 	private ArrayList<DataCallback> callbacks=new ArrayList<>();
@@ -137,7 +152,12 @@ public class ASTMServer {
 				} catch (IOException ioe) {
 					log.error("IO Exception in ASTM Server", ioe);
 					running=false;
-				} 
+				} finally {
+					for(DataCallback callback : callbacks) {
+						System.err.println("Calling serverStopped for callback");
+						callback.serverStopped();
+					}
+				}
 			}
 		};
 		serverThread.start();
@@ -160,6 +180,7 @@ public class ASTMServer {
 	}
 
 	public static void main(String[] args) {
+		DataCallback fileCallback=null;
 		try {
 			if(args.length!=1) {
 				System.err.println("One argument required - a port number (e.g. 1182)");
@@ -172,17 +193,50 @@ public class ASTMServer {
 				System.err.println("Port value must be numeric - not "+args[0]);
 				System.exit(2);
 			}
-			ASTMServer server=new ASTMServer(port);
-			DataCallback fileCallback=new DataCallback() {
+			fileCallback=new DataCallback() {
+
+				SimpleDateFormat sdf=new SimpleDateFormat("YMMdd_hhmmss");
+				File outputFile=new File("astm_data_"+sdf.format(new Date()));
+				BufferedOutputStream bos=new BufferedOutputStream(new FileOutputStream(outputFile));
 
 				@Override
 				public void dataReceived(String line) {
-					// TODO Auto-generated method stub
+					System.out.println("Test server received data "+line);
+					try {
+						bos.write(line.getBytes());
+						bos.write('\n');
+						//System.err.println("Server callback wrote line to bos");
+						bos.flush();
+					} catch (IOException ioe) {
+						System.err.println("Failed to write line to file");
+					}
+				}
+
+				@Override
+				public void serverStopped() {
+					try {
+						Thread.dumpStack();
+						bos.flush();
+						bos.close();
+						System.err.println("Server callback flushed and closed bos");
+					} catch (IOException ioe) {
+						System.err.println("Server callback failed to flush and close output file");
+					}
 				}
 			};
+
+			ASTMServer server=new ASTMServer(port);
+
+			server.addCallback(fileCallback);
 			server.startServer();
+			server.serverThread.join();
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			System.err.println("Doing the finally from main...");
+			if(fileCallback!=null) {
+				fileCallback.serverStopped();
+			}
 		}
 	}
 
