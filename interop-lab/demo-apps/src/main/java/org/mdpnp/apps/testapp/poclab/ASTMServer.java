@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedByInterruptException;
@@ -93,6 +94,8 @@ public class ASTMServer {
 					serverChannel.bind(sockAddr);
 					while(keepRunning) {
 						SocketChannel acceptingChannel=serverChannel.accept();
+						InetSocketAddress remoteAddress=(InetSocketAddress)acceptingChannel.getRemoteAddress();
+						System.out.println("Remote connection received from "+remoteAddress.getHostString());
 						/*
 						 * There is no arbitrary limit on the size of fields in ASTM, but given that it
 						 * is effectively a record (line oriented) protocol, 4k seeems like it should be
@@ -193,10 +196,13 @@ public class ASTMServer {
 				System.err.println("Port value must be numeric - not "+args[0]);
 				System.exit(2);
 			}
+			System.out.println("Starting server on port "+args[0]);
+			final SimpleDateFormat sdf=new SimpleDateFormat("YMMdd_hhmmss");
+			final String filename="astm_data_"+sdf.format(new Date());
+			System.out.println("Received data will be saved in the file "+filename);
 			fileCallback=new DataCallback() {
 
-				SimpleDateFormat sdf=new SimpleDateFormat("YMMdd_hhmmss");
-				File outputFile=new File("astm_data_"+sdf.format(new Date()));
+				File outputFile=new File(filename);
 				BufferedOutputStream bos=new BufferedOutputStream(new FileOutputStream(outputFile));
 
 				@Override
