@@ -229,6 +229,15 @@ public class ASTMServer {
 
 			server.addCallback(fileCallback);
 			server.startServer();
+			/*
+			 * Just for the purposes of the main method here, we join onto the server's serverThread,
+			 * otherwise we'd exit from the main method, and the process would just be running the
+			 * serverThread.  Exiting the main method would also cause the finally block to run, which
+			 * would flush and close the output file in the hook.
+			 *
+			 * So this finally block is only really another best-endeavours attempt to get a clean flush
+			 * and close on the output file in the hook from main.
+			 */
 			server.serverThread.join();
 		} catch (Exception e) {
 			e.printStackTrace();
