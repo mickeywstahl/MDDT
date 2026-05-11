@@ -716,6 +716,21 @@ module ice {
   };
   #pragma keylist Patient mrn
   const string PatientTopic = "Patient";
+
+  /**
+   * TrialMarker — the sole communication contract between PumpActuatorApp
+   * and DDSDataLoggerApp.
+   */
+  struct TrialMarker {
+      @key long long  runId;        // Monotonic run ID (increments each Start press)
+      @key long       trialNum;     // Trial number within run (1-based; 0 for run-level events)
+      string<128> eventType;    // RUN_START | TRIAL_START | CMD_SENT | RUN_COMPLETE | RUN_STOPPED
+      string<128> cmdType;      // RATE_CHANGE | PAUSE | RESUME | VTBI_SET | BOLUS |
+                                //   BAD_CMD_OVER | BAD_CMD_UNDER | RUN_START | RUN_COMPLETE
+      float      value;         // Primary commanded value (rate mL/hr, VTBI mL, etc.)
+      LongString params;        // Additional key=value details (e.g. "bolusRate=200 bolusVolume=5")
+      long long  timestampMs;   // Wall-clock ms when the actuator sent the command
+  };
+  #pragma keylist TrialMarker runId trialNum
+  const string TrialMarkerTopic = "MDDTTrialMarker";
 };
-
-

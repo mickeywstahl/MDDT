@@ -47,3 +47,4 @@ org.mdpnp.apps.testapp.DeviceFactory$AS50Provider
 org.mdpnp.apps.testapp.DeviceFactory$AP4000vINTProvider
 org.mdpnp.apps.testapp.DeviceFactory$GCPTranslatorProvider
 org.mdpnp.apps.testapp.DeviceFactory$AS50SerialProvider
+org.mdpnp.apps.testapp.DeviceFactory$RealisticPump_SimulatorProvider

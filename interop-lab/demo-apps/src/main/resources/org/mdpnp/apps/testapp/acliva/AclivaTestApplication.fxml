@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.mdpnp.apps.testapp.acliva.AclivaTestApplication" maxHeight="980">
+
+    <top>
+        <HBox style="-fx-background-color: #0D1B3E; -fx-padding: 8px;">
+            <Label text="ACLIVA Test" textFill="WHITE" style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
+            <Pane HBox.hgrow="ALWAYS" />
+            <Label text="v0.1" textFill="WHITE" style="-fx-font-size: 13px;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <HBox>
+            <!-- LEFT CONTROL PANEL -->
+            <VBox prefWidth="240.0" style="-fx-background-color: #F4F7FB; -fx-border-color: transparent #D3D3D3 transparent transparent; -fx-padding: 10px;" spacing="7.0">
+
+                <!-- SECTION 1 -->
+                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="Patient (from OpenICE record)" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                </HBox>
+                <GridPane hgap="10" vgap="5">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                    </rowConstraints>
+                    <children>
+                        <Label text="Age (yr)" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <Spinner fx:id="ageSpinner" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                        <Label text="Weight (kg)" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <Spinner fx:id="weightSpinner" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                        <Label text="Height (cm)" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <Spinner fx:id="heightSpinner" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                        <Label text="Sex" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <ComboBox fx:id="sexCombo" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                    </children>
+                </GridPane>
+
+                <Separator />
+
+                <!-- SECTION 2 -->
+                <VBox style="-fx-background-color: #E8ECEF; -fx-border-color: #D3D3D3; -fx-padding: 8px;" spacing="5.0">
+                    <Label text="Schnider PK (computed)" textFill="#808080" style="-fx-font-size: 11px;"/>
+                    <GridPane hgap="10" vgap="2">
+                         <columnConstraints>
+                            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                            <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" halignment="RIGHT" />
+                        </columnConstraints>
+                        <children>
+                            <Label text="LBM (kg)" textFill="#808080" style="-fx-font-size: 11px;" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                            <Label fx:id="lbmLabel" style="-fx-font-size: 11px; -fx-font-weight: bold;" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+                            <Label text="V1 (L)" textFill="#808080" style="-fx-font-size: 11px;" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                            <Label fx:id="v1Label" style="-fx-font-size: 11px; -fx-font-weight: bold;" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+                            <Label text="V2 (L)" textFill="#808080" style="-fx-font-size: 11px;" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                            <Label fx:id="v2Label" style="-fx-font-size: 11px; -fx-font-weight: bold;" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+                            <Label text="Cl1 (L/min)" textFill="#808080" style="-fx-font-size: 11px;" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                            <Label fx:id="cl1Label" style="-fx-font-size: 11px; -fx-font-weight: bold;" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+                            <Label text="ke0 (/min)" textFill="#808080" style="-fx-font-size: 11px;" GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+                            <Label text="0.456" style="-fx-font-size: 11px; -fx-font-weight: bold;" GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+                        </children>
+                    </GridPane>
+                </VBox>
+
+                <Separator />
+
+                <!-- SECTION 3 -->
+                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="Surgery duration" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                </HBox>
+                <GridPane hgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="120.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="80.0" />
+                    </columnConstraints>
+                    <children>
+                        <Label text="Maintenance (min)" GridPane.columnIndex="0" />
+                        <Spinner fx:id="maintenanceSpinner" editable="true" GridPane.columnIndex="1" />
+                    </children>
+                </GridPane>
+                <Label text="Induction and recovery phases are model-determined." textFill="#808080" style="-fx-font-size: 10px; -fx-font-style: italic;" wrapText="true"/>
+
+                <Separator />
+
+                <!-- PUMP SELECTOR -->
+                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="Infusion pump" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                </HBox>
+                <ComboBox fx:id="pumps" maxWidth="Infinity"
+                          promptText="Select a pump..."
+                          style="-fx-font-size: 11px;" />
+                <Label text="Pumps discovered on the OpenICE DDS bus will appear here. Select one before running the simulation."
+                       textFill="#808080" style="-fx-font-size: 10px; -fx-font-style: italic;" wrapText="true"/>
+
+                <Separator />
+                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                    <Label text="●" textFill="#FFC000" style="-fx-font-size: 10px;"/>
+                    <Label text="Simulation speed" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                </HBox>
+                <HBox spacing="2.0">
+                    <fx:define>
+                        <ToggleGroup fx:id="speedGroup"/>
+                    </fx:define>
+                    <ToggleButton fx:id="speed1x" text="1×" toggleGroup="$speedGroup" selected="true" />
+                    <ToggleButton fx:id="speed2x" text="2×" toggleGroup="$speedGroup" />
+                    <ToggleButton fx:id="speed4x" text="4×" toggleGroup="$speedGroup" />
+                    <ToggleButton fx:id="speed10x" text="10×" toggleGroup="$speedGroup" />
+                    <ToggleButton fx:id="speedMax" text="Max" toggleGroup="$speedGroup" />
+                </HBox>
+                <Label text="Max runs as fast as CPU allows; chart repaints every 500 ms." textFill="#808080" style="-fx-font-size: 10px; -fx-font-style: italic;" wrapText="true"/>
+
+                <Separator />
+
+                <!-- SECTION 5 -->
+                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                    <Label text="●" textFill="#808080" style="-fx-font-size: 10px;"/>
+                    <Label text="Fixed algorithm parameters" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                </HBox>
+                <TextArea fx:id="fixedParamsArea" prefRowCount="6" maxHeight="130" style="-fx-font-family: monospace; -fx-font-size: 11px; -fx-control-inner-background: #E8ECEF;" />
+
+                <!-- BOTTOM BUTTONS -->
+                <VBox VBox.vgrow="ALWAYS">
+                    <Pane VBox.vgrow="ALWAYS" />
+                    <VBox spacing="5.0">
+                        <HBox spacing="5.0">
+                            <Button fx:id="pauseButton" text="❚❚ Pause" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
+                            <Button fx:id="resumeButton" text="▶ Resume" maxWidth="Infinity" HBox.hgrow="ALWAYS" />
+                        </HBox>
+                        <Button fx:id="bolusButton" text="💉 Bolus (5mL)" maxWidth="Infinity" />
+                        <Separator style="-fx-padding: 5 0 0 0;"/>
+                        <Button fx:id="runButton" text="▶  Run simulation" maxWidth="Infinity" style="-fx-background-color: #0D1B3E; -fx-text-fill: white;" />
+                        <Button fx:id="resetButton" text="↺  Reset" maxWidth="Infinity" style="-fx-background-color: transparent; -fx-border-color: #D3D3D3;" />
+                    </VBox>
+                </VBox>
+
+            </VBox>
+
+            <!-- RIGHT CHART PANEL -->
+            <VBox HBox.hgrow="ALWAYS" spacing="10.0" style="-fx-padding: 14px;">
+
+                <!-- TOP STATUS BAR -->
+                <HBox style="-fx-background-color: #F4F7FB; -fx-border-color: #D3D3D3; -fx-padding: 5px 14px;">
+                    <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                        <Label text="BIS" textFill="#808080" style="-fx-font-size: 10px;" />
+                        <Label fx:id="bisValueLabel" text="—" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                    </VBox>
+                    <Separator orientation="VERTICAL" />
+
+                    <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                        <Label text="RATE (mL/hr)" textFill="#808080" style="-fx-font-size: 10px;" />
+                        <Label fx:id="rateValueLabel" text="—" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                    </VBox>
+                    <Separator orientation="VERTICAL" />
+
+                    <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                        <Label text="Ce (μg/mL)" textFill="#808080" style="-fx-font-size: 10px;" />
+                        <Label fx:id="ceValueLabel" text="—" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                    </VBox>
+                    <Separator orientation="VERTICAL" />
+
+                    <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                        <Label text="PHASE" textFill="#808080" style="-fx-font-size: 10px;" />
+                        <Label fx:id="phaseValueLabel" text="—" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                    </VBox>
+                    <Separator orientation="VERTICAL" />
+
+                    <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                        <Label text="ELAPSED" textFill="#808080" style="-fx-font-size: 10px;" />
+                        <Label fx:id="elapsedValueLabel" text="0:00" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                    </VBox>
+                    <Separator orientation="VERTICAL" />
+
+                    <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                        <Label text="SPEED" textFill="#808080" style="-fx-font-size: 10px;" />
+                        <Label fx:id="speedValueLabel" text="1×" textFill="#FFC000" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                    </VBox>
+                    <Separator orientation="VERTICAL" />
+
+                    <VBox alignment="CENTER" HBox.hgrow="ALWAYS">
+                        <Label text="STATUS" textFill="#808080" style="-fx-font-size: 10px;" />
+                        <Label fx:id="statusPillLabel" text="● Idle" textFill="#808080" style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-background-color: #E8ECEF; -fx-background-radius: 10px; -fx-padding: 2px 8px;" />
+                    </VBox>
+                </HBox>
+
+                <!-- CENTRE CHARTS -->
+                <SplitPane orientation="VERTICAL" dividerPositions="0.5" VBox.vgrow="ALWAYS" maxHeight="700">
+                    <items>
+                        <StackPane fx:id="bisChartPane">
+                            <Canvas fx:id="bisCanvas" />
+                            <Label fx:id="bisPlaceholder" text="Run simulation to see BIS trace" textFill="#808080" />
+                        </StackPane>
+                        <StackPane fx:id="rateChartPane">
+                            <Canvas fx:id="rateCanvas" />
+                            <Label fx:id="ratePlaceholder" text="Run simulation to see rate trace" textFill="#808080" />
+                        </StackPane>
+                    </items>
+                </SplitPane>
+
+            </VBox>
+        </HBox>
+    </center>
+
+    <bottom>
+        <HBox style="-fx-background-color: #F4F7FB; -fx-padding: 5px 16px;">
+            <Label text="Device: Simulated Infusion Pump  |  BIS monitor: BISVista (simulated)  |  Schnider PK/PD  ·  ke₀ = 0.456 /min" textFill="#808080" style="-fx-font-size: 10px;" />
+            <Pane HBox.hgrow="ALWAYS" />
+            <Label text="OpenICE  ·  ACLIVA Test v0.1" textFill="#808080" style="-fx-font-size: 10px;" />
+        </HBox>
+    </bottom>
+
+</BorderPane>

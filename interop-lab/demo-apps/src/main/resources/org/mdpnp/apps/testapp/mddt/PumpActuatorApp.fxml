@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.mdpnp.apps.testapp.mddt.PumpActuatorApp">
+
+    <top>
+        <VBox spacing="6" style="-fx-padding: 10;">
+            <Label text="MDDT Pump Actuator" style="-fx-font-size: 14; -fx-font-weight: bold;"/>
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="Target pump:"/>
+                <ComboBox fx:id="pumps" prefWidth="250" promptText="Select a pump..."/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox spacing="8" style="-fx-padding: 10;">
+
+            <!-- ── Command type checkboxes ────────────────────────────── -->
+            <TitledPane text="Command Types" collapsible="false">
+                <HBox spacing="20" style="-fx-padding: 6;">
+
+                    <!-- Left column: original command types -->
+                    <VBox spacing="4">
+                        <Label text="Basic commands" style="-fx-font-weight: bold; -fx-font-size: 11;"/>
+                        <CheckBox fx:id="cbRateChange"   text="Rate change"             selected="true"/>
+                        <CheckBox fx:id="cbPauseResume"  text="Pause / Resume"/>
+                        <CheckBox fx:id="cbVtbi"         text="VTBI set"/>
+                        <CheckBox fx:id="cbBolus"        text="Bolus"/>
+                        <CheckBox fx:id="cbBadCommands"  text="Bad commands (out-of-range)"/>
+                    </VBox>
+
+                    <Separator orientation="VERTICAL"/>
+
+                    <!-- Middle column: latency and timing tests -->
+                    <VBox spacing="4">
+                        <Label text="Latency / timing" style="-fx-font-weight: bold; -fx-font-size: 11;"/>
+                        <CheckBox fx:id="cbQueryStatus"    text="Query status (ack latency)"/>
+                        <CheckBox fx:id="cbStatePollBurst" text="State poll burst"/>
+                        <Label text="Supervision / safety" style="-fx-font-weight: bold; -fx-font-size: 11; -fx-padding: 4 0 0 0;"/>
+                        <CheckBox fx:id="cbCommSilence"    text="Comm silence (heartbeat timeout)"/>
+                        <CheckBox fx:id="cbCommDisruption" text="Comm disruption (session loss)"/>
+                    </VBox>
+
+                    <Separator orientation="VERTICAL"/>
+
+                    <!-- Right column: data validation, alarms, session, time -->
+                    <VBox spacing="4">
+                        <Label text="Alarm / data" style="-fx-font-weight: bold; -fx-font-size: 11;"/>
+                        <CheckBox fx:id="cbVtbiToCompletion"   text="VTBI to completion (alarm)"/>
+                        <CheckBox fx:id="cbQueryVolumeInfused" text="Query volume infused"/>
+                        <CheckBox fx:id="cbQueryPowerStatus"   text="Query power status"/>
+                        <Label text="Session / time" style="-fx-font-weight: bold; -fx-font-size: 11; -fx-padding: 4 0 0 0;"/>
+                        <CheckBox fx:id="cbSessionTeardown"    text="Session teardown + reestablish"/>
+                        <CheckBox fx:id="cbQueryDeviceTime"    text="Query device time"/>
+                    </VBox>
+
+                </HBox>
+            </TitledPane>
+
+            <!-- ── Trial configuration ───────────────────────────────── -->
+            <GridPane hgap="10" vgap="6">
+                <Label text="Number of trials (N):" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <Spinner fx:id="trialsSpinner" GridPane.rowIndex="0" GridPane.columnIndex="1"
+                         prefWidth="100" editable="true"/>
+                <Label text="Inter-trial interval (ms):" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <Spinner fx:id="intervalMsSpinner" GridPane.rowIndex="1" GridPane.columnIndex="1"
+                         prefWidth="100" editable="true"/>
+            </GridPane>
+
+            <!-- ── Progress ──────────────────────────────────────────── -->
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="Progress:"/>
+                <Label fx:id="trialProgressLabel" text="0 / 0"/>
+                <ProgressBar fx:id="trialProgressBar" progress="0"
+                             HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <!-- ── Run control buttons ───────────────────────────────── -->
+            <HBox spacing="10">
+                <Button fx:id="startButton" text="Start Run" onAction="#startRun"
+                        style="-fx-base: #4CAF50;" disable="true"/>
+                <Button fx:id="stopButton"  text="Stop"      onAction="#stopRun"
+                        style="-fx-base: #f44336;"/>
+                <Button fx:id="muiInterventionButton"
+                        text="Mark MUI Intervention"
+                        onAction="#markMuiIntervention"
+                        style="-fx-base: #FF8F00;"
+                        disable="true"
+                        HBox.hgrow="NEVER"/>
+            </HBox>
+
+            <!-- ── Status log ─────────────────────────────────────────── -->
+            <Label text="Status:" style="-fx-font-weight: bold;"/>
+            <TextArea fx:id="statusArea" editable="false" wrapText="true"
+                      prefHeight="140" VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </center>
+
+</BorderPane>

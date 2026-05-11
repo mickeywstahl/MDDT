@@ -52,13 +52,12 @@ import org.mdpnp.devices.simulation.pulseox.FourSecNoSoftAvgSimPulseOximeter;
 import org.mdpnp.devices.simulation.pulseox.InitialEightSecIceSettableAvgSimPulseOximeter;
 import org.mdpnp.devices.simulation.pulseox.InitialEightSecOperSettableAvgSimPulseOximeter;
 import org.mdpnp.devices.simulation.pulseox.SimPulseOximeter;
+import org.mdpnp.devices.simulation.pump.RealisticSimPump;
 import org.mdpnp.devices.simulation.pump.SimControllablePump;
 import org.mdpnp.devices.simulation.clcbp.SimControllableBPMonitor;
 import org.mdpnp.devices.simulation.pump.SimInfusionPump;
 import org.mdpnp.devices.simulation.temp.SimThermometer;
 import org.mdpnp.devices.zephyr.biopatch.DemoBioPatch;
-import org.mdpnp.devices.baxter.AS50;
-import org.mdpnp.devices.alaris.Asena;
 import org.mdpnp.rtiapi.data.EventLoop;
 import org.springframework.context.support.AbstractApplicationContext;
 
@@ -902,5 +901,21 @@ public class DeviceFactory {
             return new AS50(subscriber, publisher, eventLoop);
 		}
     	
+    }
+    
+    public static class RealisticPump_SimulatorProvider extends SpringLoadedDriver {
+
+        @Override
+        public DeviceType getDeviceType() {
+            return new DeviceType(ice.ConnectionType.Simulated,"ICE", "Realistic Pump", "Realistic_Pump", 1);
+        }
+
+        @Override
+        public AbstractDevice newInstance(AbstractApplicationContext context) throws Exception {
+            EventLoop eventLoop = (EventLoop)context.getBean("eventLoop");
+            Subscriber subscriber = context.getBean("subscriber", Subscriber.class);
+            Publisher publisher = context.getBean("publisher", Publisher.class);
+            return new RealisticSimPump(subscriber, publisher, eventLoop);
+        }
     }
 }

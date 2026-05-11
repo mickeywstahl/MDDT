@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.mdpnp.apps.testapp.mddt.MddtEcipApp"
+            style="-fx-background-color: #f4f4f4;">
+
+    <!-- ═══════════════════════════════════════════════════════
+         TOP: Title bar and device selector
+         ═══════════════════════════════════════════════════════ -->
+    <top>
+        <VBox style="-fx-background-color: #2c3e50; -fx-padding: 10 16 10 16;">
+            <Label text="MDDT for Externally Controllable Infusion Pumps (ECIPs)"
+                   style="-fx-text-fill: white; -fx-font-weight: bold;">
+                <font><Font size="16.0"/></font>
+            </Label>
+            <Label text="Attribute Cluster: Command and Timing"
+                   style="-fx-text-fill: #bdc3c7;">
+                <font><Font size="12.0"/></font>
+            </Label>
+            <HBox spacing="12" alignment="CENTER_LEFT" style="-fx-padding: 8 0 0 0;">
+                <Label text="Device:" style="-fx-text-fill: white;"/>
+                <ComboBox fx:id="deviceCombo" prefWidth="320"
+                          promptText="Select an ECIP from the device list"/>
+                <Label fx:id="connectionStatusLabel"
+                       text="No device selected"
+                       style="-fx-text-fill: #f39c12;"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- ═══════════════════════════════════════════════════════
+         CENTER: Event log table
+         ═══════════════════════════════════════════════════════ -->
+    <center>
+        <VBox style="-fx-padding: 10;">
+            <TitledPane text="Event Log" collapsible="false"
+                        style="-fx-font-weight: bold;" VBox.vgrow="ALWAYS">
+                <TableView fx:id="eventTable" prefHeight="400.0"
+                           style="-fx-font-size: 12px;">
+                    <columns>
+                        <TableColumn fx:id="colTimestamp" text="Timestamp"
+                                     prefWidth="110" style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colEventType" text="Event Type"
+                                     prefWidth="110" style="-fx-alignment: CENTER;"/>
+                        <TableColumn fx:id="colMetric"    text="Metric / Command"
+                                     prefWidth="160"/>
+                        <TableColumn fx:id="colValue"     text="Value"
+                                     prefWidth="160"/>
+                        <TableColumn fx:id="colLatencyMs" text="Latency (ms)"
+                                     prefWidth="100" style="-fx-alignment: CENTER_RIGHT;"/>
+                        <TableColumn fx:id="colNotes"     text="Notes"
+                                     prefWidth="260"/>
+                    </columns>
+                </TableView>
+            </TitledPane>
+
+            <!-- Summary row -->
+            <HBox spacing="24" alignment="CENTER_LEFT"
+                  style="-fx-padding: 8 4 4 4; -fx-background-color: #ecf0f1;
+                         -fx-border-color: #bdc3c7; -fx-border-width: 1 0 0 0;">
+                <Label text="Commands Sent:" style="-fx-font-weight: bold;"/>
+                <Label fx:id="totalCommandsLabel" text="0"/>
+                <Separator orientation="VERTICAL"/>
+                <Label text="Avg Latency:" style="-fx-font-weight: bold;"/>
+                <Label fx:id="avgLatencyLabel" text="—"/>
+                <Separator orientation="VERTICAL"/>
+                <Label text="Missed Responses:" style="-fx-font-weight: bold;"/>
+                <Label fx:id="missedResponsesLabel" text="0"/>
+                <Separator orientation="VERTICAL"/>
+                <Label text="Alarms Received:" style="-fx-font-weight: bold;"/>
+                <Label fx:id="alarmCountLabel" text="0"/>
+            </HBox>
+        </VBox>
+    </center>
+
+    <!-- ═══════════════════════════════════════════════════════
+         RIGHT: Manual test controls
+         ═══════════════════════════════════════════════════════ -->
+    <right>
+        <VBox spacing="10" style="-fx-padding: 12; -fx-background-color: #ecf0f1;
+                                   -fx-border-color: #bdc3c7; -fx-border-width: 0 0 0 1;"
+              prefWidth="220">
+
+            <Label text="Test Controls" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+            <Separator/>
+
+            <!-- Flow rate input shared by rate change and resume -->
+            <Label text="Flow Rate (mL/hr):" style="-fx-font-size: 11px;"/>
+            <TextField fx:id="flowRateField" promptText="e.g. 5.0" maxWidth="180"/>
+
+            <Separator/>
+
+            <!-- Rate / pause / resume -->
+            <Label text="Rate Commands" style="-fx-font-size: 11px; -fx-font-weight: bold;"/>
+            <Button fx:id="sendRateChangeBtn" text="Send Rate Change"
+                    maxWidth="Infinity" style="-fx-base: #2980b9; -fx-text-fill: white;"/>
+            <Button fx:id="sendPauseBtn" text="Send Pause"
+                    maxWidth="Infinity" style="-fx-base: #e67e22; -fx-text-fill: white;"/>
+            <Button fx:id="sendResumeBtn" text="Send Resume"
+                    maxWidth="Infinity" style="-fx-base: #27ae60; -fx-text-fill: white;"/>
+
+            <Separator/>
+
+            <!-- Communication health and error handling tests -->
+            <Label text="Communication Tests" style="-fx-font-size: 11px; -fx-font-weight: bold;"/>
+            <Button fx:id="sendHeartbeatBtn" text="Heartbeat Probe"
+                    maxWidth="Infinity"/>
+            <Button fx:id="sendOutOfRangeBtn" text="Out-of-Range Value"
+                    maxWidth="Infinity" style="-fx-base: #c0392b; -fx-text-fill: white;"/>
+
+            <Separator/>
+
+            <!-- Log management -->
+            <Label text="Log" style="-fx-font-size: 11px; -fx-font-weight: bold;"/>
+            <Button fx:id="clearLogBtn" text="Clear Log" maxWidth="Infinity"/>
+            <Button fx:id="exportCsvBtn" text="Export to CSV…" maxWidth="Infinity"/>
+        </VBox>
+    </right>
+
+</BorderPane>

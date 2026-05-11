@@ -19,7 +19,7 @@ buildscript {
 
     repositories {
         maven {
-            url 'https://build.openice.info/artifactory/remote-repos' 
+            url='https://build.openice.info/artifactory/remote-repos'
         }
         maven {
             url="https://dl.bintray.com/calmdev/gradle-plugins"
@@ -34,11 +34,6 @@ plugins {
   id 'org.javamodularity.moduleplugin' version '1.8.12'
 }
 
-dependencies {
-	implementation group: 'org.openjdk.nashorn', name: 'nashorn-core', version: '15.4'
-}
-
-
 repositories {
   mavenLocal()
   mavenCentral()
@@ -48,6 +43,10 @@ apply plugin: 'java'
 apply plugin: 'application'
 //apply plugin: "me.champeau.jbake"
 //apply plugin: 'javafx-gradle-plugin'
+
+dependencies {
+	implementation group: 'org.openjdk.nashorn', name: 'nashorn-core', version: '15.7'
+}
 
 defaultTasks 'build'
 
@@ -76,7 +75,7 @@ distTar {
 }
 */
 
-applicationName = 'OpenICE'
+//applicationName = 'OpenICE'
 
 //jfx {
 //    verbose=true
@@ -177,10 +176,12 @@ jbake {
 */
 
 
-sourceCompatibility = JAVA_VERSION_SOURCE
-targetCompatibility = JAVA_VERSION_CLASSES
+java {
+	sourceCompatibility = JAVA_VERSION_SOURCE
+	targetCompatibility = JAVA_VERSION_CLASSES
+}
 
-mainClassName = 'org.mdpnp.apps.testapp.Main'
+//mainClassName = 'org.mdpnp.apps.testapp.Main'
 
 Date buildTimeAndDate = new Date()
 ext {
@@ -192,7 +193,7 @@ ext {
     currentPath = System.getenv('PATH');
 }
 
-manifest { attributes "Main-Class" : mainClassName }
+//manifest { attributes "Main-Class" : mainClassName }
 
 dependencies {
     implementation project(':devices:common')
@@ -268,16 +269,27 @@ test {
 		environment 'PATH', currentPath + ';native/libs/windows'
 		environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
 		environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
+        environment 'DOCBOX_RTPS_HOST_ID', '2829720935'
+        environment 'DOCBOX_RTPS_APP_ID', '2543000423'
+        environment 'COORDINATOR_DOMAIN_ID', '3'
+        environment 'DICES_DIM_DURABLE_QOS_PROFILE_BASE_NAME', 'DICES::Manager'
+        environment 'TRANSFER_DOMAIN_ID', '4'
 	}
 	if(localOsName.contains("mac")) {
 		environment 'DYLD_LIBRARY_PATH', 'native/libs/macosx'
 		environment 'SEC_ARTIFACT_DIR', '../../data-types/x73-idl-rti-dds/src/main/resources/META-INF'
 		environment 'RTI_LICENSE_FILE', 'build/resources/main/OpenICE_license.dat'
 	}
-
+    // Also inject these globally so they exist regardless of OS (or fallback if Windows condition didn't hit)
+    environment 'DOCBOX_RTPS_HOST_ID', '2829720935'
+    environment 'DOCBOX_RTPS_APP_ID', '2543000423'
+    environment 'COORDINATOR_DOMAIN_ID', '3'
+    environment 'DICES_DIM_DURABLE_QOS_PROFILE_BASE_NAME', 'DICES::Manager'
+    environment 'TRANSFER_DOMAIN_ID', '4'
 }
 
 run {
+    mainClass='org.mdpnp.apps.testapp.Main'
     if(localOsName.contains("linux")) {
       if(localOsArch.contains("aarch")) {
         environment 'LD_LIBRARY_PATH', 'native/libs/aarch'

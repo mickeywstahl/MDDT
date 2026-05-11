@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.mdpnp.apps.testapp.physionet.PhysioNetReplayApp"
+            style="-fx-background-color: #0d1117; -fx-font-family: 'Courier New'; -fx-font-size: 12px;">
+
+    <!-- =================================================================== -->
+    <!-- TOP - Title bar                                                     -->
+    <!-- =================================================================== -->
+    <top>
+        <VBox style="-fx-background-color: #161b22; -fx-border-color: transparent transparent #30363d transparent;">
+            <padding><Insets top="8" right="12" bottom="8" left="12"/></padding>
+            <HBox alignment="CENTER_LEFT" spacing="12">
+                <Label text="PHYSIONET REPLAY"
+                       style="-fx-text-fill: #58a6ff; -fx-font-size: 17px; -fx-font-weight: bold; -fx-letter-spacing: 2px;"/>
+                <Label text="OpenICE - PARADIGM - MD PnP / MGH"
+                       style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"/>
+            </HBox>
+        </VBox>
+    </top>
+
+    <!-- =================================================================== -->
+    <!-- CENTER - Two-panel split: record list | signal info                 -->
+    <!-- =================================================================== -->
+    <center>
+        <SplitPane dividerPositions="0.32"
+                   style="-fx-background-color: #0d1117;">
+
+            <!-- ==========================================================- -->
+            <!-- LEFT - Record list                                           -->
+            <!-- ==========================================================- -->
+            <VBox style="-fx-background-color: #0d1117;" spacing="6">
+                <padding><Insets top="10" right="6" bottom="6" left="8"/></padding>
+
+                <HBox alignment="CENTER_LEFT" spacing="8">
+                    <Label text="AVAILABLE RECORDS"
+                           style="-fx-text-fill: #58a6ff; -fx-font-weight: bold; -fx-font-size: 11px; -fx-letter-spacing: 1px;"
+                           HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="refreshBtn"
+                            text="Refresh"
+                            onAction="#onRefresh"
+                            style="-fx-background-color: #21262d; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-background-radius: 4; -fx-text-fill: #8b949e; -fx-font-size: 10px; -fx-padding: 3 8 3 8;"/>
+                </HBox>
+
+                <Label fx:id="recordCountLabel"
+                       text=""
+                       style="-fx-text-fill: #484f58; -fx-font-size: 10px;"/>
+
+                <ListView fx:id="recordListView"
+                          style="-fx-background-color: #161b22; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-control-inner-background: #161b22; -fx-text-fill: #c9d1d9;"
+                          VBox.vgrow="ALWAYS"/>
+            </VBox>
+
+            <!-- ==========================================================- -->
+            <!-- RIGHT - Signal info                                          -->
+            <!-- ==========================================================- -->
+            <VBox style="-fx-background-color: #0d1117;" spacing="6">
+                <padding><Insets top="10" right="8" bottom="6" left="6"/></padding>
+
+                <Label text="RECORD DETAILS"
+                       style="-fx-text-fill: #58a6ff; -fx-font-weight: bold; -fx-font-size: 11px; -fx-letter-spacing: 1px;"/>
+
+                <Label fx:id="recordNameLabel"
+                       text="-"
+                       style="-fx-text-fill: #c9d1d9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+
+                <Label fx:id="recordMetaLabel"
+                       text=""
+                       style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+
+                <TextArea fx:id="signalInfoArea"
+                          editable="false"
+                          wrapText="false"
+                          promptText="Select a record to see signal details..."
+                          style="-fx-background-color: #161b22; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-text-fill: #c9d1d9; -fx-font-family: 'Courier New'; -fx-font-size: 11px;"
+                          VBox.vgrow="ALWAYS"/>
+            </VBox>
+
+        </SplitPane>
+    </center>
+
+    <!-- =================================================================== -->
+    <!-- BOTTOM - Transport controls                                          -->
+    <!-- =================================================================== -->
+    <bottom>
+        <VBox style="-fx-background-color: #161b22; -fx-border-color: #30363d transparent transparent transparent;">
+            <padding><Insets top="10" right="14" bottom="10" left="14"/></padding>
+            <spacing>8</spacing>
+
+            <!-- Progress bar + time readout -->
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <ProgressBar fx:id="playbackProgress"
+                             progress="0"
+                             style="-fx-accent: #1f6feb;"
+                             HBox.hgrow="ALWAYS"
+                             maxWidth="Infinity"/>
+                <Label fx:id="timeLabel"
+                       text="0:00 / 0:00"
+                       style="-fx-text-fill: #8b949e; -fx-font-size: 11px; -fx-font-family: 'Courier New';"
+                       minWidth="110"/>
+            </HBox>
+
+            <!-- Transport row -->
+            <HBox alignment="CENTER_LEFT" spacing="10">
+
+                <!-- Play / Pause / Stop -->
+                <Button fx:id="playBtn"
+                        text="&gt;  Play"
+                        onAction="#onPlay"
+                        style="-fx-background-color: #1f6feb; -fx-text-fill: white; -fx-font-weight: bold; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 6 16 6 16;"/>
+                <Button fx:id="pauseBtn"
+                        text="||  Pause"
+                        onAction="#onPause"
+                        disable="true"
+                        style="-fx-background-color: #21262d; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-background-radius: 4; -fx-text-fill: #c9d1d9; -fx-padding: 6 14 6 14;"/>
+                <Button fx:id="stopBtn"
+                        text="[]  Stop"
+                        onAction="#onStop"
+                        style="-fx-background-color: #21262d; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-background-radius: 4; -fx-text-fill: #c9d1d9; -fx-padding: 6 14 6 14;"/>
+
+                <!-- Spacer -->
+                <Label text="" HBox.hgrow="ALWAYS"/>
+
+                <!-- Loop -->
+                <CheckBox fx:id="loopCheckBox"
+                          text="Loop"
+                          selected="true"
+                          style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"/>
+
+                <!-- Speed controls -->
+                <Label text="Speed:"
+                       style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"/>
+                <Button fx:id="speedDownBtn"
+                        text="&lt;&lt;"
+                        style="-fx-background-color: #21262d; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-background-radius: 4; -fx-text-fill: #c9d1d9; -fx-padding: 4 10 4 10;"/>
+                <Label fx:id="speedLabel"
+                       text="1x"
+                       minWidth="32"
+                       style="-fx-text-fill: #58a6ff; -fx-font-size: 13px; -fx-font-weight: bold; -fx-alignment: CENTER;"/>
+                <Button fx:id="speedUpBtn"
+                        text="&gt;&gt;"
+                        style="-fx-background-color: #21262d; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-background-radius: 4; -fx-text-fill: #c9d1d9; -fx-padding: 4 10 4 10;"/>
+
+            </HBox>
+
+            <!-- Status bar -->
+            <Label fx:id="statusLabel"
+                   text="No record loaded."
+                   style="-fx-text-fill: #484f58; -fx-font-size: 10px;"/>
+        </VBox>
+    </bottom>
+
+</BorderPane>

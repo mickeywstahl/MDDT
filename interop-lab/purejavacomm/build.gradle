@@ -17,3 +17,7 @@ sourceSets {
 dependencies {
   implementation group: 'net.java.dev.jna', name: 'jna', version: '5.13.0'
 }
+
+test {
+    failOnNoDiscoveredTests = false
+}

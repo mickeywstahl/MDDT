@@ -30,3 +30,10 @@ org.mdpnp.apps.testapp.easytiva.GenericTranslatorApplicationFactory
 org.mdpnp.apps.testapp.docbox.DocBoxApplicationFactory
 org.mdpnp.apps.testapp.openemr7.OpenEMRDataTransferApplicationFactory
 org.mdpnp.apps.testapp.poclab.PiccoloXpressSimulatorFactory
+org.mdpnp.apps.testapp.acliva.AclivaTestApplicationFactory
+org.mdpnp.apps.testapp.mddt.PumpActuatorAppFactory
+org.mdpnp.apps.testapp.mddt.DDSDataLoggerAppFactory
+org.mdpnp.apps.testapp.physionet.PhysioNetBrowserAppFactory 
+
+org.mdpnp.apps.testapp.physionet.PhysioNetReplayAppFactory
+org.mdpnp.apps.testapp.physionet.ClinicalAdvisorAppFactory 

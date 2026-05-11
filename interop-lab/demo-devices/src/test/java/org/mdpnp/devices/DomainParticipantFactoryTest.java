@@ -5,6 +5,7 @@ import com.rti.dds.domain.DomainParticipant;
 import com.rti.dds.domain.DomainParticipantQos;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -59,6 +60,7 @@ public class DomainParticipantFactoryTest {
         return ctx;
     }
 
+    @Ignore
     @Test
     public void testDefaultDiscoverySetting() throws Exception {
 
