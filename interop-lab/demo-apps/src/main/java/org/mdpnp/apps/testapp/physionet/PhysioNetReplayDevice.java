@@ -267,10 +267,11 @@ public class PhysioNetReplayDevice extends AbstractSimulatedConnectedDevice {
                 sa.values.userData.addFloat((float) signal[i]);
             }
 
-            sa.presentation_time.sec  = 0; // TODO: wire to record base_time + offset
-            sa.presentation_time.nanosec = 0;
-            sa.device_time.sec           = 0;
-            sa.device_time.nanosec       = 0;
+            long now = System.currentTimeMillis();
+            sa.presentation_time.sec = (int) (now / 1000);
+            sa.presentation_time.nanosec = (int) ((now % 1000) * 1000000);
+            sa.device_time.sec = sa.presentation_time.sec;
+            sa.device_time.nanosec = sa.presentation_time.nanosec;
 
             saWriter.write(sa, com.rti.dds.infrastructure.InstanceHandle_t.HANDLE_NIL);
         } catch (Exception e) {
@@ -294,10 +295,12 @@ public class PhysioNetReplayDevice extends AbstractSimulatedConnectedDevice {
             n.instance_id              = ctx.channel;
             n.unit_id                  = ctx.mapping.mdcUnit;
             n.value                    = (float) signal[sample];
-            n.presentation_time.sec    = 0;
-            n.presentation_time.nanosec = 0;
-            n.device_time.sec           = 0;
-            n.device_time.nanosec       = 0;
+            
+            long now = System.currentTimeMillis();
+            n.presentation_time.sec = (int) (now / 1000);
+            n.presentation_time.nanosec = (int) ((now % 1000) * 1000000);
+            n.device_time.sec = n.presentation_time.sec;
+            n.device_time.nanosec = n.presentation_time.nanosec;
 
             numWriter.write(n, com.rti.dds.infrastructure.InstanceHandle_t.HANDLE_NIL);
         } catch (Exception e) {

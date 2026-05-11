@@ -16,9 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JavaFXWaveformPane extends BorderPane implements WaveformPanel {
-//    private static final double SPACING_X = 25;
-//    private static final double SPACING_Y = 20;
-//    private static final double RADIUS = 1.5;
     protected final ResizableCanvas canvas;
     private final WaveformRenderer renderer = new WaveformRenderer();
     private WaveformSource source; 
@@ -38,8 +35,9 @@ public class JavaFXWaveformPane extends BorderPane implements WaveformPanel {
 
             @Override
             public void handle(MouseEvent event) {
-                System.err.println("RESCALE");
-                renderer.rescaleValue();
+                if(event.getClickCount() > 1) {
+                    renderer.rescaleValue();
+                }
             }
             
         });
@@ -57,16 +55,6 @@ public class JavaFXWaveformPane extends BorderPane implements WaveformPanel {
         if (w != canvas.getWidth() || h != canvas.getHeight()) {
             canvas.setWidth(w);
             canvas.setHeight(h);
-//            GraphicsContext g = canvas.getGraphicsContext2D();
-//            g.clearRect(0, 0, w, h);
-//            g.setFill(Color.gray(0,0.2));
-// 
-//            for (int x = 0; x < w; x += SPACING_X) {
-//                for (int y = 0; y < h; y += SPACING_Y) {
-//                    double offsetY = (y%(2*SPACING_Y)) == 0 ? SPACING_X /2 : 0;
-//                    g.fillOval(x-RADIUS+offsetY,y-RADIUS,RADIUS+RADIUS,RADIUS+RADIUS);
-//                }
-//            }
         }
     }
 
@@ -115,5 +103,9 @@ public class JavaFXWaveformPane extends BorderPane implements WaveformPanel {
             }
             waveformRender = null;
         }
+    }
+    
+    public void setOverwrite(boolean overwrite) {
+        renderer.setOverwrite(overwrite);
     }
 }

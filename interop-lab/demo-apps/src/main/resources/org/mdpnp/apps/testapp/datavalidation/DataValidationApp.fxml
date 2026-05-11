@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.geometry.Insets?>
+<?import org.mdpnp.guis.waveform.javafx.JavaFXWaveformPane?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.mdpnp.apps.testapp.datavalidation.DataValidationApp"
+            style="-fx-background-color: #2b2b2b;">
+    <top>
+        <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-padding: 10;">
+            <Label text="Select Waveform:" style="-fx-text-fill: white;" />
+            <ComboBox fx:id="waveformSelector" prefWidth="400" />
+        </HBox>
+    </top>
+    <center>
+        <VBox spacing="10" style="-fx-padding: 10;">
+            <VBox VBox.vgrow="ALWAYS" spacing="5">
+                <Label text="Raw Waveform" style="-fx-text-fill: white;" />
+                <JavaFXWaveformPane fx:id="rawWaveformPane" VBox.vgrow="ALWAYS" prefHeight="200" />
+            </VBox>
+            <VBox VBox.vgrow="ALWAYS" spacing="5">
+                <Label text="Validation Signal (Under Construction)" style="-fx-text-fill: white;" />
+                <JavaFXWaveformPane fx:id="validationSignalPane" VBox.vgrow="ALWAYS" prefHeight="200" />
+            </VBox>
+            <VBox VBox.vgrow="ALWAYS" spacing="5">
+                <Label text="Validated Waveform" style="-fx-text-fill: white;" />
+                <JavaFXWaveformPane fx:id="validatedWaveformPane" VBox.vgrow="ALWAYS" prefHeight="200" />
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>
