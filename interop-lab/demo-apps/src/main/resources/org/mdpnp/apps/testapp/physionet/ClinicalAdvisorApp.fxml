@@ -4,71 +4,65 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.Pane?>
 <?import javafx.scene.shape.Rectangle?>
 
-<BorderPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml/1"
+<BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="org.mdpnp.apps.testapp.physionet.ClinicalAdvisorApp"
-            style="-fx-background-color: #0d1117; -fx-font-family: 'Courier New'; -fx-font-size: 12px;">
+            maxHeight="980">
 
     <!-- TOP - Header -->
     <top>
-        <VBox style="-fx-background-color: #161b22; -fx-border-color: transparent transparent #30363d transparent;">
-            <padding><Insets top="8" right="12" bottom="8" left="12"/></padding>
-            <HBox alignment="CENTER_LEFT" spacing="12">
-                <Label text="CLINICAL ADVISOR"
-                       style="-fx-text-fill: #58a6ff; -fx-font-size: 17px; -fx-font-weight: bold; -fx-letter-spacing: 2px;"/>
-                <Label text="OpenICE  |  PARADIGM  |  MD PnP / MGH"
-                       style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"/>
-                <Label fx:id="modelLabel" text=""
-                       style="-fx-text-fill: #484f58; -fx-font-size: 10px;"/>
-            </HBox>
-        </VBox>
+        <HBox style="-fx-background-color: #0D1B3E; -fx-padding: 8px;">
+            <Label text="CLINICAL ADVISOR" textFill="WHITE" style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
+            <Pane HBox.hgrow="ALWAYS" />
+            <Label fx:id="modelLabel" text="" textFill="WHITE" style="-fx-font-size: 13px;"/>
+        </HBox>
     </top>
 
     <!-- CENTER - Main content -->
     <center>
-        <HBox spacing="12" style="-fx-background-color: #0d1117;">
-            <padding><Insets top="12" right="12" bottom="8" left="12"/></padding>
-
+        <HBox>
             <!-- LEFT - Primary diagnosis panel -->
-            <VBox spacing="10" prefWidth="380"
-                  style="-fx-background-color: #161b22; -fx-border-color: #30363d; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 16;">
+            <VBox prefWidth="380.0" style="-fx-background-color: #F4F7FB; -fx-border-color: transparent #D3D3D3 transparent transparent; -fx-padding: 10px;" spacing="7.0">
 
-                <Label text="PRIMARY DIAGNOSIS"
-                       style="-fx-text-fill: #58a6ff; -fx-font-weight: bold; -fx-font-size: 11px; -fx-letter-spacing: 1px;"/>
+                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="PRIMARY DIAGNOSIS" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                </HBox>
 
                 <Label fx:id="primaryDiagnosisLabel"
                        text="Waiting..."
                        wrapText="true"
-                       style="-fx-text-fill: #8b949e; -fx-font-size: 22px; -fx-font-weight: bold;"/>
+                       style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
 
                 <HBox alignment="CENTER_LEFT" spacing="10">
                     <ProgressBar fx:id="primaryConfidenceBar"
                                  progress="0"
-                                 prefWidth="220"
-                                 style="-fx-accent: #1f6feb;"/>
+                                 prefWidth="220" />
                     <Label fx:id="primaryConfidenceLabel"
                            text="--"
-                           style="-fx-text-fill: #c9d1d9; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+                           style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
                 </HBox>
 
                 <Label fx:id="primaryStatusLabel"
                        text="No data received"
-                       style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"/>
+                       textFill="#808080" style="-fx-font-size: 11px;"/>
 
-                <!-- Divider -->
-                <Label text=""
-                       style="-fx-border-color: #30363d; -fx-border-width: 0 0 1 0; -fx-pref-width: 340;"/>
+                <Separator />
 
                 <!-- 6-condition probability bars -->
-                <Label text="CONDITION PROBABILITIES"
-                       style="-fx-text-fill: #58a6ff; -fx-font-weight: bold; -fx-font-size: 11px; -fx-letter-spacing: 1px;"/>
+                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="CONDITION PROBABILITIES" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                </HBox>
 
                 <GridPane hgap="8" vgap="6">
                     <columnConstraints>
@@ -79,114 +73,112 @@
 
                     <!-- Row 0: 1dAVb -->
                     <Label fx:id="lbl1dAVb" text="1st Degree AV Block"
-                           style="-fx-text-fill: #c9d1d9; -fx-font-size: 11px;"
+                           style="-fx-font-size: 11px;"
                            GridPane.rowIndex="0" GridPane.columnIndex="0"/>
                     <ProgressBar fx:id="bar1dAVb" progress="0" prefWidth="110"
-                                 style="-fx-accent: #1A7A6E;"
                                  GridPane.rowIndex="0" GridPane.columnIndex="1"/>
                     <Label fx:id="pct1dAVb" text="--"
-                           style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"
+                           textFill="#808080" style="-fx-font-size: 11px;"
                            GridPane.rowIndex="0" GridPane.columnIndex="2"/>
 
                     <!-- Row 1: RBBB -->
                     <Label fx:id="lblRBBB" text="Right Bundle Branch Block"
-                           style="-fx-text-fill: #c9d1d9; -fx-font-size: 11px;"
+                           style="-fx-font-size: 11px;"
                            GridPane.rowIndex="1" GridPane.columnIndex="0"/>
                     <ProgressBar fx:id="barRBBB" progress="0" prefWidth="110"
-                                 style="-fx-accent: #1A7A6E;"
                                  GridPane.rowIndex="1" GridPane.columnIndex="1"/>
                     <Label fx:id="pctRBBB" text="--"
-                           style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"
+                           textFill="#808080" style="-fx-font-size: 11px;"
                            GridPane.rowIndex="1" GridPane.columnIndex="2"/>
 
                     <!-- Row 2: LBBB -->
                     <Label fx:id="lblLBBB" text="Left Bundle Branch Block"
-                           style="-fx-text-fill: #c9d1d9; -fx-font-size: 11px;"
+                           style="-fx-font-size: 11px;"
                            GridPane.rowIndex="2" GridPane.columnIndex="0"/>
                     <ProgressBar fx:id="barLBBB" progress="0" prefWidth="110"
-                                 style="-fx-accent: #1A7A6E;"
                                  GridPane.rowIndex="2" GridPane.columnIndex="1"/>
                     <Label fx:id="pctLBBB" text="--"
-                           style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"
+                           textFill="#808080" style="-fx-font-size: 11px;"
                            GridPane.rowIndex="2" GridPane.columnIndex="2"/>
 
                     <!-- Row 3: SB -->
                     <Label fx:id="lblSB" text="Sinus Bradycardia"
-                           style="-fx-text-fill: #c9d1d9; -fx-font-size: 11px;"
+                           style="-fx-font-size: 11px;"
                            GridPane.rowIndex="3" GridPane.columnIndex="0"/>
                     <ProgressBar fx:id="barSB" progress="0" prefWidth="110"
-                                 style="-fx-accent: #1A7A6E;"
                                  GridPane.rowIndex="3" GridPane.columnIndex="1"/>
                     <Label fx:id="pctSB" text="--"
-                           style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"
+                           textFill="#808080" style="-fx-font-size: 11px;"
                            GridPane.rowIndex="3" GridPane.columnIndex="2"/>
 
                     <!-- Row 4: AF -->
                     <Label fx:id="lblAF" text="Atrial Fibrillation"
-                           style="-fx-text-fill: #c9d1d9; -fx-font-size: 11px;"
+                           style="-fx-font-size: 11px;"
                            GridPane.rowIndex="4" GridPane.columnIndex="0"/>
                     <ProgressBar fx:id="barAF" progress="0" prefWidth="110"
-                                 style="-fx-accent: #1A7A6E;"
                                  GridPane.rowIndex="4" GridPane.columnIndex="1"/>
                     <Label fx:id="pctAF" text="--"
-                           style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"
+                           textFill="#808080" style="-fx-font-size: 11px;"
                            GridPane.rowIndex="4" GridPane.columnIndex="2"/>
 
                     <!-- Row 5: ST -->
                     <Label fx:id="lblST" text="Sinus Tachycardia"
-                           style="-fx-text-fill: #c9d1d9; -fx-font-size: 11px;"
+                           style="-fx-font-size: 11px;"
                            GridPane.rowIndex="5" GridPane.columnIndex="0"/>
                     <ProgressBar fx:id="barST" progress="0" prefWidth="110"
-                                 style="-fx-accent: #1A7A6E;"
                                  GridPane.rowIndex="5" GridPane.columnIndex="1"/>
                     <Label fx:id="pctST" text="--"
-                           style="-fx-text-fill: #8b949e; -fx-font-size: 11px;"
+                           textFill="#808080" style="-fx-font-size: 11px;"
                            GridPane.rowIndex="5" GridPane.columnIndex="2"/>
                 </GridPane>
 
+                <Separator />
+
                 <!-- Timing -->
                 <Label fx:id="inferenceTimeLabel" text="Last inference: --"
-                       style="-fx-text-fill: #484f58; -fx-font-size: 10px;"/>
+                       textFill="#808080" style="-fx-font-size: 11px;"/>
                 <Label fx:id="latencyLabel" text="Inference time: --"
-                       style="-fx-text-fill: #484f58; -fx-font-size: 10px;"/>
+                       textFill="#808080" style="-fx-font-size: 11px;"/>
+
             </VBox>
 
             <!-- RIGHT - Log and status -->
-            <VBox spacing="8" HBox.hgrow="ALWAYS">
+            <VBox spacing="10.0" HBox.hgrow="ALWAYS" style="-fx-padding: 14px; -fx-background-color: white;">
 
-                <Label text="ACTIVITY LOG"
-                       style="-fx-text-fill: #58a6ff; -fx-font-weight: bold; -fx-font-size: 11px; -fx-letter-spacing: 1px;"/>
+                <HBox alignment="CENTER_LEFT" spacing="5.0">
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="ACTIVITY LOG" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                </HBox>
 
                 <TextArea fx:id="logArea"
                           editable="false"
                           wrapText="true"
                           VBox.vgrow="ALWAYS"
-                          style="-fx-background-color: #161b22; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-text-fill: #c9d1d9; -fx-font-family: 'Courier New'; -fx-font-size: 11px;"/>
+                          style="-fx-font-family: monospace; -fx-font-size: 11px; -fx-control-inner-background: #E8ECEF;"/>
 
                 <!-- Reference -->
-                <VBox style="-fx-background-color: #161b22; -fx-border-color: #30363d; -fx-border-radius: 4; -fx-padding: 10;">
-                    <Label text="REFERENCE"
-                           style="-fx-text-fill: #58a6ff; -fx-font-weight: bold; -fx-font-size: 10px;"/>
-                    <Label text="Ribeiro et al. Automatic diagnosis of the 12-lead ECG using a deep"
-                           style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
-                    <Label text="neural network. Nature Communications 11, 1760 (2020)."
-                           style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+                <VBox style="-fx-background-color: #E8ECEF; -fx-border-color: #D3D3D3; -fx-padding: 8px;" spacing="5.0">
+                    <HBox alignment="CENTER_LEFT" spacing="5.0">
+                        <Label text="●" textFill="#808080" style="-fx-font-size: 10px;"/>
+                        <Label text="Reference" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+                    </HBox>
+                    <Label text="Ribeiro et al. Automatic diagnosis of the 12-lead ECG using a deep neural network. Nature Communications 11, 1760 (2020)."
+                           textFill="#808080" style="-fx-font-size: 11px;" wrapText="true" />
                     <Label text="Model outperforms cardiology residents on 6 ECG abnormalities."
-                           style="-fx-text-fill: #484f58; -fx-font-size: 10px; -fx-font-style: italic;"/>
+                           textFill="#808080" style="-fx-font-size: 10px; -fx-font-style: italic;" wrapText="true" />
                 </VBox>
             </VBox>
         </HBox>
     </center>
 
-    <!-- BOTTOM - Status bar -->
     <bottom>
-        <HBox alignment="CENTER_LEFT" spacing="10"
-              style="-fx-background-color: #161b22; -fx-border-color: #30363d transparent transparent transparent; -fx-padding: 6 12 6 12;">
-            <Rectangle fx:id="statusIndicator" width="10" height="10" arcWidth="10" arcHeight="10"
-                       fill="#484f58"/>
-            <Label fx:id="statusLabel"
-                   text="Initializing..."
-                   style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+        <HBox style="-fx-background-color: #F4F7FB; -fx-padding: 5px 16px;">
+            <HBox alignment="CENTER_LEFT" spacing="5">
+                <Rectangle fx:id="statusIndicator" width="10" height="10" arcWidth="10" arcHeight="10" fill="#D3D3D3"/>
+                <Label fx:id="statusLabel" text="Initializing..." textFill="#808080" style="-fx-font-size: 10px;" />
+            </HBox>
+            <Pane HBox.hgrow="ALWAYS" />
+            <Label text="OpenICE  ·  MD PnP / MGH" textFill="#808080" style="-fx-font-size: 10px;" />
         </HBox>
     </bottom>
 

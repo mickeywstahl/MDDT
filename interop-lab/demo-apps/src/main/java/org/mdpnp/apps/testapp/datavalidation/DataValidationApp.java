@@ -1,17 +1,24 @@
 package org.mdpnp.apps.testapp.datavalidation;
 
+import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Callback;
 
 import org.mdpnp.apps.fxbeans.SampleArrayFx;
 import org.mdpnp.apps.fxbeans.SampleArrayFxList;
-import org.mdpnp.guis.waveform.SampleArrayWaveformSource;
 import org.mdpnp.guis.waveform.javafx.JavaFXWaveformPane;
 import org.springframework.context.ApplicationContext;
 
@@ -19,16 +26,112 @@ import org.springframework.context.ApplicationContext;
  * DataValidationApp
  * =================
  * JavaFX Controller for the Data Validation OpenICE application.
+ *
+ * All three waveform panes are driven by a single AnimationTimer that reads
+ * from rolling sample buffers, so they all update at the display frame rate
+ * without depending on WaveformSource / WaveformIterator.
+ *
+ * Pane 1 (teal)   -- raw PPG; during artifact simulation draws the corrupted
+ *                    signal so the viewer can see what is being injected
+ * Pane 2 (yellow) -- SQI step trace updated on each 5s window result
+ * Pane 3 (teal)   -- cleaned PPG: full signal on ACCEPT, flat on REJECT
  */
 public class DataValidationApp {
 
+    // -- FXML bindings --------------------------------------------------------
     @FXML private ComboBox<SampleArrayFx> waveformSelector;
     @FXML private JavaFXWaveformPane rawWaveformPane;
     @FXML private JavaFXWaveformPane validationSignalPane;
     @FXML private JavaFXWaveformPane validatedWaveformPane;
 
+    @FXML private Label       verdictLabel;
+    @FXML private Label       sqiLabel;
+    @FXML private ProgressBar sqiBar;
+    @FXML private Label       perfLabel;
+    @FXML private Label       specLabel;
+    @FXML private Label       autocorrLabel;
+    @FXML private Label       latencyLabel;
+    @FXML private Label       statusLabel;
+    @FXML private Rectangle   statusIndicator;
+    @FXML private Button      simulateArtifactBtn;
+    @FXML private Label       artifactStatusLabel;
+
+    // -- State ----------------------------------------------------------------
     private SampleArrayFxList sampleList;
-    private SampleArrayWaveformSource source;
+    private PpgSqiBridge      bridge;
+    private SampleArrayFx     activeSa;
+
+    // Window-aligned storage -- one entry per completed SQI window.
+    // All three panes share the same x-axis: each column = one 5s window.
+    private static final int   SQI_CAP      = 120;    // 10 min at 5s windows
+    private static final int   SAMPLES_PER_WIN = 1250; // 5s * 250Hz max
+
+    // Per-window SQI metadata
+    private final double[]     sqiBuf       = new double[SQI_CAP];
+    private final boolean[]    sqiAccept    = new boolean[SQI_CAP];
+    private int                sqiWrite     = 0;
+    private int                sqiCount     = 0;
+
+    // Per-window raw sample snapshots (one float[] per completed window)
+    @SuppressWarnings("unchecked")
+    private final float[][]    winSamples   = new float[SQI_CAP][];
+    private final boolean[]    winArtifact  = new boolean[SQI_CAP]; // was simulating?
+
+    // Accumulator for the current (in-progress) window
+    private final java.util.ArrayList<Float> currentWin =
+        new java.util.ArrayList<>(SAMPLES_PER_WIN);
+
+    // Last SQI verdict for cleaned PPG
+    private volatile boolean   lastAccept   = true;
+
+    // AnimationTimer driving all three panes
+    private AnimationTimer     renderTimer;
+
+    // -- Motion artifact simulation -------------------------------------------
+    private static final int    ARTIFACT_DURATION_S = 10;
+    private static final double ARTIFACT_AMPLITUDE  = 3.0;
+    private volatile boolean    simulatingArtifact  = false;
+    private volatile long       artifactEndTime     = 0;
+
+    // -- DDS listener ---------------------------------------------------------
+    private final ChangeListener<Number[]> valuesListener = (obs, oldV, newV) -> {
+        if (activeSa == null || newV == null || bridge == null) return;
+
+        float[] floats = new float[newV.length];
+        if (simulatingArtifact && System.currentTimeMillis() < artifactEndTime) {
+            // Inject broadband Gaussian noise + 12 Hz sinusoidal interference
+            java.util.Random rng = new java.util.Random();
+            double sigAmp   = Math.abs(newV.length > 0 ? newV[0].floatValue() : 1.0f);
+            double noiseAmp = Math.max(sigAmp, 0.5) * ARTIFACT_AMPLITUDE;
+            double fs       = activeSa.getFrequency() > 0 ? activeSa.getFrequency() : 100.0;
+            for (int i = 0; i < newV.length; i++) {
+                floats[i] = (float)(newV[i].floatValue()
+                            + noiseAmp * rng.nextGaussian()
+                            + noiseAmp * 0.5 * Math.sin(2 * Math.PI * 12.0 * i / fs));
+            }
+        } else {
+            for (int i = 0; i < newV.length; i++) floats[i] = newV[i].floatValue();
+            if (simulatingArtifact) {
+                simulatingArtifact = false;
+                Platform.runLater(() -> {
+                    if (simulateArtifactBtn  != null) simulateArtifactBtn.setDisable(false);
+                    if (artifactStatusLabel  != null) artifactStatusLabel.setText("");
+                });
+            }
+        }
+
+        // Accumulate raw samples (post-artifact-injection) into current window
+        synchronized (currentWin) {
+            for (float s : floats) {
+                if (currentWin.size() < SAMPLES_PER_WIN) currentWin.add(s);
+            }
+        }
+
+        double fs = activeSa.getFrequency() > 0 ? activeSa.getFrequency() : 100.0;
+        bridge.onSamples(floats, fs);
+    };
+
+    // -- Lifecycle ------------------------------------------------------------
 
     public void set(SampleArrayFxList sampleList) {
         this.sampleList = sampleList;
@@ -36,78 +139,371 @@ public class DataValidationApp {
     }
 
     public void initialize() {
-        // Customize how items are rendered in the dropdown list
-        waveformSelector.setCellFactory(new Callback<ListView<SampleArrayFx>, ListCell<SampleArrayFx>>() {
-            @Override
-            public ListCell<SampleArrayFx> call(ListView<SampleArrayFx> param) {
-                return new ListCell<SampleArrayFx>() {
-                    @Override
-                    protected void updateItem(SampleArrayFx item, boolean empty) {
-                        super.updateItem(item, empty);
-                        if (empty || item == null) {
-                            setText(null);
-                        } else {
-                            setText(item.getMetric_id() + " [" + item.getUnique_device_identifier() + "]");
-                        }
-                    }
-                };
+        bridge = new PpgSqiBridge((sqi, verdict, perfusion, spectral, autocorr, computeMs) -> {
+            boolean accept = "ACCEPT".equals(verdict);
+            lastAccept = accept;
+
+            // Snapshot the raw samples accumulated during this window
+            float[] windowSnap;
+            boolean wasArtifact = simulatingArtifact
+                || System.currentTimeMillis() < artifactEndTime + 5000;
+            synchronized (currentWin) {
+                windowSnap = new float[currentWin.size()];
+                for (int i = 0; i < windowSnap.length; i++)
+                    windowSnap[i] = currentWin.get(i);
+                currentWin.clear();
             }
-        });
 
-        waveformSelector.setButtonCell(waveformSelector.getCellFactory().call(null));
+            // Store window data and SQI result at the same slot
+            synchronized (sqiBuf) {
+                int slot = sqiWrite % SQI_CAP;
+                sqiBuf   [slot] = sqi;
+                sqiAccept[slot] = accept;
+                winSamples [slot] = windowSnap;
+                winArtifact[slot] = wasArtifact;
+                sqiWrite++;
+                if (sqiCount < SQI_CAP) sqiCount++;
+            }
 
-        // When a new stream is selected, update the source for all charts
-        waveformSelector.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<SampleArrayFx>() {
-            @Override
-            public void changed(ObservableValue<? extends SampleArrayFx> observable, SampleArrayFx oldValue, SampleArrayFx newValue) {
-                if (sampleList != null && newValue != null) {
-                    ice.SampleArray keyHolder = new ice.SampleArray();
-                    sampleList.getReader().get_key_value(keyHolder, newValue.getHandle());
-                    source = new SampleArrayWaveformSource(sampleList.getReader(), keyHolder);
+            Platform.runLater(() -> {
+                verdictLabel.setText(verdict);
+                sqiLabel.setText(String.format("%.3f", sqi));
+                sqiBar.setProgress(sqi);
+                perfLabel.setText(String.format("%.3f", perfusion));
+                specLabel.setText(String.format("%.3f", spectral));
+                autocorrLabel.setText(String.format("%.3f", autocorr));
+                latencyLabel.setText(computeMs + " ms");
+                if (accept) {
+                    verdictLabel.setStyle(
+                        "-fx-text-fill: #2EA44F; -fx-font-size: 20px; -fx-font-weight: bold;");
+                    sqiBar.setStyle("-fx-accent: #2EA44F;");
                 } else {
-                    source = null;
+                    verdictLabel.setStyle(
+                        "-fx-text-fill: #E06C1A; -fx-font-size: 20px; -fx-font-weight: bold;");
+                    sqiBar.setStyle("-fx-accent: #E06C1A;");
                 }
-                
-                rawWaveformPane.setSource(source);
-                validationSignalPane.setSource(source);
-                validatedWaveformPane.setSource(source);
-            }
+            });
         });
+        bridge.start();
 
-        // Set bright stroke colors so the waveforms are visible against the dark background
-        rawWaveformPane.getCanvas().getGraphicsContext2D().setStroke(Color.GREEN);
-        rawWaveformPane.getCanvas().getGraphicsContext2D().setLineWidth(1.5);
-        
-        validationSignalPane.getCanvas().getGraphicsContext2D().setStroke(Color.YELLOW);
-        validationSignalPane.getCanvas().getGraphicsContext2D().setLineWidth(1.5);
-        
-        validatedWaveformPane.getCanvas().getGraphicsContext2D().setStroke(Color.CYAN);
-        validatedWaveformPane.getCanvas().getGraphicsContext2D().setLineWidth(1.5);
-
-        // Turn off overwrite mode to make the waveforms scroll continuously leftward
-        rawWaveformPane.setOverwrite(false);
-        validationSignalPane.setOverwrite(false);
-        validatedWaveformPane.setOverwrite(false);
-
-        // Start the native renderers
-        rawWaveformPane.start();
-        validationSignalPane.start();
-        validatedWaveformPane.start();
+        setupSelector();
+        startRenderTimer();
     }
 
     public void activate(ApplicationContext context) {
-        rawWaveformPane.start();
-        validationSignalPane.start();
-        validatedWaveformPane.start();
+        if (renderTimer != null) renderTimer.start();
     }
 
     public void stop() {
-        rawWaveformPane.stop();
-        validationSignalPane.stop();
-        validatedWaveformPane.stop();
+        if (renderTimer != null) renderTimer.stop();
     }
 
     public void destroy() {
         stop();
+        if (bridge != null) bridge.shutdown();
+    }
+
+    // -- Signal selector ------------------------------------------------------
+
+    private void setupSelector() {
+        waveformSelector.setCellFactory(new Callback<ListView<SampleArrayFx>,
+                ListCell<SampleArrayFx>>() {
+            @Override
+            public ListCell<SampleArrayFx> call(ListView<SampleArrayFx> p) {
+                return new ListCell<SampleArrayFx>() {
+                    @Override
+                    protected void updateItem(SampleArrayFx item, boolean empty) {
+                        super.updateItem(item, empty);
+                        setText((empty || item == null) ? null
+                            : item.getMetric_id() + " [" + item.getUnique_device_identifier() + "]");
+                    }
+                };
+            }
+        });
+        waveformSelector.setButtonCell(waveformSelector.getCellFactory().call(null));
+
+        waveformSelector.getSelectionModel().selectedItemProperty()
+            .addListener(new ChangeListener<SampleArrayFx>() {
+                @Override
+                public void changed(ObservableValue<? extends SampleArrayFx> obs,
+                                    SampleArrayFx oldVal, SampleArrayFx newVal) {
+                    if (oldVal != null) oldVal.valuesProperty().removeListener(valuesListener);
+
+                    activeSa = newVal;
+
+                    // Reset accumulators when signal changes
+                    synchronized (currentWin) { currentWin.clear(); }
+                    synchronized (sqiBuf)     { sqiWrite = 0; sqiCount = 0; }
+
+                    if (newVal != null && sampleList != null) {
+                        newVal.valuesProperty().addListener(valuesListener);
+                        if (statusLabel    != null)
+                            statusLabel.setText("Active - monitoring " + newVal.getMetric_id());
+                        if (statusIndicator != null)
+                            statusIndicator.setFill(Color.valueOf("#2EA44F"));
+                    } else {
+                        if (statusLabel     != null) statusLabel.setText("No signal selected.");
+                        if (statusIndicator != null) statusIndicator.setFill(Color.valueOf("#D3D3D3"));
+                        if (verdictLabel    != null) { verdictLabel.setText("--");
+                            verdictLabel.setStyle("-fx-text-fill: #484f58; -fx-font-size: 20px; -fx-font-weight: bold;"); }
+                        if (sqiLabel        != null) sqiLabel.setText("--");
+                        if (sqiBar          != null) sqiBar.setProgress(0);
+                        if (perfLabel       != null) perfLabel.setText("--");
+                        if (specLabel       != null) specLabel.setText("--");
+                        if (autocorrLabel   != null) autocorrLabel.setText("--");
+                        if (latencyLabel    != null) latencyLabel.setText("-- ms");
+                    }
+                }
+            });
+    }
+
+    // -- Canvas rendering -----------------------------------------------------
+
+    private static final Color BG = Color.web("#2b2b2b");
+
+    private void startRenderTimer() {
+        renderTimer = new AnimationTimer() {
+            @Override
+            public void handle(long now) {
+                renderRawPane();
+                renderSqiPane();
+                renderCleanedPane();
+            }
+        };
+        renderTimer.start();
+    }
+
+    /** Shared helper: read current window snapshot arrays in display order. */
+    private Object[] getWindowSnapshots() {
+        synchronized (sqiBuf) {
+            int count      = Math.min(sqiCount, SQI_CAP);
+            double[]   sqi    = new double[count];
+            boolean[]  accept = new boolean[count];
+            float[][]  raw    = new float[count][];
+            boolean[]  art    = new boolean[count];
+            int start = sqiCount >= SQI_CAP ? sqiWrite : 0;
+            for (int i = 0; i < count; i++) {
+                int slot   = (start + i) % SQI_CAP;
+                sqi   [i]  = sqiBuf    [slot];
+                accept[i]  = sqiAccept [slot];
+                raw   [i]  = winSamples[slot];
+                art   [i]  = winArtifact[slot];
+            }
+            return new Object[]{sqi, accept, raw, art, count};
+        }
+    }
+
+    /** Compute x boundaries for a window slot given total count and canvas width. */
+    private double sliceWidth(int count, double w) {
+        return w / Math.max(count, 12);
+    }
+
+    private double sliceX(int i, int count, double w) {
+        double sw = sliceWidth(count, w);
+        return w - count * sw + i * sw;  // right-aligned: newest on right
+    }
+
+    private void renderRawPane() {
+        Canvas c = rawWaveformPane.getCanvas();
+        double w = c.getWidth(), h = c.getHeight();
+        if (w <= 0 || h <= 0) return;
+        GraphicsContext gc = c.getGraphicsContext2D();
+        gc.setFill(BG); gc.fillRect(0, 0, w, h);
+
+        Object[] snaps = getWindowSnapshots();
+        int count = (int) snaps[4];
+        if (count == 0) {
+            gc.setFill(Color.web("#484f58"));
+            gc.setFont(javafx.scene.text.Font.font(11));
+            gc.fillText("Waiting for first 5s window...", w * 0.3, h / 2);
+            return;
+        }
+
+        float[][]  raw    = (float[][]) snaps[2];
+        boolean[]  art    = (boolean[]) snaps[3];
+        boolean[]  accept = (boolean[]) snaps[1];
+        double sw = sliceWidth(count, w);
+        double margin = h * 0.075, drawH = h - 2 * margin;
+
+        for (int i = 0; i < count; i++) {
+            float[] samples = raw[i];
+            if (samples == null || samples.length < 2) continue;
+            double x1 = sliceX(i, count, w);
+            double x2 = x1 + sw;
+
+            // Background tint for artifact windows
+            if (art[i]) {
+                gc.setFill(Color.web("#E06C1A", 0.08));
+                gc.fillRect(x1, 0, sw, h);
+            }
+
+            // Find min/max for this window
+            float yMin = samples[0], yMax = samples[0];
+            for (float s : samples) {
+                if (s < yMin) yMin = s; if (s > yMax) yMax = s;
+            }
+            float range = yMax - yMin;
+            if (range < 1e-6f) continue;
+
+            // Draw waveform clipped to this window's x-slice
+            Color stroke = art[i] ? Color.web("#E06C1A") : Color.valueOf("#008080");
+            gc.setStroke(stroke);
+            gc.setLineWidth(1.2);
+            gc.save();
+            gc.beginPath(); gc.rect(x1, 0, sw, h); gc.clip();
+            gc.beginPath();
+            int n = samples.length;
+            for (int j = 0; j < n; j++) {
+                double x = x1 + sw * j / (n - 1);
+                double y = margin + drawH * (1.0 - (samples[j] - yMin) / range);
+                if (j == 0) gc.moveTo(x, y); else gc.lineTo(x, y);
+            }
+            gc.stroke();
+            gc.restore();
+
+            // Window separator
+            gc.setStroke(Color.web("#383838"));
+            gc.setLineWidth(0.5);
+            gc.strokeLine(x1, 0, x1, h);
+        }
+    }
+
+    private void renderSqiPane() {
+        Canvas c = validationSignalPane.getCanvas();
+        double w = c.getWidth(), h = c.getHeight();
+        if (w <= 0 || h <= 0) return;
+        GraphicsContext gc = c.getGraphicsContext2D();
+        gc.setFill(BG); gc.fillRect(0, 0, w, h);
+
+        double margin  = h * 0.075;
+        double drawH   = h - 2 * margin;
+        double yThresh = margin + drawH * (1.0 - 0.40);
+
+        // Threshold line
+        gc.setStroke(Color.web("#484f58"));
+        gc.setLineWidth(0.5);
+        gc.setLineDashes(4, 4);
+        gc.strokeLine(0, yThresh, w, yThresh);
+        gc.setLineDashes();
+        gc.setFill(Color.web("#484f58"));
+        gc.setFont(javafx.scene.text.Font.font(9));
+        gc.fillText("1.0",  3, margin + 9);
+        gc.fillText("0.40", 3, yThresh - 2);
+        gc.fillText("0.0",  3, h - margin);
+
+        Object[] snaps = getWindowSnapshots();
+        int count = (int) snaps[4];
+        if (count == 0) {
+            gc.setFill(Color.web("#484f58"));
+            gc.setFont(javafx.scene.text.Font.font(11));
+            gc.fillText("Waiting for first 5-second window...", w * 0.25, h / 2);
+            return;
+        }
+
+        double[]  sqi    = (double[])  snaps[0];
+        boolean[] accept = (boolean[]) snaps[1];
+        double sw = sliceWidth(count, w);
+
+        for (int i = 0; i < count; i++) {
+            double x1  = sliceX(i, count, w);
+            double x2  = x1 + sw;
+            double yPx = margin + drawH * (1.0 - sqi[i]);
+
+            // Filled bar
+            gc.setFill(accept[i] ? Color.web("#2EA44F", 0.18) : Color.web("#E06C1A", 0.18));
+            gc.fillRect(x1, yPx, sw, h - margin - yPx);
+
+            // Step line
+            gc.setStroke(accept[i] ? Color.web("#2EA44F") : Color.web("#E06C1A"));
+            gc.setLineWidth(2.5);
+            gc.strokeLine(x1, yPx, x2, yPx);
+
+            // Vertical connector to previous step
+            if (i > 0) {
+                double prevY = margin + drawH * (1.0 - sqi[i - 1]);
+                gc.setLineWidth(1.0);
+                gc.strokeLine(x1, prevY, x1, yPx);
+            }
+
+            // Window separator
+            gc.setStroke(Color.web("#383838"));
+            gc.setLineWidth(0.5);
+            gc.strokeLine(x1, 0, x1, h);
+        }
+    }
+
+    private void renderCleanedPane() {
+        Canvas c = validatedWaveformPane.getCanvas();
+        double w = c.getWidth(), h = c.getHeight();
+        if (w <= 0 || h <= 0) return;
+        GraphicsContext gc = c.getGraphicsContext2D();
+        gc.setFill(BG); gc.fillRect(0, 0, w, h);
+
+        Object[] snaps = getWindowSnapshots();
+        int count = (int) snaps[4];
+        if (count == 0) return;
+
+        float[][]  raw    = (float[][]) snaps[2];
+        boolean[]  accept = (boolean[]) snaps[1];
+        double sw = sliceWidth(count, w);
+        double margin = h * 0.075, drawH = h - 2 * margin;
+
+        for (int i = 0; i < count; i++) {
+            double x1 = sliceX(i, count, w);
+
+            // Window separator
+            gc.setStroke(Color.web("#383838"));
+            gc.setLineWidth(0.5);
+            gc.strokeLine(x1, 0, x1, h);
+
+            if (!accept[i]) {
+                // REJECT -- flat midline in dark teal
+                gc.setStroke(Color.web("#1A4A5A"));
+                gc.setLineWidth(1.5);
+                gc.strokeLine(x1, h / 2, x1 + sw, h / 2);
+                continue;
+            }
+
+            float[] samples = raw[i];
+            if (samples == null || samples.length < 2) continue;
+            float yMin = samples[0], yMax = samples[0];
+            for (float s : samples) {
+                if (s < yMin) yMin = s; if (s > yMax) yMax = s;
+            }
+            float range = yMax - yMin;
+            if (range < 1e-6f) continue;
+
+            gc.setStroke(Color.valueOf("#008080"));
+            gc.setLineWidth(1.2);
+            gc.save();
+            gc.beginPath(); gc.rect(x1, 0, sw, h); gc.clip();
+            gc.beginPath();
+            int n = samples.length;
+            for (int j = 0; j < n; j++) {
+                double x = x1 + sw * j / (n - 1);
+                double y = margin + drawH * (1.0 - (samples[j] - yMin) / range);
+                if (j == 0) gc.moveTo(x, y); else gc.lineTo(x, y);
+            }
+            gc.stroke();
+            gc.restore();
+        }
+    }
+
+    // -- Button handler -------------------------------------------------------
+
+    @FXML
+    private void onSimulateArtifact() {
+        if (activeSa == null) {
+            if (artifactStatusLabel != null)
+                artifactStatusLabel.setText("Select a signal first.");
+            return;
+        }
+        simulatingArtifact = true;
+        artifactEndTime    = System.currentTimeMillis()
+                            + (long)(ARTIFACT_DURATION_S * 1000);
+        if (simulateArtifactBtn != null)  simulateArtifactBtn.setDisable(true);
+        if (artifactStatusLabel != null)
+            artifactStatusLabel.setText(
+                "Injecting " + ARTIFACT_DURATION_S + "s of motion artifact...");
     }
 }

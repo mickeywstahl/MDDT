@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.shape.Rectangle?>
+<?import javafx.geometry.Insets?>
+<?import org.mdpnp.guis.waveform.javafx.JavaFXWaveformPane?>
+
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="org.mdpnp.apps.testapp.datavalidation.DataValidationApp"
+            style="-fx-background-color: #2b2b2b;">
+    <top>
+        <VBox style="-fx-background-color: #1e1e1e;">
+            <!-- Row 1: signal selector -->
+            <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-padding: 8 10 8 10;">
+                <Label text="Select Waveform:" style="-fx-text-fill: white;" />
+                <ComboBox fx:id="waveformSelector" prefWidth="400" />
+            </HBox>
+            <!-- Row 2: SQI status bar -->
+            <HBox spacing="12" alignment="CENTER_LEFT"
+                  style="-fx-padding: 5 10 5 10; -fx-background-color: #161616;">
+                <Rectangle fx:id="statusIndicator" width="12" height="12"
+                           arcWidth="12" arcHeight="12" fill="#484f58"/>
+                <Label fx:id="statusLabel" text="No signal selected."
+                       style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+                <Label text="|" style="-fx-text-fill: #30363d;"/>
+                <Label text="VERDICT:" style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+                <Label fx:id="verdictLabel" text="--"
+                       style="-fx-text-fill: #484f58; -fx-font-size: 11px; -fx-font-weight: bold;"/>
+                <Label text="|" style="-fx-text-fill: #30363d;"/>
+                <Label text="SQI:" style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+                <Label fx:id="sqiLabel" text="--"
+                       style="-fx-text-fill: #c9d1d9; -fx-font-size: 11px;"/>
+                <ProgressBar fx:id="sqiBar" progress="0" prefWidth="80"
+                             style="-fx-accent: #484f58;"/>
+                <Label text="|" style="-fx-text-fill: #30363d;"/>
+                <Label text="Perf:" style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+                <Label fx:id="perfLabel" text="--"
+                       style="-fx-text-fill: #c9d1d9; -fx-font-size: 10px;"/>
+                <Label text="Spec:" style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+                <Label fx:id="specLabel" text="--"
+                       style="-fx-text-fill: #c9d1d9; -fx-font-size: 10px;"/>
+                <Label text="AC:" style="-fx-text-fill: #8b949e; -fx-font-size: 10px;"/>
+                <Label fx:id="autocorrLabel" text="--"
+                       style="-fx-text-fill: #c9d1d9; -fx-font-size: 10px;"/>
+                <Label text="|" style="-fx-text-fill: #30363d;"/>
+                <Label fx:id="latencyLabel" text="-- ms"
+                       style="-fx-text-fill: #484f58; -fx-font-size: 10px;"/>
+            </HBox>
+        </VBox>
+    </top>
+    <center>
+        <VBox spacing="8" style="-fx-padding: 8;">
+            <!-- Pane 1: Raw PPG with Simulate button -->
+            <VBox VBox.vgrow="ALWAYS" spacing="4">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="RAW PPG" style="-fx-text-fill: #008080;
+                           -fx-font-size: 10px; -fx-font-weight: bold;"/>
+                    <Label text="unfiltered signal from DDS bus"
+                           style="-fx-text-fill: #484f58; -fx-font-size: 9px;"/>
+                    <Button fx:id="simulateArtifactBtn"
+                            text="Simulate Motion Artifact"
+                            onAction="#onSimulateArtifact"
+                            style="-fx-background-color: #B85042; -fx-text-fill: white;
+                                   -fx-font-size: 10px; -fx-padding: 3 10 3 10;
+                                   -fx-cursor: hand;"/>
+                    <Label fx:id="artifactStatusLabel" text=""
+                           style="-fx-text-fill: #E06C1A; -fx-font-size: 10px;
+                                  -fx-font-style: italic;"/>
+                </HBox>
+                <JavaFXWaveformPane fx:id="rawWaveformPane"
+                                    VBox.vgrow="ALWAYS" prefHeight="180"/>
+            </VBox>
+            <!-- Pane 2: SQI Trace -->
+            <VBox VBox.vgrow="ALWAYS" spacing="4">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="SQI TRACE"
+                           style="-fx-text-fill: #FFC000; -fx-font-size: 10px;
+                                  -fx-font-weight: bold;"/>
+                    <Label text="quality score per 5s window  |  threshold = 0.40"
+                           style="-fx-text-fill: #484f58; -fx-font-size: 9px;"/>
+                </HBox>
+                <JavaFXWaveformPane fx:id="validationSignalPane"
+                                    VBox.vgrow="ALWAYS" prefHeight="180"/>
+            </VBox>
+            <!-- Pane 3: Cleaned PPG -->
+            <VBox VBox.vgrow="ALWAYS" spacing="4">
+                <HBox alignment="CENTER_LEFT" spacing="12">
+                    <Label text="CLEANED PPG"
+                           style="-fx-text-fill: #0D1B3E; -fx-font-size: 10px;
+                                  -fx-font-weight: bold;"/>
+                    <Label text="invalid sections zeroed out"
+                           style="-fx-text-fill: #484f58; -fx-font-size: 9px;"/>
+                </HBox>
+                <JavaFXWaveformPane fx:id="validatedWaveformPane"
+                                    VBox.vgrow="ALWAYS" prefHeight="180"/>
+            </VBox>
+        </VBox>
+    </center>
+</BorderPane>
