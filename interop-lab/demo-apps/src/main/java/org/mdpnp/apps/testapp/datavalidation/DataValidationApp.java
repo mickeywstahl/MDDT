@@ -92,6 +92,9 @@ public class DataValidationApp {
     private static final double ARTIFACT_AMPLITUDE  = 3.0;
     private volatile boolean    simulatingArtifact  = false;
     private volatile long       artifactEndTime     = 0;
+    // Set to true as soon as any artifact sample enters the current window;
+    // cleared after each window is snapshotted into winArtifact[].
+    private volatile boolean    winHadArtifact      = false;
 
     // -- DDS listener ---------------------------------------------------------
     private final ChangeListener<Number[]> valuesListener = (obs, oldV, newV) -> {
@@ -100,6 +103,7 @@ public class DataValidationApp {
         float[] floats = new float[newV.length];
         if (simulatingArtifact && System.currentTimeMillis() < artifactEndTime) {
             // Inject broadband Gaussian noise + 12 Hz sinusoidal interference
+            winHadArtifact = true;  // mark current window as contaminated
             java.util.Random rng = new java.util.Random();
             double sigAmp   = Math.abs(newV.length > 0 ? newV[0].floatValue() : 1.0f);
             double noiseAmp = Math.max(sigAmp, 0.5) * ARTIFACT_AMPLITUDE;
@@ -143,10 +147,13 @@ public class DataValidationApp {
             boolean accept = "ACCEPT".equals(verdict);
             lastAccept = accept;
 
+            // A window is marked as artifact if simulation was active at ANY point
+            // during sample accumulation. We track this via a per-window flag that
+            // gets set as soon as the first artifact sample arrives in valuesListener.
+            boolean wasArtifact = winHadArtifact;
+            winHadArtifact = false;  // reset for next window
             // Snapshot the raw samples accumulated during this window
             float[] windowSnap;
-            boolean wasArtifact = simulatingArtifact
-                || System.currentTimeMillis() < artifactEndTime + 5000;
             synchronized (currentWin) {
                 windowSnap = new float[currentWin.size()];
                 for (int i = 0; i < windowSnap.length; i++)
@@ -409,11 +416,10 @@ public class DataValidationApp {
             double x2  = x1 + sw;
             double yPx = margin + drawH * (1.0 - sqi[i]);
 
-            // Filled bar
+            // Color is determined solely by the SQI algorithm verdict
             gc.setFill(accept[i] ? Color.web("#2EA44F", 0.18) : Color.web("#E06C1A", 0.18));
             gc.fillRect(x1, yPx, sw, h - margin - yPx);
 
-            // Step line
             gc.setStroke(accept[i] ? Color.web("#2EA44F") : Color.web("#E06C1A"));
             gc.setLineWidth(2.5);
             gc.strokeLine(x1, yPx, x2, yPx);
@@ -456,6 +462,7 @@ public class DataValidationApp {
             gc.setLineWidth(0.5);
             gc.strokeLine(x1, 0, x1, h);
 
+            // Suppress window based solely on the SQI algorithm verdict
             if (!accept[i]) {
                 // REJECT -- flat midline in dark teal
                 gc.setStroke(Color.web("#1A4A5A"));
