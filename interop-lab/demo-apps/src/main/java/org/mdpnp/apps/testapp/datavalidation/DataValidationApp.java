@@ -13,6 +13,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.util.Callback;
@@ -38,6 +41,9 @@ import org.springframework.context.ApplicationContext;
  */
 public class DataValidationApp {
 
+    private static final org.slf4j.Logger log =
+        org.slf4j.LoggerFactory.getLogger(DataValidationApp.class);
+
     // -- FXML bindings --------------------------------------------------------
     @FXML private ComboBox<SampleArrayFx> waveformSelector;
     @FXML private JavaFXWaveformPane rawWaveformPane;
@@ -55,6 +61,7 @@ public class DataValidationApp {
     @FXML private Rectangle   statusIndicator;
     @FXML private Button      simulateArtifactBtn;
     @FXML private Label       artifactStatusLabel;
+    @FXML private Label       recordingLabel;   // shows REC indicator
 
     // -- State ----------------------------------------------------------------
     private SampleArrayFxList sampleList;
@@ -87,7 +94,8 @@ public class DataValidationApp {
     // AnimationTimer driving all three panes
     private AnimationTimer     renderTimer;
 
-    // -- Motion artifact simulation -------------------------------------------
+    // -- Screen recorder ------------------------------------------------------
+    private MjpegAviRecorder recorder;
     private static final int    ARTIFACT_DURATION_S = 10;
     private static final double ARTIFACT_AMPLITUDE  = 3.0;
     private volatile boolean    simulatingArtifact  = false;
@@ -199,6 +207,53 @@ public class DataValidationApp {
 
     public void activate(ApplicationContext context) {
         if (renderTimer != null) renderTimer.start();
+
+        // Register Ctrl+R shortcut for screen recording on the scene
+        javafx.scene.Scene scene = rawWaveformPane.getScene();
+        if (scene != null) {
+            scene.getAccelerators().put(
+                new KeyCodeCombination(KeyCode.R, KeyCombination.CONTROL_DOWN),
+                this::toggleRecording);
+        }
+    }
+
+    /** Toggle screen recording on/off. Bound to Ctrl+R. */
+    private void toggleRecording() {
+        if (recorder == null) {
+            recorder = new MjpegAviRecorder(rawWaveformPane.getScene());
+        }
+        if (recorder.isRecording()) {
+            recorder.stopRecording();
+            String path = recorder.getLastOutputPath();
+            updateRecordingLabel(false, null);
+            if (statusLabel != null)
+                statusLabel.setText("Recording saved: " + path);
+            log.info("Recording stopped: {}", path);
+        } else {
+            try {
+                String path = recorder.startRecording();
+                updateRecordingLabel(true, path);
+                log.info("Recording started: {}", path);
+            } catch (java.io.IOException e) {
+                if (statusLabel != null)
+                    statusLabel.setText("Recording error: " + e.getMessage());
+                log.error("Failed to start recording: {}", e.getMessage());
+            }
+        }
+    }
+
+    private void updateRecordingLabel(boolean active, String path) {
+        if (recordingLabel == null) return;
+        if (active) {
+            recordingLabel.setText("  REC");
+            recordingLabel.setStyle(
+                "-fx-text-fill: #ff3333; -fx-font-weight: bold; " +
+                "-fx-font-size: 11px; -fx-background-color: #3a0000; " +
+                "-fx-padding: 2 6 2 6; -fx-background-radius: 3;");
+        } else {
+            recordingLabel.setText("");
+            recordingLabel.setStyle("");
+        }
     }
 
     public void stop() {
@@ -207,6 +262,7 @@ public class DataValidationApp {
 
     public void destroy() {
         stop();
+        if (recorder != null && recorder.isRecording()) recorder.stopRecording();
         if (bridge != null) bridge.shutdown();
     }
 

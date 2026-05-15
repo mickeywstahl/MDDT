@@ -17,10 +17,14 @@
             style="-fx-background-color: #2b2b2b;">
     <top>
         <VBox style="-fx-background-color: #1e1e1e;">
-            <!-- Row 1: signal selector -->
+            <!-- Row 1: signal selector + recording indicator -->
             <HBox spacing="10" alignment="CENTER_LEFT" style="-fx-padding: 8 10 8 10;">
                 <Label text="Select Waveform:" style="-fx-text-fill: white;" />
                 <ComboBox fx:id="waveformSelector" prefWidth="400" />
+                <Label fx:id="recordingLabel" text=""
+                       style="-fx-text-fill: #ff3333; -fx-font-weight: bold; -fx-font-size: 11px;"/>
+                <Label text="Ctrl+R to record"
+                       style="-fx-text-fill: #484f58; -fx-font-size: 9px; -fx-font-style: italic;"/>
             </HBox>
             <!-- Row 2: SQI status bar -->
             <HBox spacing="12" alignment="CENTER_LEFT"
