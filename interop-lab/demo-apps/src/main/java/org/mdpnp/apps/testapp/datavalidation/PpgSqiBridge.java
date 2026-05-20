@@ -109,6 +109,12 @@ public class PpgSqiBridge {
     public int     getCleanWritePos(){ return cleanWritePos; }
     public int     getRingCapacity() { return RING_CAPACITY; }
 
+    /** Adjust the ACCEPT/REJECT threshold at runtime (0.0–1.0). */
+    public void setThreshold(double t) { engine.setThreshold(t); }
+
+    /** Expose the engine so callers can read the current threshold. */
+    public PpgSqiEngine getEngine() { return engine; }
+
     // -- Window processing ---------------------------------------------------
 
     private void processWindow() {

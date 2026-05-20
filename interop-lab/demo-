@@ -30,23 +30,23 @@
         <ToggleGroup fx:id="timeWindowGroup"/>
     </fx:define>
 
-    <!-- TOP - Header -->
+    <!-- TOP - Header (ACLIVA style) -->
     <top>
         <HBox style="-fx-background-color: #0D1B3E; -fx-padding: 8px;">
             <Label text="DATA VALIDATION APP" textFill="WHITE" style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
             <Pane HBox.hgrow="ALWAYS" />
-            <Label text="OpenICE  Â·  MD PnP / MGH" textFill="WHITE" style="-fx-font-size: 13px;"/>
+            <Label text="OpenICE  ·  MD PnP / MGH" textFill="WHITE" style="-fx-font-size: 13px;"/>
         </HBox>
     </top>
 
-    <!-- CENTER -->
+    <!-- CENTER: three waveform panes + metrics -->
     <center>
         <HBox spacing="10">
-            <!-- LEFT PANEL -->
+            <!-- LEFT PANEL: Configuration and Metrics -->
             <VBox prefWidth="380.0" style="-fx-background-color: #F4F7FB; -fx-border-color: transparent #D3D3D3 transparent transparent; -fx-padding: 10px;" spacing="7.0">
 
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="PPG SIGNAL" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                 </HBox>
                 <ComboBox fx:id="waveformSelector" prefWidth="360"
@@ -54,8 +54,9 @@
 
                 <Separator style="-fx-padding: 10 0 10 0;" />
 
+                <!-- SQI STATUS -->
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="SIGNAL QUALITY INDEX (SQI)" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                 </HBox>
 
@@ -64,6 +65,7 @@
                         <Label text="VERDICT" style="-fx-text-fill: #808080; -fx-font-size: 10px; -fx-letter-spacing: 1px;"/>
                         <Label fx:id="verdictLabel" text="--" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
                     </VBox>
+
                     <VBox alignment="CENTER_LEFT" spacing="3" prefWidth="180">
                         <HBox alignment="CENTER_LEFT" spacing="8">
                             <Label text="SQI SCORE" style="-fx-text-fill: #808080; -fx-font-size: 10px;"/>
@@ -75,8 +77,9 @@
 
                 <Separator style="-fx-padding: 10 0 10 0;" />
 
+                <!-- INDIVIDUAL SCORES -->
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="COMPONENTS" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                 </HBox>
 
@@ -85,17 +88,23 @@
                         <ColumnConstraints prefWidth="120"/>
                         <ColumnConstraints prefWidth="100"/>
                     </columnConstraints>
+
                     <Label text="Perfusion:" style="-fx-text-fill: #808080; -fx-font-size: 11px;"
                            GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-                    <Label fx:id="perfLabel" text="--" style="-fx-font-size: 11px; -fx-font-weight: bold;"
+                    <Label fx:id="perfLabel" text="--"
+                           style="-fx-font-size: 11px; -fx-font-weight: bold;"
                            GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
                     <Label text="Spectral Power:" style="-fx-text-fill: #808080; -fx-font-size: 11px;"
                            GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-                    <Label fx:id="specLabel" text="--" style="-fx-font-size: 11px; -fx-font-weight: bold;"
+                    <Label fx:id="specLabel" text="--"
+                           style="-fx-font-size: 11px; -fx-font-weight: bold;"
                            GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
                     <Label text="Autocorrelation:" style="-fx-text-fill: #808080; -fx-font-size: 11px;"
                            GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-                    <Label fx:id="autocorrLabel" text="--" style="-fx-font-size: 11px; -fx-font-weight: bold;"
+                    <Label fx:id="autocorrLabel" text="--"
+                           style="-fx-font-size: 11px; -fx-font-weight: bold;"
                            GridPane.rowIndex="2" GridPane.columnIndex="1"/>
                 </GridPane>
 
@@ -108,7 +117,7 @@
 
                 <!-- TIME WINDOW CONTROL -->
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="TIME WINDOW" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                 </HBox>
                 <HBox spacing="6" alignment="CENTER_LEFT">
@@ -127,7 +136,7 @@
 
                 <!-- SQI THRESHOLD CONTROL -->
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="SQI THRESHOLD" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <Label fx:id="thresholdValueLabel" text="0.40"
                            style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #FFC000;"/>
@@ -142,7 +151,7 @@
                 <!-- REFERENCE -->
                 <VBox style="-fx-background-color: #E8ECEF; -fx-border-color: #D3D3D3; -fx-padding: 8px;" spacing="5.0">
                     <HBox alignment="CENTER_LEFT" spacing="5.0">
-                        <Label text="â—" textFill="#808080" style="-fx-font-size: 10px;"/>
+                        <Label text="●" textFill="#808080" style="-fx-font-size: 10px;"/>
                         <Label text="Reference" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                     </HBox>
                     <Label text="Le et al., Front. Physiology 2022"
@@ -156,6 +165,7 @@
             <!-- RIGHT PANEL: Waveforms -->
             <VBox spacing="10" HBox.hgrow="ALWAYS" style="-fx-padding: 14px; -fx-background-color: white;">
 
+                <!-- Pane 1: Raw PPG -->
                 <VBox VBox.vgrow="ALWAYS" spacing="3"
                       style="-fx-background-color: #F4F7FB; -fx-border-color: #D3D3D3; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;">
                     <HBox alignment="CENTER_LEFT" spacing="10">
@@ -173,6 +183,7 @@
                     <JavaFXWaveformPane fx:id="rawWaveformPane" VBox.vgrow="ALWAYS" prefHeight="200"/>
                 </VBox>
 
+                <!-- Pane 2: SQI trace -->
                 <VBox VBox.vgrow="ALWAYS" spacing="3"
                       style="-fx-background-color: #F4F7FB; -fx-border-color: #D3D3D3; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;">
                     <HBox alignment="CENTER_LEFT" spacing="10">
@@ -184,6 +195,7 @@
                     <JavaFXWaveformPane fx:id="validationSignalPane" VBox.vgrow="ALWAYS" prefHeight="200"/>
                 </VBox>
 
+                <!-- Pane 3: Cleaned PPG -->
                 <VBox VBox.vgrow="ALWAYS" spacing="3"
                       style="-fx-background-color: #F4F7FB; -fx-border-color: #D3D3D3; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;">
                     <HBox alignment="CENTER_LEFT" spacing="10">

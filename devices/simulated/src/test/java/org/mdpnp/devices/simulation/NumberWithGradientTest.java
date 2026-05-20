@@ -5,48 +5,64 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @author mfeinberg
- */
 public class NumberWithGradientTest {
 
-    private final static Logger log = LoggerFactory.getLogger(NumberWithGradientTest.class);
+    private static final Logger log = LoggerFactory.getLogger(NumberWithGradientTest.class);
 
     @Test
-    public void testLevelToPositive() throws Exception {
+    public void testGradientWithNoise() throws Exception {
 
-        Number n = new NumberWithGradient(3, 10, 2);
-        int expected[] = { 3, 5, 7, 9, 10, 10, 10, 10};
-        for(int idx=0; idx<expected.length; idx++) {
-            int i = n.intValue();
-            log.info("iteration " + idx + " value="+i);
-            Assert.assertEquals("Invalid value at iteration " + idx, expected[idx], i);
-        }
-    }
+        NumberWithGradient g = new NumberWithGradient(0, 100, 10, 1);
 
-    @Test
-    public void testLevelToNegative() throws Exception {
-
-        Number n = new NumberWithGradient(3, -7, 2);
-        int expected[] = { 3, 1, -1, -3, -5, -7, -7, -7};
-        for(int idx=0; idx<expected.length; idx++) {
-            int i = n.intValue();
-            Assert.assertEquals("Invalid value at iteration " + idx, expected[idx], i);
-        }
-    }
-
-    @Test
-    public void testLevelToJitter() throws Exception {
-
-        Number val = new NumberWithJitter<Integer>(15, 1, 2);
-        Number n = new NumberWithGradient(3, val, 2);
-        int expected[] = { 3, 5, 7, 9, 11, 13 };
-        for(int idx=0; idx<expected.length; idx++) {
-            int i = n.intValue();
-            Assert.assertEquals("Step 1: Invalid value at iteration " + idx, expected[idx], i);
+        for(int idx=0; idx<10; idx++) {
+            double i = g.doubleValue();
+            log.info("GradientValue=" + i);
+            double v = 10 * idx;
+            Assert.assertTrue("Invalid value at iteration " + idx, Math.abs(i - v) <= 1);
         }
         for(int idx=0; idx<10; idx++) {
-            int i = n.intValue();
+            double i = g.doubleValue();
+            log.info("GradientValue=" + i);
+            Assert.assertTrue("Invalid value at iteration " + idx, Math.abs(i - 100) <= 1);
+        }
+    }
+
+
+    @Test
+    public void testGradientFloat() throws Exception {
+
+        NumberWithGradient g = new NumberWithGradient(0, 100.0, 10.0, 0);
+
+        for(int idx=0; idx<10; idx++) {
+            double i = g.floatValue();
+            log.info("GradientValue=" + i);
+            double v = 10 * idx;
+            Assert.assertEquals("Invalid value at iteration " + idx, v, i, 0.0001);
+        }
+
+        for(int idx=0; idx<10; idx++) {
+            double i = g.floatValue();
+            log.info("GradientValue=" + i);
+            Assert.assertEquals("Invalid value at iteration " + idx, 100, i, 0.0001);
+        }
+    }
+
+    @Test
+    public void testUpdateFloat() throws Exception {
+
+        NumberWithGradient g = new NumberWithGradient(15, 15, 2, 2);
+
+        for(int idx=0; idx<10; idx++) {
+            double i = g.floatValue();
+            log.info("Step 1: GradientValue=" + i);
+            Assert.assertTrue("Step 1: Invalid value at iteration " + idx, Math.abs(i - 15) <= 2);
+        }
+
+        NumberWithGradient g2 = new NumberWithGradient(g, 15, 2, 2);
+
+        for(int idx=0; idx<10; idx++) {
+            double i = g2.floatValue();
+            log.info("Step 2: GradientValue=" + i);
             Assert.assertTrue("Step 2: Invalid value at iteration " + idx, Math.abs(i - 15) <= 2);
         }
     }
@@ -58,10 +74,10 @@ public class NumberWithGradientTest {
         // this is to emulate the case when the user changes the simulator controls via the gui
         // and that sends increments for every drag of the slider.
         //
-        Number initial = new Integer(15);
+        Number initial = Integer.valueOf(15);
 
         for (int idx = 1; idx < 10; idx++) {
-            Number target = new Integer(15 + idx);
+            Number target = Integer.valueOf(15 + idx);
             initial = new NumberWithGradient(initial, target, 1);
             log.info("change initial value to " + initial);
         }
@@ -78,27 +94,21 @@ public class NumberWithGradientTest {
         // GlobalSimulationObjectiveListener::simulatedNumeric implementation
         //
 
-        class Simulator {
-            Number param = new NumberWithJitter<Integer>(10, 1, 5);
-            public Number getParam() {
-                return param;
-            }
-            public void setParam(Number targetValue) {
-                param = new NumberWithGradient(param, targetValue, 2);
-            }
+        double [] sequence = new double[] { 1.0, 2.0, 3.0, 5.0, 5.0, 5.0, 6.0 };
+        Number initial = Integer.valueOf(0);
+
+        for(int i=0; i<sequence.length; i++) {
+            // this loop simulates update callbacks. GlobalSimulationObjectiveListener
+            // recreates NumberWithGradient upon receipt of new value wrapping old target
+            initial = new NumberWithGradient(initial, sequence[i], 1.0, 0);
+
+            // get the intermediate value. This triggers internal update of
+            // the state.
+            // This is the call made by SimulatedDevice::getNumeric()
+            double intermediate = initial.doubleValue();
+            log.info("Step " + i + ": intermediate=" + intermediate);
+
+            Assert.assertEquals(i, intermediate, 0.001);
         }
-
-        Simulator sim = new Simulator();
-
-        for (int idx = 1; idx < 5; idx++) {
-            Number newValue = new NumberWithJitter<Integer>(10+idx, 1, 5);
-            sim.setParam(newValue);
-        }
-
-        NumberWithGradient nwg = (NumberWithGradient)sim.getParam();
-
-        Assert.assertTrue("Make sure there is no memory leak due to chaining",
-                          nwg.startValue instanceof NumberWithJitter);
     }
-
 }

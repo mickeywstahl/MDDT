@@ -13,6 +13,11 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Slider;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -61,7 +66,14 @@ public class DataValidationApp {
     @FXML private Rectangle   statusIndicator;
     @FXML private Button      simulateArtifactBtn;
     @FXML private Label       artifactStatusLabel;
-    @FXML private Label       recordingLabel;   // shows REC indicator
+    @FXML private Label       recordingLabel;
+
+    // -- New controls ---------------------------------------------------------
+    @FXML private ToggleButton fullRecordToggle;
+    @FXML private ToggleButton rollingWindowToggle;
+    @FXML private Spinner<Integer> windowMinutesSpinner;
+    @FXML private Slider   thresholdSlider;
+    @FXML private Label    thresholdValueLabel;
 
     // -- State ----------------------------------------------------------------
     private SampleArrayFxList sampleList;
@@ -203,6 +215,60 @@ public class DataValidationApp {
 
         setupSelector();
         startRenderTimer();
+        wireWindowControl();
+        wireThresholdControl();
+    }
+
+    // -- Window count helper --------------------------------------------------
+
+    /**
+     * Returns how many of the most-recent SQI windows to display.
+     * "Full Record" = all stored windows (up to SQI_CAP).
+     * "Rolling"     = at most windowMinutes * 12 windows (12 windows/min at 5s each).
+     */
+    private int displayWindowCount(int totalStored) {
+        if (fullRecordToggle != null && fullRecordToggle.isSelected()) {
+            return totalStored;
+        }
+        int minutes = (windowMinutesSpinner != null)
+            ? windowMinutesSpinner.getValue() : 2;
+        int maxWins = minutes * 12;   // 60s/min ÷ 5s/window = 12 windows/min
+        return Math.min(totalStored, maxWins);
+    }
+
+    // -- Wire new controls ----------------------------------------------------
+
+    private void wireWindowControl() {
+        if (windowMinutesSpinner != null) {
+            windowMinutesSpinner.setValueFactory(
+                new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 60, 2));
+            // disable spinner when Full Record is selected
+            if (fullRecordToggle != null) {
+                fullRecordToggle.selectedProperty().addListener(
+                    (obs, o, selected) ->
+                        windowMinutesSpinner.setDisable(selected));
+            }
+        }
+        // Both toggles trigger a repaint automatically via the AnimationTimer —
+        // no explicit handler needed; displayWindowCount() is called each frame.
+    }
+
+    private void wireThresholdControl() {
+        if (thresholdSlider == null) return;
+        thresholdSlider.setMin(0.10);
+        thresholdSlider.setMax(0.90);
+        thresholdSlider.setValue(0.40);
+        thresholdSlider.setMajorTickUnit(0.10);
+        thresholdSlider.setMinorTickCount(1);
+        thresholdSlider.setSnapToTicks(false);
+        if (thresholdValueLabel != null)
+            thresholdValueLabel.setText("0.40");
+        thresholdSlider.valueProperty().addListener((obs, oldV, newV) -> {
+            double t = Math.round(newV.doubleValue() * 100.0) / 100.0;
+            if (bridge != null) bridge.setThreshold(t);
+            if (thresholdValueLabel != null)
+                thresholdValueLabel.setText(String.format("%.2f", t));
+        });
     }
 
     public void activate(ApplicationContext context) {
@@ -339,12 +405,14 @@ public class DataValidationApp {
     /** Shared helper: read current window snapshot arrays in display order. */
     private Object[] getWindowSnapshots() {
         synchronized (sqiBuf) {
-            int count      = Math.min(sqiCount, SQI_CAP);
+            int stored = Math.min(sqiCount, SQI_CAP);
+            int count  = displayWindowCount(stored);
             double[]   sqi    = new double[count];
             boolean[]  accept = new boolean[count];
             float[][]  raw    = new float[count][];
             boolean[]  art    = new boolean[count];
-            int start = sqiCount >= SQI_CAP ? sqiWrite : 0;
+            // Take the most-recent `count` windows from the ring
+            int start = ((sqiWrite - count) % SQI_CAP + SQI_CAP) % SQI_CAP;
             for (int i = 0; i < count; i++) {
                 int slot   = (start + i) % SQI_CAP;
                 sqi   [i]  = sqiBuf    [slot];
@@ -440,7 +508,8 @@ public class DataValidationApp {
 
         double margin  = h * 0.075;
         double drawH   = h - 2 * margin;
-        double yThresh = margin + drawH * (1.0 - 0.40);
+        double liveThreshold = (thresholdSlider != null) ? thresholdSlider.getValue() : 0.40;
+        double yThresh = margin + drawH * (1.0 - liveThreshold);
 
         // Threshold line
         gc.setStroke(Color.web("#484f58"));
@@ -451,7 +520,7 @@ public class DataValidationApp {
         gc.setFill(Color.web("#484f58"));
         gc.setFont(javafx.scene.text.Font.font(9));
         gc.fillText("1.0",  3, margin + 9);
-        gc.fillText("0.40", 3, yThresh - 2);
+        gc.fillText(String.format("%.2f", liveThreshold), 3, yThresh - 2);
         gc.fillText("0.0",  3, h - margin);
 
         Object[] snaps = getWindowSnapshots();

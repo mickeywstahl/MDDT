@@ -1,3 +1,10 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
 include 'data-types:x73-idl'
 
 
@@ -45,4 +52,3 @@ include 'interop-lab:demo-apps'
 //include 'himss-2013:docreceive'
 //include 'himss-2013:infusion-pump-ui'
 //include 'himss-2013:settings-transfer'
-

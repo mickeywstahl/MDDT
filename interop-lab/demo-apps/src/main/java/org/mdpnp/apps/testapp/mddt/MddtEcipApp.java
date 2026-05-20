@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import com.rti.dds.subscription.Subscriber;
 
-import ice.InfusionObjectiveDataWriter;
 import ice.InfusionProgramDataWriter;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -71,7 +70,6 @@ public class MddtEcipApp implements Initializable {
     private NumericFxList numericList;
     private SampleArrayFxList sampleList;
     private AlertFxList alertList;
-    private InfusionObjectiveDataWriter infusionObjectiveWriter;
     private InfusionProgramDataWriter infusionProgramWriter;
     private MDSHandler mdsHandler;
     private EventLoop eventLoop;
@@ -131,19 +129,22 @@ public class MddtEcipApp implements Initializable {
 
     /**
      * Called by the factory after FXML loading to inject all OpenICE beans.
+     *
+     * Note: InfusionObjectiveDataWriter is intentionally NOT accepted here.
+     * InfusionProgramDataWriter is the only writer that reliably actuates
+     * physical hardware ECIPs — all fields must be populated on every write,
+     * using -1 as the sentinel for fields that are not changing.
      */
     public void set(DeviceListModel deviceListModel,
                     NumericFxList numericList,
                     SampleArrayFxList sampleList,
                     AlertFxList alertList,
-                    InfusionObjectiveDataWriter infusionObjectiveWriter,
                     InfusionProgramDataWriter infusionProgramWriter,
                     MDSHandler mdsHandler) {
         this.deviceListModel = deviceListModel;
         this.numericList = numericList;
         this.sampleList = sampleList;
         this.alertList = alertList;
-        this.infusionObjectiveWriter = infusionObjectiveWriter;
         this.infusionProgramWriter = infusionProgramWriter;
         this.mdsHandler = mdsHandler;
     }
@@ -327,6 +328,40 @@ public class MddtEcipApp implements Initializable {
     };
 
     // -----------------------------------------------------------------------
+    // Core pump write — the ONLY place InfusionProgramDataWriter is called.
+    // -----------------------------------------------------------------------
+
+    /**
+     * Send an InfusionProgram to the pump with ALL fields populated.
+     *
+     * Physical pump drivers (AP4000, BaxterAS50, Alaris) require every field
+     * to be present in every write. Use -1 as the sentinel for fields that
+     * are not being changed in this command.
+     *
+     * @param infusionRate  Desired flow rate in ml/hr, or -1 to leave unchanged.
+     * @param vtbi          VTBI in ml, or -1 to leave unchanged.
+     * @param bolusRate     Bolus rate in ml/hr, or -1 if not a bolus command.
+     * @param bolusVolume   Bolus volume in ml, or -1 if not a bolus command.
+     * @param stopInfusion  True to pause, false to resume/continue.
+     */
+    private void sendInfusionProgram(float infusionRate, float vtbi,
+                                     float bolusRate, float bolusVolume,
+                                     boolean stopInfusion) {
+        Device device = deviceCombo.getSelectionModel().getSelectedItem();
+        if (device == null || infusionProgramWriter == null) return;
+
+        ice.InfusionProgram prog = new ice.InfusionProgram();
+        prog.unique_device_identifier = device.getUDI();
+        prog.head         = 1;
+        prog.requestor    = "MddtEcipApp";
+        prog.infusionRate = infusionRate;
+        prog.VTBI         = vtbi;
+        prog.bolusRate    = bolusRate;
+        prog.bolusVolume  = bolusVolume;
+        infusionProgramWriter.write(prog, com.rti.dds.infrastructure.InstanceHandle_t.HANDLE_NIL);
+    }
+
+    // -----------------------------------------------------------------------
     // Manual test actions
     // -----------------------------------------------------------------------
 
@@ -337,7 +372,7 @@ public class MddtEcipApp implements Initializable {
      */
     private void onSendRateChange() {
         Device device = deviceCombo.getSelectionModel().getSelectedItem();
-        if (device == null || infusionObjectiveWriter == null) return;
+        if (device == null || infusionProgramWriter == null) return;
 
         String rateText = flowRateField.getText().trim();
         float rate;
@@ -349,10 +384,9 @@ public class MddtEcipApp implements Initializable {
         }
 
         try {
-            ice.InfusionProgram obj = new ice.InfusionProgram();
-            obj.unique_device_identifier = device.getUDI();
-            obj.infusionRate = rate;
-            infusionProgramWriter.write(obj, com.rti.dds.infrastructure.InstanceHandle_t.HANDLE_NIL);
+            // All fields populated — required for physical pump drivers.
+            // VTBI set to 80 mL matching ClosedLoopControlTestApplication.setFlowRate().
+            sendInfusionProgram(rate, 80f, -1f, -1f, false);
 
             recordCommandSent("RATE_CHANGE");
             totalCommands++;
@@ -370,13 +404,11 @@ public class MddtEcipApp implements Initializable {
      */
     private void onSendPause() {
         Device device = deviceCombo.getSelectionModel().getSelectedItem();
-        if (device == null || infusionObjectiveWriter == null) return;
+        if (device == null || infusionProgramWriter == null) return;
 
         try {
-            ice.InfusionObjective obj = new ice.InfusionObjective();
-            obj.unique_device_identifier = device.getUDI();
-            obj.stopInfusion = true;
-            infusionObjectiveWriter.write(obj, com.rti.dds.infrastructure.InstanceHandle_t.HANDLE_NIL);
+            // All fields -1 except stop signal — sentinel pattern for pause.
+            sendInfusionProgram(-1f, -1f, -1f, -1f, true);
 
             recordCommandSent("PAUSE");
             totalCommands++;
@@ -393,7 +425,7 @@ public class MddtEcipApp implements Initializable {
      */
     private void onSendResume() {
         Device device = deviceCombo.getSelectionModel().getSelectedItem();
-        if (device == null || infusionObjectiveWriter == null) return;
+        if (device == null || infusionProgramWriter == null) return;
 
         String rateText = flowRateField.getText().trim();
         float rate;
@@ -406,15 +438,14 @@ public class MddtEcipApp implements Initializable {
         }
 
         try {
-            ice.InfusionObjective obj = new ice.InfusionObjective();
-            obj.unique_device_identifier = device.getUDI();
-            obj.stopInfusion = false;
-            infusionObjectiveWriter.write(obj, com.rti.dds.infrastructure.InstanceHandle_t.HANDLE_NIL);
+            // Resume at the specified rate with all fields populated.
+            sendInfusionProgram(rate, 80f, -1f, -1f, false);
 
             recordCommandSent("RESUME");
             totalCommands++;
             updateSummary();
-            logEvent("CMD_SENT", "RESUME", "stopInfusion=false", "", "Awaiting acknowledgment");
+            logEvent("CMD_SENT", "RESUME",
+                    String.format("%.4f mL/hr", rate), "", "Awaiting acknowledgment");
         } catch (Exception ex) {
             log.error("Failed to send resume", ex);
             logEvent("ERROR", "RESUME", ex.getMessage(), "", "Write failed");
@@ -443,12 +474,9 @@ public class MddtEcipApp implements Initializable {
         if (device == null || infusionProgramWriter == null) return;
 
         try {
-            ice.InfusionProgram obj = new ice.InfusionProgram();
-            obj.unique_device_identifier = device.getUDI();
-            obj.infusionRate = 99999.0f;
-            if(infusionProgramWriter != null) {
-                infusionProgramWriter.write(obj, com.rti.dds.infrastructure.InstanceHandle_t.HANDLE_NIL);
-            }
+            // All fields populated — out-of-range rate with sentinel bolus/VTBI fields
+            // so the driver processes the message and can return a structured error.
+            sendInfusionProgram(99999.0f, 80f, -1f, -1f, false);
 
             recordCommandSent("OUT_OF_RANGE");
             totalCommands++;

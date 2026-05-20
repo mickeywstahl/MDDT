@@ -39,12 +39,32 @@ package org.mdpnp.apps.testapp.datavalidation;
 public class PpgSqiEngine {
 
     // -- Configuration ---------------------------------------------------------
+    /** SQI threshold: ACCEPT if SQI >= threshold. Adjustable at runtime. */
+    private double threshold = 0.40;
+
+    public double getThreshold()         { return threshold; }
+    public void   setThreshold(double t) { this.threshold = Math.max(0.0, Math.min(1.0, t)); }
+
+    /** Kept for any legacy callers that reference the old static constant. */
     public static final double THRESHOLD      = 0.40;
+
     private static final double PPG_BAND_LOW  = 0.5;   // Hz (30 bpm)
     private static final double PPG_BAND_HIGH = 4.0;   // Hz (240 bpm)
     private static final double LAG_MIN_S     = 0.4;   // s  (150 bpm max)
     private static final double LAG_MAX_S     = 2.0;   // s  (30 bpm min)
     private static final int    AUTOCORR_STEPS = 50;   // samples in lag search
+
+    // -- Clipping gate ---------------------------------------------------------
+    /** ADC rail value that OpenICE monitors emit when the sensor has no signal. */
+    private static final float  RAIL_VALUE     = 2048f;
+    /** Samples within this many ADC counts of the rail are counted as clipped. */
+    private static final float  CLIP_TOLERANCE = 2f;
+    /**
+     * If the clipped fraction of a window meets or exceeds this value the window
+     * is immediately forced to SQI = 0.0 / REJECT, bypassing the composite score.
+     * 15% matches the Python validation against good_pleth / bad_pleth lab data.
+     */
+    private static final double CLIP_HARD_GATE = 0.15;
 
     // -- Result record ---------------------------------------------------------
 
@@ -53,23 +73,27 @@ public class PpgSqiEngine {
         public final double perfusion;
         public final double spectral;
         public final double autocorr;
+        /** Fraction of samples within CLIP_TOLERANCE of the rail value (0.0–1.0). */
+        public final double clipFrac;
         public final String verdict;
         public final long   computeMs;
 
         SqiResult(double sqi, double perfusion, double spectral,
-                  double autocorr, long computeMs) {
+                  double autocorr, double clipFrac, long computeMs, double threshold) {
             this.sqi       = sqi;
             this.perfusion = perfusion;
             this.spectral  = spectral;
             this.autocorr  = autocorr;
-            this.verdict   = sqi >= THRESHOLD ? "ACCEPT" : "REJECT";
+            this.clipFrac  = clipFrac;
+            this.verdict   = sqi >= threshold ? "ACCEPT" : "REJECT";
             this.computeMs = computeMs;
         }
 
         @Override
         public String toString() {
-            return String.format("SqiResult{sqi=%.3f verdict=%s perf=%.3f spec=%.3f autocorr=%.3f %dms}",
-                sqi, verdict, perfusion, spectral, autocorr, computeMs);
+            return String.format(
+                "SqiResult{sqi=%.3f verdict=%s perf=%.3f spec=%.3f autocorr=%.3f clip=%.1f%% %dms}",
+                sqi, verdict, perfusion, spectral, autocorr, clipFrac * 100, computeMs);
         }
     }
 
@@ -87,22 +111,45 @@ public class PpgSqiEngine {
         long t0 = System.currentTimeMillis();
 
         if (samples == null || samples.length < 20 || fs <= 0) {
-            return new SqiResult(0.0, 0.0, 0.0, 0.0,
-                                 System.currentTimeMillis() - t0);
+            return new SqiResult(0.0, 0.0, 0.0, 0.0, 0.0,
+                                 System.currentTimeMillis() - t0, threshold);
         }
 
-        // Convert to double and remove DC offset for spectral/autocorr analysis
-        double[] x    = toDouble(samples);
-        double[] xDc  = removeDc(x);
+        // Check clipping fraction before doing any expensive computation
+        double clipFrac = computeClippingFraction(samples);
 
-        double perf   = computePerfusion(x);
-        double spec   = computeSpectral(xDc, fs);
+        // Convert to double and remove DC offset for spectral/autocorr analysis
+        double[] x   = toDouble(samples);
+        double[] xDc = removeDc(x);
+
+        double perf    = computePerfusion(x);
+        double spec    = computeSpectral(xDc, fs);
         double autocorr = computeAutocorr(xDc, fs);
 
-        double sqi    = clip(0.20 * perf + 0.30 * spec + 0.50 * autocorr);
-        long elapsed  = System.currentTimeMillis() - t0;
+        // Hard gate: too much rail-clipping → force SQI = 0 regardless of composite
+        if (clipFrac >= CLIP_HARD_GATE) {
+            long elapsed = System.currentTimeMillis() - t0;
+            return new SqiResult(0.0, perf, spec, autocorr, clipFrac, elapsed, threshold);
+        }
 
-        return new SqiResult(sqi, perf, spec, autocorr, elapsed);
+        double sqi   = clip(0.20 * perf + 0.30 * spec + 0.50 * autocorr);
+        long elapsed = System.currentTimeMillis() - t0;
+
+        return new SqiResult(sqi, perf, spec, autocorr, clipFrac, elapsed, threshold);
+    }
+
+    // -- Clipping gate ---------------------------------------------------------
+
+    /**
+     * Fraction of samples within CLIP_TOLERANCE ADC counts of RAIL_VALUE.
+     * A high fraction indicates sensor dropout / no-signal from the monitor.
+     */
+    private double computeClippingFraction(float[] samples) {
+        int clipped = 0;
+        for (float s : samples) {
+            if (Math.abs(s - RAIL_VALUE) <= CLIP_TOLERANCE) clipped++;
+        }
+        return (double) clipped / samples.length;
     }
 
     // -- Measure 1: Perfusion index --------------------------------------------
@@ -343,22 +390,24 @@ public class PpgSqiEngine {
         float[] cleanPpg  = generateSine(n, fs, 1.2, 1.0f, 0.05f);
         float[] flat      = generateFlat(n, 0.5f, 0.001f);
         float[] noise     = generateNoise(n);
+        float[] railClip  = generateRailClipped(n, 0.50f); // 50% at rail → hard gate
 
         String[][] cases = {
-            {"clean PPG",   "ACCEPT"},
-            {"flat/sensor", "REJECT"},
-            {"pure noise",  "REJECT"},
+            {"clean PPG",    "ACCEPT"},
+            {"flat/sensor",  "REJECT"},
+            {"pure noise",   "REJECT"},
+            {"rail-clipped", "REJECT"},
         };
-        float[][] signals = {cleanPpg, flat, noise};
+        float[][] signals = {cleanPpg, flat, noise, railClip};
 
         boolean allPass = true;
         for (int i = 0; i < cases.length; i++) {
             SqiResult r = engine.compute(signals[i], fs);
             boolean pass = r.verdict.equals(cases[i][1]);
             allPass &= pass;
-            System.out.printf("[%s] %-15s sqi=%.3f perf=%.3f spec=%.3f autocorr=%.3f -> %s%n",
+            System.out.printf("[%s] %-15s sqi=%.3f perf=%.3f spec=%.3f autocorr=%.3f clip=%4.1f%% -> %s%n",
                 pass ? "PASS" : "FAIL", cases[i][0],
-                r.sqi, r.perfusion, r.spectral, r.autocorr, r.verdict);
+                r.sqi, r.perfusion, r.spectral, r.autocorr, r.clipFrac * 100, r.verdict);
         }
         System.out.println(allPass ? "All tests passed." : "SOME TESTS FAILED.");
         System.exit(allPass ? 0 : 1);
@@ -381,6 +430,18 @@ public class PpgSqiEngine {
         java.util.Random rng = new java.util.Random(42);
         for (int i = 0; i < n; i++) {
             x[i] = level + (float)(noiseAmp * rng.nextGaussian());
+        }
+        return x;
+    }
+
+    /** Generates a signal where clipFraction of samples sit at RAIL_VALUE,
+     *  with real-looking PPG in the remaining fraction — mimics bad_pleth. */
+    private static float[] generateRailClipped(int n, float clipFraction) {
+        float[] x   = new float[n];
+        float[] ppg = generateSine(n, 100.0, 1.2, 500f, 20f);
+        java.util.Random rng = new java.util.Random(42);
+        for (int i = 0; i < n; i++) {
+            x[i] = (rng.nextFloat() < clipFraction) ? RAIL_VALUE : ppg[i] + RAIL_VALUE;
         }
         return x;
     }

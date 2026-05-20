@@ -9,16 +9,13 @@ import org.mdpnp.apps.testapp.IceApplicationProvider;
 import org.mdpnp.apps.testapp.pumps.PumpControllerTestApplicationFactory;
 import org.mdpnp.devices.MDSHandler;
 import org.mdpnp.rtiapi.data.EventLoop;
-import org.mdpnp.rtiapi.data.TopicUtil;
 import org.springframework.context.ApplicationContext;
 
-import com.rti.dds.publication.Publisher;
 import com.rti.dds.subscription.Subscriber;
 
 import ice.FlowRateObjectiveDataWriter;
 import ice.InfusionObjectiveDataWriter;
 import ice.InfusionProgramDataWriter;
-import ice.TrialMarkerDataWriter;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 
@@ -50,8 +47,8 @@ public class PumpActuatorAppFactory implements IceApplicationProvider {
         final NumericFxList numericList =
             parentContext.getBean("numericList", NumericFxList.class);
 
-        final Publisher publisher =
-            (Publisher) parentContext.getBean("publisher");
+        final Subscriber subscriber =
+            (Subscriber) parentContext.getBean("subscriber");
 
         final EventLoop eventLoop =
             (EventLoop) parentContext.getBean("eventLoop");
@@ -69,11 +66,8 @@ public class PumpActuatorAppFactory implements IceApplicationProvider {
             (MDSHandler) parentContext.getBean("mdsConnectivity", MDSHandler.class);
         mdsHandler.start();
 
-        ice.TrialMarkerTypeSupport.register_type(publisher.get_participant(), ice.TrialMarkerTypeSupport.get_type_name());
-        com.rti.dds.topic.Topic trialMarkerTopic = TopicUtil.findOrCreateTopic(publisher.get_participant(), ice.TrialMarkerTopic.VALUE, ice.TrialMarkerTypeSupport.class);
-        final TrialMarkerDataWriter trialMarkerWriter = (TrialMarkerDataWriter) publisher.create_datawriter_with_profile(
-                trialMarkerTopic, org.mdpnp.rtiapi.data.QosProfiles.ice_library,
-                org.mdpnp.rtiapi.data.QosProfiles.state, null, com.rti.dds.infrastructure.StatusKind.STATUS_MASK_NONE);
+        // Stub — swap for generated DataWriter once TrialMarker.idl is built.
+        final TrialMarkerDataWriter trialMarkerWriter = new TrialMarkerDataWriter();
 
         FXMLLoader loader = new FXMLLoader();
         loader.setClassLoader(getClass().getClassLoader());

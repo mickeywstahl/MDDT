@@ -317,11 +317,6 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
 
         long appliedMs = System.currentTimeMillis();
         currentFlowRate = Math.max(cfg.minRateMlPerHr, Math.min(cfg.maxRateMlPerHr, newRate));
-        // If the pump was paused, a new rate command implicitly resumes it
-        if (!infusing.get()) {
-            infusing.set(true);
-            log.info("[CMD_APPLIED] type=resume (implicit) via rateChange t={}", appliedMs);
-        }
         log.info("[CMD_APPLIED] type={} rate={} latency={}ms t={}", commandType, currentFlowRate, appliedMs - receivedMs, appliedMs);
     }
 
@@ -345,50 +340,6 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
         infusing.set(!stop);
         long appliedMs = System.currentTimeMillis();
         log.info("[CMD_APPLIED] type=pauseResume infusing={} latency={}ms t={}", !stop, appliedMs - receivedMs, appliedMs);
-    }
-
-    /**
-     * Apply a bolus command. Briefly sets the flow rate to bolusRate for the
-     * duration required to deliver bolusVolume, then restores currentFlowRate.
-     * Runs on the executor thread so the DDS event loop is not blocked.
-     *
-     * @param bolusRate    Bolus delivery rate in mL/hr
-     * @param bolusVolume  Bolus volume in mL
-     */
-    private void applyBolus(float bolusRate, float bolusVolume) {
-        long receivedMs = System.currentTimeMillis();
-        log.info("[CMD_RECEIVED] type=bolus bolusRate={} bolusVolume={} t={}", bolusRate, bolusVolume, receivedMs);
-
-        if (shouldDropResponse()) {
-            log.warn("[CMD_DROPPED] type=bolus bolusRate={} bolusVolume={}", bolusRate, bolusVolume);
-            return;
-        }
-
-        long latencyMs = computeLatency("rateChange");
-        try {
-            Thread.sleep(latencyMs);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            return;
-        }
-
-        float savedRate = currentFlowRate;
-        currentFlowRate = Math.max(cfg.minRateMlPerHr, Math.min(cfg.maxRateMlPerHr, bolusRate));
-
-        // Duration required to deliver bolusVolume at bolusRate
-        long bolusDurationMs = (long)((bolusVolume / bolusRate) * 3_600_000L);
-        log.info("[CMD_APPLIED] type=bolus bolusRate={} bolusVolume={} durationMs={} t={}",
-            currentFlowRate, bolusVolume, bolusDurationMs, System.currentTimeMillis());
-
-        try {
-            Thread.sleep(bolusDurationMs);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-        }
-
-        // Restore basal rate after bolus delivery
-        currentFlowRate = savedRate;
-        log.info("[CMD_APPLIED] type=bolusComplete restoredRate={} t={}", currentFlowRate, System.currentTimeMillis());
     }
 
     // =========================================================================
@@ -616,30 +567,12 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
                             SampleInfo si = (SampleInfo) info_seq.get(i);
                             if (si.valid_data) {
                                 ice.InfusionProgram data = (ice.InfusionProgram) data_seq.get(i);
-
-                                // Rate change — sentinel -1 means "do not change"
                                 if (data.infusionRate >= 0) {
                                     executor.submit(() -> applyRateCommand(data.infusionRate, "rateChange"));
                                 }
-
-                                // VTBI set — sentinel -1 means "do not change"
                                 if (data.VTBI >= 0) {
                                     vtbi = data.VTBI;
                                     log.info("[CMD_APPLIED] type=setVTBI vtbi={}", vtbi);
-                                }
-
-                                // Pause — all fields are -1 (pure stop with no rate or bolus change)
-                                // This is the pattern sent by PumpActuatorApp.executePause():
-                                //   sendInfusionProgram(-1, -1, -1, -1, true)
-                                if (data.infusionRate < 0 && data.VTBI < 0
-                                        && data.bolusRate < 0 && data.bolusVolume < 0
-                                        && infusing.get()) {
-                                    executor.submit(() -> applyPauseResume(true));
-                                }
-
-                                // Bolus — both bolusRate and bolusVolume must be >= 0
-                                if (data.bolusRate >= 0 && data.bolusVolume >= 0) {
-                                    executor.submit(() -> applyBolus(data.bolusRate, data.bolusVolume));
                                 }
                             }
                         }

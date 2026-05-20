@@ -1,3 +1,4 @@
+$content = @'
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.layout.BorderPane?>
@@ -35,7 +36,7 @@
         <HBox style="-fx-background-color: #0D1B3E; -fx-padding: 8px;">
             <Label text="DATA VALIDATION APP" textFill="WHITE" style="-fx-font-size: 13px; -fx-font-weight: bold;"/>
             <Pane HBox.hgrow="ALWAYS" />
-            <Label text="OpenICE  Â·  MD PnP / MGH" textFill="WHITE" style="-fx-font-size: 13px;"/>
+            <Label text="OpenICE  ·  MD PnP / MGH" textFill="WHITE" style="-fx-font-size: 13px;"/>
         </HBox>
     </top>
 
@@ -46,7 +47,7 @@
             <VBox prefWidth="380.0" style="-fx-background-color: #F4F7FB; -fx-border-color: transparent #D3D3D3 transparent transparent; -fx-padding: 10px;" spacing="7.0">
 
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="PPG SIGNAL" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                 </HBox>
                 <ComboBox fx:id="waveformSelector" prefWidth="360"
@@ -55,7 +56,7 @@
                 <Separator style="-fx-padding: 10 0 10 0;" />
 
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="SIGNAL QUALITY INDEX (SQI)" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                 </HBox>
 
@@ -76,7 +77,7 @@
                 <Separator style="-fx-padding: 10 0 10 0;" />
 
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="COMPONENTS" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                 </HBox>
 
@@ -108,7 +109,7 @@
 
                 <!-- TIME WINDOW CONTROL -->
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="TIME WINDOW" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                 </HBox>
                 <HBox spacing="6" alignment="CENTER_LEFT">
@@ -127,7 +128,7 @@
 
                 <!-- SQI THRESHOLD CONTROL -->
                 <HBox alignment="CENTER_LEFT" spacing="5.0">
-                    <Label text="â—" textFill="#008080" style="-fx-font-size: 10px;"/>
+                    <Label text="●" textFill="#008080" style="-fx-font-size: 10px;"/>
                     <Label text="SQI THRESHOLD" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                     <Label fx:id="thresholdValueLabel" text="0.40"
                            style="-fx-font-size: 12px; -fx-font-weight: bold; -fx-text-fill: #FFC000;"/>
@@ -142,7 +143,7 @@
                 <!-- REFERENCE -->
                 <VBox style="-fx-background-color: #E8ECEF; -fx-border-color: #D3D3D3; -fx-padding: 8px;" spacing="5.0">
                     <HBox alignment="CENTER_LEFT" spacing="5.0">
-                        <Label text="â—" textFill="#808080" style="-fx-font-size: 10px;"/>
+                        <Label text="●" textFill="#808080" style="-fx-font-size: 10px;"/>
                         <Label text="Reference" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
                     </HBox>
                     <Label text="Le et al., Front. Physiology 2022"
@@ -211,3 +212,16 @@
     </bottom>
 
 </BorderPane>
+'@
+
+$dst1 = "C:\mic\mdpnp-private\interop-lab\demo-apps\src\main\resources\org\mdpnp\apps\testapp\datavalidation\DataValidationApp.fxml"
+$dst2 = "C:\mic\mdpnp-private\interop-lab\demo-apps\build\resources\main\org\mdpnp\apps\testapp\datavalidation\DataValidationApp.fxml"
+
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($dst1, $content, $utf8NoBom)
+[System.IO.File]::WriteAllText($dst2, $content, $utf8NoBom)
+
+Write-Host "Done. Verifying fix..."
+Select-String "fx:define" $dst1
+Select-String "fx:define" $dst2
+Write-Host "If both lines above show fx:define, run: .\gradlew :interop-lab:demo-apps:run"

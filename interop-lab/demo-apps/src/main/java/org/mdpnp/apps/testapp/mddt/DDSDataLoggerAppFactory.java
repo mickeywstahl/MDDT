@@ -53,6 +53,8 @@ public class DDSDataLoggerAppFactory implements IceApplicationProvider {
         final EventLoop eventLoop =
             (EventLoop) parentContext.getBean("eventLoop");
 
+        // Stub — swap for generated DataReader once TrialMarker.idl is built.
+        final TrialMarkerDataReader trialMarkerReader = new TrialMarkerDataReader();
 
         FXMLLoader loader = new FXMLLoader();
         loader.setClassLoader(getClass().getClassLoader());
@@ -65,7 +67,7 @@ public class DDSDataLoggerAppFactory implements IceApplicationProvider {
             deviceListModel,
             numericList,
             alertList,
-            null);
+            trialMarkerReader);
 
         controller.start(eventLoop, subscriber);
 

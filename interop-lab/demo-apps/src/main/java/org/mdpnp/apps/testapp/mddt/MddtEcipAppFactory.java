@@ -14,7 +14,6 @@ import org.springframework.context.ApplicationContext;
 
 import com.rti.dds.subscription.Subscriber;
 
-import ice.InfusionObjectiveDataWriter;
 import ice.InfusionProgramDataWriter;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -51,8 +50,9 @@ public class MddtEcipAppFactory implements IceApplicationProvider {
         final EventLoop eventLoop =
                 (EventLoop) parentContext.getBean("eventLoop");
 
-        final InfusionObjectiveDataWriter infusionObjectiveWriter =
-                (InfusionObjectiveDataWriter) parentContext.getBean("infusionObjectiveWriter");
+        // The only pump writer this app uses.
+        // InfusionObjectiveDataWriter is not used — InfusionProgramDataWriter
+        // is the only writer that reliably actuates physical hardware ECIPs.
         final InfusionProgramDataWriter infusionProgramWriter =
                 (InfusionProgramDataWriter) parentContext.getBean("infusionProgramWriter");
 
@@ -66,7 +66,7 @@ public class MddtEcipAppFactory implements IceApplicationProvider {
 
         MddtEcipApp app = (MddtEcipApp) loader.getController();
         app.set(deviceListModel, numericList, sampleList, alertList,
-                infusionObjectiveWriter, infusionProgramWriter, mdsHandler);
+                infusionProgramWriter, mdsHandler);
         app.start(eventLoop, subscriber);
 
         return new IceApp() {
