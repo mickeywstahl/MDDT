@@ -32,11 +32,15 @@ import com.rti.dds.subscription.DataReader;
 import com.rti.dds.subscription.InstanceStateKind;
 import com.rti.dds.subscription.ReadCondition;
 import com.rti.dds.subscription.SampleInfo;
+import com.rti.dds.subscription.SampleInfoSeq;
 import com.rti.dds.subscription.SampleStateKind;
 import com.rti.dds.subscription.Subscriber;
 import com.rti.dds.subscription.ViewStateKind;
 import com.rti.dds.topic.Topic;
 
+import ice.TrialMarker;
+import ice.TrialMarkerDataReader;
+import ice.TrialMarkerSeq;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
@@ -206,8 +210,7 @@ public class DDSDataLoggerApp {
     public void start(EventLoop eventLoop, Subscriber subscriber) {
         attachNumericListeners();
         attachAlertListeners();
-        subscribeToTrialMarkers(eventLoop);
-        scheduleCommandTimeoutSweep();
+        subscribeToTrialMarkers(eventLoop, subscriber);
 
         updateStatus("Idle — press Start Logging to begin recording.");
         if (startLoggingButton != null) startLoggingButton.setDisable(false);
@@ -423,12 +426,11 @@ public class DDSDataLoggerApp {
      * This is the mechanism by which the logger computes command-response
      * latency without any direct coupling to the actuator app.
      */
-    private void subscribeToTrialMarkers(EventLoop eventLoop) {
-        if (trialMarkerReader == null) {
-            log.warn("No TrialMarkerDataReader provided — latency computation disabled.");
-            appendDisplay("[LOGGER] No TrialMarker reader — latency computation disabled.");
-            return;
-        }
+    private void subscribeToTrialMarkers(EventLoop eventLoop, Subscriber subscriber) {
+        ice.TrialMarkerTypeSupport.register_type(subscriber.get_participant(), ice.TrialMarkerTypeSupport.get_type_name());
+        trialMarkerTopic = TopicUtil.findOrCreateTopic(subscriber.get_participant(), ice.TrialMarkerTopic.VALUE, ice.TrialMarkerTypeSupport.class);
+        trialMarkerReader = (TrialMarkerDataReader) subscriber.create_datareader_with_profile(trialMarkerTopic, QosProfiles.ice_library,
+                QosProfiles.state, null, StatusKind.STATUS_MASK_NONE);
 
         ReadCondition rc = trialMarkerReader.create_readcondition(
             SampleStateKind.NOT_READ_SAMPLE_STATE,
@@ -450,7 +452,7 @@ public class DDSDataLoggerApp {
 
         eventLoop.addHandler(rc, new ConditionHandler() {
             private final TrialMarkerSeq data_seq = new TrialMarkerSeq();
-            private final com.rti.dds.subscription.SampleInfoSeq  info_seq = new com.rti.dds.subscription.SampleInfoSeq();
+            private final SampleInfoSeq  info_seq = new SampleInfoSeq();
 
             @Override
             public void conditionChanged(Condition condition) {

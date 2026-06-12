@@ -82,8 +82,7 @@ public class BioLabPlayer {
 					 * 
 					 */
 					Float f=Float.parseFloat(fields[0]);
-					Float f2=new Float(f*1000);
-					long startTime=System.currentTimeMillis()+ f2.longValue() ;
+					long startTime=System.currentTimeMillis()+ (long)(f*1000);
 					for(int i=0;i<byteBuffers.size();i++) {
 						byteBuffers.get(i).putLong(startTime);	//Each channel has the same start time.
 					}

@@ -95,11 +95,17 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
     // -------------------------------------------------------------------------
     // Alarm state
     // -------------------------------------------------------------------------
-    private volatile boolean occlusionActive = false;
-    private volatile boolean lowVolumeActive = false;
-    private volatile boolean lineClampActive = false;
+    private volatile boolean occlusionActive  = false;
+    private volatile boolean lowVolumeActive  = false;
+    private volatile boolean lineClampActive  = false;
+    private volatile boolean commTimeoutActive = false;
+    private volatile boolean lowBatteryActive  = false;
+    private volatile boolean vtbiCompleteActive = false;
+    private volatile String  vtbiCompleteVariant = "STOP"; // STOP | KVO | CONT
     /** Millisecond timestamp when current occlusion alarm should auto-clear. */
     private volatile long occlusionClearTimeMs = 0;
+    /** Last time (ms) an InfusionProgram was received — used for comm-timeout detection. */
+    private volatile long lastCmdReceivedMs = System.currentTimeMillis();
 
     // -------------------------------------------------------------------------
     // Timing / silence state
@@ -108,6 +114,18 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
     private volatile long infusionStartMs = 0;
     /** When true the pump drops all responses (communication disruption). */
     private final AtomicBoolean silenced = new AtomicBoolean(false);
+
+    // -------------------------------------------------------------------------
+    // Session state (Priority 3 — R-107)
+    // -------------------------------------------------------------------------
+    /** Whether a session is currently established (relevant for establish_required model). */
+    private final AtomicBoolean sessionEstablished = new AtomicBoolean(false);
+    /** Current auth key value (for per_command_auth model). */
+    private volatile String currentAuthKey = null;
+    /** Auth key issued time (ms). */
+    private volatile long authKeyIssuedMs = 0;
+    /** Monotonic session counter — increments on each CONNREQ. */
+    private volatile int sessionId = 0;
 
     // -------------------------------------------------------------------------
     // DDS infrastructure
@@ -243,12 +261,14 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
 
         // Publish numerics
         float publishedRate = infusing.get() ? currentFlowRate : 0f;
-        numericSample(flowRateHolder,    publishedRate,  clock.instant());
-        numericSample(volumeInfusedHolder, volumeInfused, clock.instant());
-        numericSample(vtbiHolder,        vtbi,           clock.instant());
-        numericSample(batteryHolder,     batteryLevel,   clock.instant());
+        numericSample(flowRateHolder,      publishedRate,  clock.instant());
+        numericSample(volumeInfusedHolder, volumeInfused,  clock.instant());
+        numericSample(vtbiHolder,          vtbi,           clock.instant());
+        numericSample(batteryHolder,       batteryLevel,   clock.instant());
 
-        if (occlusionActive || lowVolumeActive || lineClampActive) {
+        // Publish alarm state whenever any alarm is active
+        if (occlusionActive || lowVolumeActive || lineClampActive ||
+            commTimeoutActive || lowBatteryActive || vtbiCompleteActive) {
             publishAlarmState();
         }
     }
@@ -289,17 +309,15 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
      * @param commandType  Label for logging ("rateChange", "pauseResume", etc.)
      */
     private void applyRateCommand(float newRate, String commandType) {
-        // Log command receipt timestamp (MDDT can correlate with objective publish time via DDS)
         long receivedMs = System.currentTimeMillis();
+        lastCmdReceivedMs = receivedMs;  // update for comm-timeout detection
         log.info("[CMD_RECEIVED] type={} rate={} t={}", commandType, newRate, receivedMs);
 
-        // Check for dropped response
         if (shouldDropResponse()) {
             log.warn("[CMD_DROPPED] type={} rate={} — simulating dropped response", commandType, newRate);
             return;
         }
 
-        // Calculate and apply latency
         long latencyMs = computeLatency(commandType);
         try {
             Thread.sleep(latencyMs);
@@ -308,20 +326,25 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
             return;
         }
 
-        // Check for malformed response (apply command but log anomaly)
         if (shouldSendMalformedResponse()) {
             log.warn("[CMD_MALFORMED] type={} — simulating malformed response", commandType);
-            // In a real implementation this would publish a response with a bad UDI or wrong metric
-            // For now we log it so the MDDT can detect the anomaly in the log
         }
 
         long appliedMs = System.currentTimeMillis();
         currentFlowRate = Math.max(cfg.minRateMlPerHr, Math.min(cfg.maxRateMlPerHr, newRate));
+
+        // If the pump was paused, a new rate command implicitly resumes it (R-403)
+        if (!infusing.get()) {
+            infusing.set(true);
+            log.info("[CMD_APPLIED] type=resume (implicit) via rateChange t={}", appliedMs);
+        }
+
         log.info("[CMD_APPLIED] type={} rate={} latency={}ms t={}", commandType, currentFlowRate, appliedMs - receivedMs, appliedMs);
     }
 
     private void applyPauseResume(boolean stop) {
         long receivedMs = System.currentTimeMillis();
+        lastCmdReceivedMs = receivedMs;
         log.info("[CMD_RECEIVED] type=pauseResume stop={} t={}", stop, receivedMs);
 
         if (shouldDropResponse()) {
@@ -342,6 +365,244 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
         log.info("[CMD_APPLIED] type=pauseResume infusing={} latency={}ms t={}", !stop, appliedMs - receivedMs, appliedMs);
     }
 
+    /**
+     * Apply a bolus command. Briefly delivers at bolusRate for the time needed
+     * to deliver bolusVolume, then restores the basal rate.
+     */
+    private void applyBolus(float bolusRate, float bolusVolume) {
+        long receivedMs = System.currentTimeMillis();
+        lastCmdReceivedMs = receivedMs;
+        log.info("[CMD_RECEIVED] type=bolus bolusRate={} bolusVolume={} t={}", bolusRate, bolusVolume, receivedMs);
+
+        if (shouldDropResponse()) {
+            log.warn("[CMD_DROPPED] type=bolus bolusRate={} bolusVolume={}", bolusRate, bolusVolume);
+            return;
+        }
+
+        long latencyMs = computeLatency("rateChange");
+        try { Thread.sleep(latencyMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); return; }
+
+        float savedRate = currentFlowRate;
+        currentFlowRate = Math.max(cfg.minRateMlPerHr, Math.min(cfg.maxRateMlPerHr, bolusRate));
+        long bolusDurationMs = (long)((bolusVolume / bolusRate) * 3_600_000L);
+        log.info("[CMD_APPLIED] type=bolus bolusRate={} bolusVolume={} durationMs={} t={}",
+            currentFlowRate, bolusVolume, bolusDurationMs, System.currentTimeMillis());
+
+        try { Thread.sleep(bolusDurationMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+
+        currentFlowRate = savedRate;
+        log.info("[CMD_APPLIED] type=bolusComplete restoredRate={} t={}", currentFlowRate, System.currentTimeMillis());
+    }
+
+    // =========================================================================
+    // Test-control API
+    // Called by MDDT test runner to set up deterministic test conditions.
+    // These methods allow Priority 1–3 tests to trigger specific alarm states
+    // and session behaviors without waiting for probabilistic triggers.
+    // =========================================================================
+
+    /**
+     * Force a specific alarm condition immediately.
+     * Used by MDDT alarm observability tests (Priority 1).
+     *
+     * @param alarmType  One of: "VTBI_COMPLETE_STOP", "VTBI_COMPLETE_KVO",
+     *                   "VTBI_COMPLETE_CONT", "COMM_TIMEOUT", "LOW_BATTERY",
+     *                   "OCCLUSION", "LOW_VOLUME"
+     */
+    public void forceAlarm(String alarmType) {
+        long nowMs = System.currentTimeMillis();
+        switch (alarmType) {
+            case "VTBI_COMPLETE_STOP":
+                vtbiCompleteVariant = "STOP";
+                vtbiCompleteActive  = true;
+                infusing.set(false);
+                log.warn("[ALARM_FORCED] VTBI_COMPLETE variant=STOP t={}", nowMs);
+                break;
+            case "VTBI_COMPLETE_KVO":
+                vtbiCompleteVariant = "KVO";
+                vtbiCompleteActive  = true;
+                currentFlowRate     = cfg.kvoRateMlPerHr;
+                infusing.set(true);
+                log.warn("[ALARM_FORCED] VTBI_COMPLETE variant=KVO rate={} t={}", cfg.kvoRateMlPerHr, nowMs);
+                break;
+            case "VTBI_COMPLETE_CONT":
+                vtbiCompleteVariant = "CONT";
+                vtbiCompleteActive  = true;
+                // infusion continues at current rate
+                log.warn("[ALARM_FORCED] VTBI_COMPLETE variant=CONT t={}", nowMs);
+                break;
+            case "COMM_TIMEOUT":
+                commTimeoutActive = true;
+                // Enter fail-safe
+                if ("KVO".equals(cfg.failSafeState)) {
+                    currentFlowRate = cfg.kvoRateMlPerHr;
+                    infusing.set(true);
+                } else if ("STOP".equals(cfg.failSafeState)) {
+                    infusing.set(false);
+                }
+                log.warn("[ALARM_FORCED] COMM_TIMEOUT failSafe={} t={}", cfg.failSafeState, nowMs);
+                break;
+            case "LOW_BATTERY":
+                batteryLevel     = cfg.batteryLowTestThresholdPercent;
+                lowBatteryActive = true;
+                log.warn("[ALARM_FORCED] LOW_BATTERY level={}% t={}", batteryLevel, nowMs);
+                break;
+            case "OCCLUSION":
+                occlusionActive      = true;
+                occlusionClearTimeMs = nowMs + cfg.occlusionDurationMs;
+                log.warn("[ALARM_FORCED] OCCLUSION t={}", nowMs);
+                break;
+            case "LOW_VOLUME":
+                volumeRemaining  = cfg.lowVolumeThresholdMl * 0.5f;
+                lowVolumeActive  = true;
+                log.warn("[ALARM_FORCED] LOW_VOLUME volumeRemaining={}mL t={}", volumeRemaining, nowMs);
+                break;
+            default:
+                log.warn("[ALARM_FORCED] Unknown alarm type: {}", alarmType);
+        }
+        publishAlarmState();
+    }
+
+    /**
+     * Clear all active alarm conditions and return pump to normal operating state.
+     * Used between alarm sub-tests to reset state.
+     */
+    public void clearAllAlarms() {
+        occlusionActive     = false;
+        lowVolumeActive     = false;
+        lineClampActive     = false;
+        commTimeoutActive   = false;
+        lowBatteryActive    = false;
+        vtbiCompleteActive  = false;
+        vtbiCompleteVariant = "STOP";
+        log.info("[ALARM_CLEAR] All alarms cleared at t={}", System.currentTimeMillis());
+    }
+
+    /**
+     * Simulate session establishment (Priority 3 — R-107).
+     * Returns a session ID the MDDT can use to verify the session model.
+     */
+    public int requestSession() {
+        if ("none".equals(cfg.sessionModel)) {
+            // No explicit session required — always accepted
+            sessionEstablished.set(true);
+            sessionId++;
+            log.info("[SESSION] CONNREQ accepted (no-session model) sessionId={} t={}",
+                sessionId, System.currentTimeMillis());
+            return sessionId;
+        }
+        // For establish_required and per_command_auth
+        sessionEstablished.set(true);
+        sessionId++;
+        if ("per_command_auth".equals(cfg.sessionModel)) {
+            currentAuthKey   = String.format("KEY-%08X", sessionId);
+            authKeyIssuedMs  = System.currentTimeMillis();
+            log.info("[SESSION] CNTLREQ accepted authKey={} sessionId={} t={}",
+                currentAuthKey, sessionId, authKeyIssuedMs);
+        }
+        return sessionId;
+    }
+
+    /**
+     * Renew the authorization key (simulates NKEYREQ on AP-4000).
+     * Returns true if renewal succeeded, false if the previous key had expired.
+     */
+    public boolean renewAuthKey() {
+        if (!"per_command_auth".equals(cfg.sessionModel)) return true;
+        long nowMs  = System.currentTimeMillis();
+        boolean valid = (nowMs - authKeyIssuedMs) < cfg.authKeyValidityMs;
+        if (valid) {
+            currentAuthKey  = String.format("KEY-%08X", sessionId + 100);
+            authKeyIssuedMs = nowMs;
+            log.info("[SESSION] NKEYREQ accepted newKey={} t={}", currentAuthKey, nowMs);
+        } else {
+            sessionEstablished.set(false);
+            currentAuthKey = null;
+            log.warn("[SESSION] NKEYREQ REJECTED — key expired at t={}", nowMs);
+        }
+        return valid;
+    }
+
+    /**
+     * Graceful session teardown (simulates CNTLEND on AP-4000).
+     */
+    public void endSession() {
+        sessionEstablished.set(false);
+        currentAuthKey = null;
+        log.info("[SESSION] CNTLEND graceful disconnect at t={}", System.currentTimeMillis());
+    }
+
+    /**
+     * Return a snapshot of the full simulated pump state for MDDT assertions.
+     * The Python test runner calls this after each command to verify that
+     * the observed value matches the expected simulated value.
+     */
+    public SimState getSimState() {
+        return new SimState(
+            currentFlowRate, infusing.get(), volumeInfused, volumeRemaining,
+            vtbi, batteryLevel,
+            occlusionActive, lowVolumeActive, lineClampActive,
+            commTimeoutActive, lowBatteryActive,
+            vtbiCompleteActive, vtbiCompleteVariant,
+            sessionEstablished.get(), currentAuthKey,
+            heartbeatSequence
+        );
+    }
+
+    /** Immutable snapshot of pump state for test assertions. */
+    public static class SimState {
+        public final float  currentFlowRate;
+        public final boolean infusing;
+        public final float  volumeInfused;
+        public final float  volumeRemaining;
+        public final float  vtbi;
+        public final float  batteryLevel;
+        public final boolean occlusionActive;
+        public final boolean lowVolumeActive;
+        public final boolean lineClampActive;
+        public final boolean commTimeoutActive;
+        public final boolean lowBatteryActive;
+        public final boolean vtbiCompleteActive;
+        public final String  vtbiCompleteVariant;
+        public final boolean sessionEstablished;
+        public final String  authKey;
+        public final long    heartbeatSeq;
+
+        public SimState(float currentFlowRate, boolean infusing, float volumeInfused,
+                        float volumeRemaining, float vtbi, float batteryLevel,
+                        boolean occlusionActive, boolean lowVolumeActive, boolean lineClampActive,
+                        boolean commTimeoutActive, boolean lowBatteryActive,
+                        boolean vtbiCompleteActive, String vtbiCompleteVariant,
+                        boolean sessionEstablished, String authKey, long heartbeatSeq) {
+            this.currentFlowRate    = currentFlowRate;
+            this.infusing           = infusing;
+            this.volumeInfused      = volumeInfused;
+            this.volumeRemaining    = volumeRemaining;
+            this.vtbi               = vtbi;
+            this.batteryLevel       = batteryLevel;
+            this.occlusionActive    = occlusionActive;
+            this.lowVolumeActive    = lowVolumeActive;
+            this.lineClampActive    = lineClampActive;
+            this.commTimeoutActive  = commTimeoutActive;
+            this.lowBatteryActive   = lowBatteryActive;
+            this.vtbiCompleteActive = vtbiCompleteActive;
+            this.vtbiCompleteVariant = vtbiCompleteVariant;
+            this.sessionEstablished = sessionEstablished;
+            this.authKey            = authKey;
+            this.heartbeatSeq       = heartbeatSeq;
+        }
+
+        @Override
+        public String toString() {
+            return String.format(
+                "SimState{rate=%.2f infusing=%b vol=%.3f vtbi=%.2f bat=%.1f%% " +
+                "occlusion=%b lowVol=%b commTimeout=%b vtbiComplete=%b(%s) session=%b key=%s hbSeq=%d}",
+                currentFlowRate, infusing, volumeInfused, vtbi, batteryLevel,
+                occlusionActive, lowVolumeActive, commTimeoutActive,
+                vtbiCompleteActive, vtbiCompleteVariant, sessionEstablished, authKey, heartbeatSeq);
+        }
+    }
+
     // =========================================================================
     // Alarm evaluation
     // =========================================================================
@@ -359,7 +620,6 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
                 }
             }
         }
-        // Auto-clear occlusion
         if (occlusionActive && cfg.occlusionDurationMs > 0 && nowMs >= occlusionClearTimeMs) {
             occlusionActive = false;
             log.info("[ALARM_CLEAR] OCCLUSION cleared at t={}", nowMs);
@@ -382,20 +642,73 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
                 }
             }
         }
+
+        // --- Low battery ---
+        if (!lowBatteryActive && batteryLevel <= cfg.batteryLowThresholdPercent) {
+            lowBatteryActive = true;
+            log.warn("[ALARM] LOW_BATTERY level={}% at t={}", String.format("%.1f", batteryLevel), nowMs);
+        }
+
+        // --- VTBI complete (natural completion — fires when vtbi reaches 0) ---
+        if (!vtbiCompleteActive && vtbi <= 0f && infusing.get()) {
+            vtbiCompleteActive  = true;
+            vtbiCompleteVariant = cfg.vtbiCompleteAction;
+            switch (cfg.vtbiCompleteAction) {
+                case "STOP":
+                    infusing.set(false);
+                    log.warn("[ALARM] VTBI_COMPLETE variant=STOP at t={}", nowMs);
+                    break;
+                case "KVO":
+                    currentFlowRate = cfg.kvoRateMlPerHr;
+                    log.warn("[ALARM] VTBI_COMPLETE variant=KVO rate={} at t={}", cfg.kvoRateMlPerHr, nowMs);
+                    break;
+                case "CONT":
+                    log.warn("[ALARM] VTBI_COMPLETE variant=CONT (continuing) at t={}", nowMs);
+                    break;
+            }
+        }
+
+        // --- Communication timeout ---
+        if (!commTimeoutActive && (nowMs - lastCmdReceivedMs) > cfg.commTimeoutMs) {
+            commTimeoutActive = true;
+            if ("KVO".equals(cfg.failSafeState)) {
+                currentFlowRate = cfg.kvoRateMlPerHr;
+                infusing.set(true);
+            } else if ("STOP".equals(cfg.failSafeState)) {
+                infusing.set(false);
+            }
+            log.warn("[ALARM] COMM_TIMEOUT failSafe={} at t={}", cfg.failSafeState, nowMs);
+        }
+        // Comm timeout clears when a command is received (lastCmdReceivedMs update in applyRateCommand)
+        if (commTimeoutActive && (nowMs - lastCmdReceivedMs) < cfg.commTimeoutMs) {
+            commTimeoutActive = false;
+            log.info("[ALARM_CLEAR] COMM_TIMEOUT cleared at t={}", nowMs);
+        }
     }
 
     /**
-     * Publish current alarm state. In a full implementation this would write
-     * to the ICE Alert topic. For now it logs structured records the MDDT
-     * can parse from the log file, and publishes a numeric flag (1.0 = active).
+     * Publish current alarm state to log (structured for MDDT parsing) and
+     * to the ice.Alert DDS topic once that write path is wired in.
      *
-     * TODO: When ICE Alert DDS topic writing is wired in, replace log statements
-     * with DataWriter.write() calls to ice.Alert topic.
+     * Each alarm line carries: alarm_code, alarm_device, alarm_priority, alarm_sound
+     * matching the AP-4000 STATREQ field structure for structured-alarm testing.
+     *
+     * TODO: Replace log statements with ice.Alert DataWriter.write() calls.
      */
     private void publishAlarmState() {
-        if (occlusionActive) log.info("[ALARM_STATUS] OCCLUSION=1 t={}", System.currentTimeMillis());
-        if (lowVolumeActive) log.info("[ALARM_STATUS] LOW_VOLUME=1 volumeRemaining={} t={}", volumeRemaining, System.currentTimeMillis());
-        if (lineClampActive) log.info("[ALARM_STATUS] LINE_CLAMP=1 t={}", System.currentTimeMillis());
+        long t = System.currentTimeMillis();
+        if (occlusionActive)
+            log.info("[ALARM_STATUS] code=OCCLUSION device=PUMP priority=HIGH sound=ACTIVE t={}", t);
+        if (lowVolumeActive)
+            log.info("[ALARM_STATUS] code=LOW_VOLUME device=PUMP priority=MEDIUM sound=ACTIVE volumeRemaining={}mL t={}", volumeRemaining, t);
+        if (lineClampActive)
+            log.info("[ALARM_STATUS] code=LINE_CLAMP device=PUMP priority=HIGH sound=ACTIVE t={}", t);
+        if (commTimeoutActive)
+            log.info("[ALARM_STATUS] code=COMM_TIMEOUT device=EDI priority=HIGH sound=ACTIVE failSafe={} t={}", cfg.failSafeState, t);
+        if (lowBatteryActive)
+            log.info("[ALARM_STATUS] code=LOW_BATTERY device=PUMP priority=MEDIUM sound=ACTIVE level={}% t={}", String.format("%.1f", batteryLevel), t);
+        if (vtbiCompleteActive)
+            log.info("[ALARM_STATUS] code=VTBI_COMPLETE device=PUMP priority=MEDIUM sound=ACTIVE variant={} t={}", vtbiCompleteVariant, t);
     }
 
     // =========================================================================
@@ -567,12 +880,31 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
                             SampleInfo si = (SampleInfo) info_seq.get(i);
                             if (si.valid_data) {
                                 ice.InfusionProgram data = (ice.InfusionProgram) data_seq.get(i);
+
+                                // Rate change — sentinel -1 means "do not change"
                                 if (data.infusionRate >= 0) {
                                     executor.submit(() -> applyRateCommand(data.infusionRate, "rateChange"));
                                 }
+
+                                // VTBI set — sentinel -1 means "do not change"
                                 if (data.VTBI >= 0) {
                                     vtbi = data.VTBI;
+                                    vtbiCompleteActive = false; // reset completion alarm when VTBI reset
                                     log.info("[CMD_APPLIED] type=setVTBI vtbi={}", vtbi);
+                                }
+
+                                // Pause — all fields -1 (pure stop, no rate or bolus change)
+                                if (data.infusionRate < 0 && data.VTBI < 0
+                                        && data.bolusRate < 0 && data.bolusVolume < 0
+                                        && infusing.get()) {
+                                    executor.submit(() -> applyPauseResume(true));
+                                }
+
+                                // Bolus — both bolusRate and bolusVolume must be >= 0
+                                if (data.bolusRate >= 0 && data.bolusVolume >= 0) {
+                                    final float bRate = data.bolusRate;
+                                    final float bVol  = data.bolusVolume;
+                                    executor.submit(() -> applyBolus(bRate, bVol));
                                 }
                             }
                         }
@@ -664,12 +996,26 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
         final float initialVolumeMl;
         final float maxRateMlPerHr;
         final float minRateMlPerHr;
+        final float rateResolutionMlPerHr;
 
         // Battery
         final boolean batteryEnabled;
         final float batteryInitialLevel;
         final float batteryDrainRatePercentPerHour;
         final float batteryLowThresholdPercent;
+        final float batteryLowTestThresholdPercent;
+
+        // Communication supervision
+        final long   commTimeoutMs;
+        final String failSafeState;
+        final float  kvoRateMlPerHr;
+
+        // Session model
+        final String sessionModel;
+        final long   authKeyValidityMs;
+
+        // VTBI completion action
+        final String vtbiCompleteAction;
 
         SimPumpConfig(Properties p) {
             manufacturer      = p.getProperty("pump.manufacturer", "ICE");
@@ -720,11 +1066,22 @@ public class RealisticSimPump extends AbstractSimulatedConnectedDevice {
             initialVolumeMl     = fp(p, "pump.infusion.initialVolumeMl", 100.0f);
             maxRateMlPerHr      = fp(p, "pump.infusion.maxRateMlPerHr", 1200.0f);
             minRateMlPerHr      = fp(p, "pump.infusion.minRateMlPerHr", 0.1f);
+            rateResolutionMlPerHr = fp(p, "pump.infusion.rateResolutionMlPerHr", 0.1f);
 
             batteryEnabled                   = bp(p, "pump.battery.enabled", true);
             batteryInitialLevel              = fp(p, "pump.battery.initialLevel", 85f);
             batteryDrainRatePercentPerHour   = fp(p, "pump.battery.drainRatePercentPerHour", 2.0f);
             batteryLowThresholdPercent       = fp(p, "pump.battery.lowThresholdPercent", 20f);
+            batteryLowTestThresholdPercent   = fp(p, "pump.alarm.lowBattery.testThresholdPercent", 15f);
+
+            commTimeoutMs   = lp(p, "pump.comm.timeoutMs", 6000);
+            failSafeState   = p.getProperty("pump.comm.failSafeState", "KVO").trim();
+            kvoRateMlPerHr  = fp(p, "pump.comm.kvoRateMlPerHr", 1.0f);
+
+            sessionModel        = p.getProperty("pump.session.model", "none").trim();
+            authKeyValidityMs   = lp(p, "pump.session.authKeyValidityMs", 120000);
+
+            vtbiCompleteAction  = p.getProperty("pump.alarm.vtbiComplete.action", "STOP").trim();
         }
 
         private static long   lp(Properties p, String k, long   d) { try { return Long.parseLong(p.getProperty(k, String.valueOf(d)).trim()); } catch (Exception e) { return d; } }

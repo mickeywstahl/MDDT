@@ -386,8 +386,8 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 		});
 		
 		try {
-			allAlgos.put("10% change", this.getClass().getMethod("simonsSimpleAlgo", null));
-			allAlgos.put("Linear", this.getClass().getMethod("linearAlgo", null));
+			allAlgos.put("10% change", this.getClass().getMethod("simonsSimpleAlgo"));
+			allAlgos.put("Linear", this.getClass().getMethod("linearAlgo"));
 		} catch (NoSuchMethodException | SecurityException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1015,7 +1015,7 @@ public class ClosedLoopControlTestApplication implements EventHandler<ActionEven
 		Method algoMethod=allAlgos.get(algoName);
 		try {
 			//Every algo should populate algoThread.
-			algoMethod.invoke(this, null);
+			algoMethod.invoke(this);
 			algoThread.start();
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			// TODO Auto-generated catch block

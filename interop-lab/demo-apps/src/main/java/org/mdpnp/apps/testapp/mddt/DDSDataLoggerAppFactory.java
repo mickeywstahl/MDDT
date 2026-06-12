@@ -13,6 +13,7 @@ import org.springframework.context.ApplicationContext;
 
 import com.rti.dds.subscription.Subscriber;
 
+import ice.TrialMarkerDataReader;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 
@@ -54,7 +55,7 @@ public class DDSDataLoggerAppFactory implements IceApplicationProvider {
             (EventLoop) parentContext.getBean("eventLoop");
 
         // Stub — swap for generated DataReader once TrialMarker.idl is built.
-        final TrialMarkerDataReader trialMarkerReader = new TrialMarkerDataReader();
+        final TrialMarkerDataReader trialMarkerReader = null;
 
         FXMLLoader loader = new FXMLLoader();
         loader.setClassLoader(getClass().getClassLoader());
